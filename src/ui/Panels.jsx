@@ -9,8 +9,28 @@ import {
   MASTERY_CHALLENGES, TOKEN_SHOP, BRAND_DISCLAIMER,
 } from '../game/data.js';
 import { ACHIEVEMENTS } from '../game/progress.js';
-import { money, rate, dur, num } from '../game/format.js';
+import { money, rate, dur, num, fmtText, SEASON } from '../game/format.js';
 import { LINKS, IG_HANDLE, VERSION } from '../config.js';
+
+const FlagAR = () => (
+  <svg className="flag" viewBox="0 0 18 12" width="18" height="12" aria-hidden="true">
+    <rect width="18" height="12" rx="2" fill="#74ACDF" /><rect y="4" width="18" height="4" fill="#ffffff" /><circle cx="9" cy="6" r="1.4" fill="#F6B40E" />
+  </svg>
+);
+const Globe = () => (
+  <svg className="flag" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20" />
+  </svg>
+);
+export function CurrencyToggle({ s, actions, compact = false }) {
+  const cur = s.settings.currency || 'ARS';
+  return (
+    <div className={'view-toggle cur-toggle' + (compact ? ' compact' : '')} role="group" aria-label="Moneda">
+      <button className={'seg' + (cur === 'ARS' ? ' active' : '')} onClick={() => actions.setting('currency', 'ARS')} title="Pesos argentinos"><FlagAR /> ARS</button>
+      <button className={'seg' + (cur === 'USD' ? ' active' : '')} onClick={() => actions.setting('currency', 'USD')} title="Dólares (conversión de la temporada)"><Globe /> USD</button>
+    </div>
+  );
+}
 
 export function Modal({ title, icon, onClose, children, wide, className = '' }) {
   useEffect(() => {
@@ -35,7 +55,7 @@ export function Modal({ title, icon, onClose, children, wide, className = '' }) 
 function Mastery({ s, pid }) {
   const mi = E.masteryInfo(s, pid);
   return (
-    <span className="mastery" title={`Experiencia: ${num(mi.count)} piezas hechas. Próximo nivel a las ${num(mi.next)}. Cada nivel: +20 % de precio.`}>
+    <span className="mastery" title={`Experiencia: ${num(mi.count)} piezas hechas. Próximo nivel a las ${num(mi.next)}. Cada nivel: +12 % de precio.`}>
       Exp. {mi.lvl}<i><b style={{ width: `${Math.round(Math.max(0, Math.min(1, mi.frac)) * 100)}%` }} /></i>
     </span>
   );
@@ -94,8 +114,9 @@ export function MachinePanel({ s, m, actions, onClose }) {
           );
         })}
       </div>
-      <p className="hint">La <b>experiencia</b> de cada producto sube cuanto más lo fabricás y no se pierde al mudarte: cada nivel paga +20 %.</p>
+      <p className="hint">La <b>experiencia</b> de cada producto sube cuanto más lo fabricás y no se pierde al mudarte: cada nivel paga +12 %.</p>
       <div className="mp-sell">
+        {s.settings.view !== 'lista' && <button className="chip-btn" onClick={() => { window.dispatchEvent(new CustomEvent('mt-focus', { detail: m.id })); onClose(); }}>🔍 Ver de cerca en el taller</button>}
         {s.machines.length > 1 && (!sure
           ? <button className="danger-btn" onClick={() => setSure(true)}><Icon name="trash" size={16} /> Vender (recuperás {money(refund)})</button>
           : <div className="confirm-row"><span>¿Seguro? La pieza en curso se pierde.</span>
@@ -196,7 +217,7 @@ export function AchievementsModal({ s, onClose }) {
         {ACHIEVEMENTS.map((a) => (
           <div key={a.id} className={'ach' + (s.achievements[a.id] ? ' got' : '')}>
             <span className="ach-ico">{s.achievements[a.id] ? '🏆' : <Icon name="lock" size={16} />}</span>
-            <div><b>{a.name}</b><small>{a.desc}</small></div>
+            <div><b>{a.name}</b><small>{fmtText(a.desc)}</small></div>
           </div>
         ))}
       </div>
@@ -240,7 +261,7 @@ export function ChallengesModal({ s, actions, onClose }) {
       {cp && (
         <div className="field-box ch-active">
           <b>En curso: {cp.def.name}</b>
-          <small>{cp.def.rule} Meta: {cp.def.goalText}</small>
+          <small>{cp.def.rule} Meta: {fmtText(cp.def.goalText)}</small>
           <button className="chip-btn" onClick={() => actions.abandonChallenge()}>Abandonar (seguís jugando sin las reglas)</button>
         </div>
       )}
@@ -250,7 +271,7 @@ export function ChallengesModal({ s, actions, onClose }) {
           return (
             <div key={id} className={'perk ch-card' + (won ? ' own' : '')}>
               <b>{C.name}</b>
-              <small><b className="c-pink">Regla:</b> {C.rule}<br /><b className="c-cyan">Meta:</b> {C.goalText}<br /><b>Premio:</b> {C.reward}</small>
+              <small><b className="c-pink">Regla:</b> {C.rule}<br /><b className="c-cyan">Meta:</b> {fmtText(C.goalText)}<br /><b>Premio:</b> {C.reward}</small>
               {won ? <span className="own">✔ Superado</span>
                 : cp?.id === id ? <span className="own">En curso</span>
                   : pick === id
@@ -291,7 +312,7 @@ export function OficioModal({ s, actions, onClose }) {
         <div className="of-level">
           <span className="hud-label">NIVEL MAKER</span>
           <b>{E.makerTitle(pr.total)}</b>
-          <small>{num(pr.total)} puntos de Oficio ganados · <b className="c-cyan">+{num(pr.total * 3)} %</b> de ingresos para siempre</small>
+          <small>{num(pr.total)} puntos de Oficio ganados · <b className="c-cyan">+{num(E.oficioPct(pr.total))} %</b> de ingresos para siempre</small>
         </div>
         <div className="of-points"><span className="hud-label">PARA GASTAR</span><b>{num(pr.points)}</b></div>
       </div>
@@ -304,7 +325,7 @@ export function OficioModal({ s, actions, onClose }) {
           <div><span>Ganado en esta partida</span><b>{money(s.runEarned)}</b></div>
           <div><span>Oficio que ganás</span><b className="c-pink">+{num(gain)}</b></div>
         </div>
-        {!can && <p className="hint">{gain < 1 ? `Necesitás ganar ${money(250000)} en esta partida para el primer punto.` : `Disponible al abrir el ${SPACES[3].name} o al juntar 3 puntos (ganás ${gain}).`}</p>}
+        {!can && <p className="hint">{gain < 1 ? `Necesitás ganar ${money(E.firstOficioAt())} en esta partida para el primer punto.` : `Disponible al abrir el ${SPACES[3].name} o al juntar 3 puntos (ganás ${gain}).`}</p>}
         {can && made.length > 0 && <>
           <div className="lbl">Elegí una pieza para la <b>Vitrina</b> (queda exhibida para siempre en tu local):</div>
           <div className="vit-pick">
@@ -329,7 +350,7 @@ export function OficioModal({ s, actions, onClose }) {
           const own = pr.perks[id];
           return (
             <div key={id} className={'perk' + (own ? ' own' : '')}>
-              <b>{P.name}</b><small>{P.desc}</small>
+              <b>{P.name}</b><small>{fmtText(P.desc)}</small>
               {own ? <span className="own">✔ Tuya</span>
                 : <button className="chip-btn wide" disabled={pr.points < P.cost} onClick={() => actions.buyPerk(id, PERKS)}>{num(P.cost)} de Oficio</button>}
             </div>
@@ -388,13 +409,17 @@ export function SettingsModal({ s, actions, onClose }) {
   const st = s.settings;
   return (
     <Modal title="Ajustes" icon="settings" onClose={onClose}>
+      <div className="section-label">MONEDA</div>
+      <CurrencyToggle s={s} actions={actions} />
+      <p className="hint">La economía del juego es en pesos argentinos. En USD solo cambia cómo se muestran los importes: {SEASON.name}, US$ 1 = AR$ {SEASON.usdRate.toLocaleString('es-AR')} (fijo durante la temporada).</p>
+
       <div className="section-label">GRÁFICOS</div>
       <div className="view-toggle">
-        {[['auto', 'Auto'], ['alta', 'Alta'], ['media', 'Media'], ['baja', 'Baja']].map(([k, l]) => (
+        {[['auto', 'Auto'], ['alta', 'Calidad (PC)'], ['media', 'Equilibrado'], ['baja', 'Rendimiento']].map(([k, l]) => (
           <button key={k} className={'seg' + (st.quality === k ? ' active' : '')} onClick={() => actions.setting('quality', k)}>{l}</button>
         ))}
       </div>
-      <p className="hint">«Alta» suma sombras suaves y brillo de neón. Si el celular se calienta o va lento, probá «Media» o «Baja».</p>
+      <p className="hint">«Calidad» suma sombras de contacto, reflejos y antialias (ideal en PC). En el celular, «Equilibrado» o «Rendimiento» mantienen la estética con menos efectos.</p>
       <div className="view-toggle">
         {[['3d', 'Taller en 3D'], ['lista', 'Vista de lista']].map(([k, l]) => (
           <button key={k} className={'seg' + (st.view === k ? ' active' : '')} onClick={() => actions.setting('view', k)}>{l}</button>
@@ -402,8 +427,13 @@ export function SettingsModal({ s, actions, onClose }) {
       </div>
 
       <div className="section-label">SONIDO</div>
-      <label className="toggle-row"><input type="checkbox" checked={st.sound} onChange={(e) => actions.setting('sound', e.target.checked)} /><span className="switch" /><span>Efectos de sonido</span></label>
-      <input type="range" min="0" max="1" step="0.05" value={st.volume} onChange={(e) => actions.setting('volume', Number(e.target.value))} aria-label="Volumen" />
+      <label className="toggle-row"><input type="checkbox" checked={st.sound} onChange={(e) => actions.setting('sound', e.target.checked)} /><span className="switch" /><span>Sonido activado</span></label>
+      <div className="vol-grid">
+        <label>General<input type="range" min="0" max="1" step="0.05" value={st.volume} onChange={(e) => actions.setting('volume', Number(e.target.value))} /></label>
+        {[['music', 'Música'], ['ambient', 'Ambiente'], ['machines', 'Máquinas'], ['fx', 'Efectos']].map(([k, l]) => (
+          <label key={k}>{l}<input type="range" min="0" max="1" step="0.05" value={st.vol?.[k] ?? 0.5} onChange={(e) => actions.setVol(k, Number(e.target.value))} /></label>
+        ))}
+      </div>
 
       <div className="section-label">ANIMACIONES</div>
       <div className="view-toggle">

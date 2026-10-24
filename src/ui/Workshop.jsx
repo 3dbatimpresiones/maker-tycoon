@@ -5,7 +5,7 @@ import Scene3D from './Scene3D.jsx';
 import { MachineThumb, ProductThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
 import { MACHINES, PRODUCTS, SPACES, MACHINE_EVENTS, GLOBAL_EVENTS } from '../game/data.js';
-import { money, rate, dur, clock } from '../game/format.js';
+import { money, rate, dur, clock, fmtText } from '../game/format.js';
 import { currentMission } from '../game/progress.js';
 
 function Stars({ n }) {
@@ -87,7 +87,7 @@ function ChallengeStrip({ s, open }) {
       <span className="cs-tag">DESAFÍO</span>
       <b>{cp.def.name}</b>
       <span className="cs-rule">{cp.def.rule}</span>
-      <span className="cs-goal">Meta: {cp.def.goalText}{cp.parts.map((p) => (p.frac != null && !p.done ? ` (${Math.floor(p.frac * 100)} %)` : '')).join('')}</span>
+      <span className="cs-goal">Meta: {fmtText(cp.def.goalText)}{cp.parts.map((p) => (p.frac != null && !p.done ? ` (${Math.floor(p.frac * 100)} %)` : '')).join('')}</span>
     </button>
   );
 }
@@ -122,7 +122,7 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
       <ChallengeStrip s={s} open={open} />
       {mission.id !== 'libre' && (
         <div className={'mission-strip' + (s.tutorial.active ? ' tut' : '')}>
-          <Icon name="target" size={16} /><span><b>{s.tutorial.active ? 'TUTORIAL' : 'MISIÓN'}</b> {mission.text}</span>
+          <Icon name="target" size={16} /><span><b>{s.tutorial.active ? 'TUTORIAL' : 'MISIÓN'}</b> {fmtText(mission.text)}</span>
           {mission.reward && <em>{mission.reward.money ? '+' + money(mission.reward.money) : mission.reward.tokens ? `+${mission.reward.tokens} 🎟️` : '+1 ' + (mission.reward.spool === 'PLA' || mission.reward.spool === 'PETG' ? 'bobina' : 'unidad')}</em>}
         </div>
       )}

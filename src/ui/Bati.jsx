@@ -2,6 +2,7 @@
 // mood: normal (ceja levantada) · happy · worried · wink
 import { LINKS, IG_HANDLE } from '../config.js';
 import Icon from './Icon.jsx';
+import { fmtText } from '../game/format.js';
 
 const BLUE = '#2f3ec4', BLUE_L = '#4859e2', BLUE_D = '#2433a6', INK = '#0b1030', SCREEN = '#0c1131';
 const PINK = '#f77fb4', TEAL = '#3cc4ae', TEAL_D = '#2a9c8a', WHITE = '#ffffff';
@@ -119,7 +120,7 @@ export function CtaButtons({ list }) {
 
 // Guía flotante: en el tutorial muestra el paso actual; después, la cola de mensajes.
 export function BatiGuide({ tutorial, mission, queue, onDismiss, onSkip, onPoke }) {
-  const msg = tutorial ? { id: 'tut', text: mission.bati, mood: 'normal' } : queue[0];
+  const msg = tutorial ? { id: 'tut', text: fmtText(mission.bati), mood: 'normal' } : queue[0];
   return (
     <div className={'bati-guide' + (msg ? ' open' : '')}>
       {msg && (

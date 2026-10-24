@@ -170,9 +170,9 @@ export default function MachineArt({ m, run, ev }) {
   const cls = 'mt-svg' + (run ? ' run' : '') + (m.state === 'done' ? ' done' : '');
   const type = MACHINES[m.model]?.art?.type || 'bed';
   let body;
-  if (type === 'bed' || type === 'mini') body = <BedSlinger m={m} p={p} pid={pid} cid={cid} kit={m.model === 'ender3'} printing={printing} ev={ev} />;
+  if (type === 'bed' || type === 'mini' || type === 'ender' || type === 'a1') body = <BedSlinger m={m} p={p} pid={pid} cid={cid} kit={m.model === 'ender3'} printing={printing} ev={ev} />;
   else if (type === 'laser' || type === 'cnc') body = <CoreXY p={p} pid={pid} cid={cid} printing={printing} ev={ev} />;
-  else if (type === 'cube' || type === 'rack' || type === 'resin' || type === 'laserbox' || type === 'cncbox') body = <Enclosure><CoreXY p={p} pid={pid} cid={cid} printing={printing} ev={ev} enclosed /></Enclosure>;
+  else if (type === 'cube' || type === 'u1' || type === 'rack' || type === 'resin' || type === 'laserbox' || type === 'cncbox') body = <Enclosure><CoreXY p={p} pid={pid} cid={cid} printing={printing} ev={ev} enclosed /></Enclosure>;
   else body = <BigFormat p={p} pid={pid} cid={cid} printing={printing} ev={ev} />;
   return (
     <svg className={cls} viewBox="0 0 160 156" aria-hidden="true">

@@ -4,6 +4,7 @@ import Icon from './Icon.jsx';
 import { MACHINES, MACHINE_EVENTS, PRODUCTS, SPACES } from '../game/data.js';
 import * as E from '../game/engine.js';
 import { dur } from '../game/format.js';
+import { sfx } from './sfx.js';
 
 function labelStatus(s, m) {
   if (m.waitStart) return { k: 'start', t: '▶ Imprimir' };
@@ -43,7 +44,11 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow }) {
       const loop = (now) => {
         raf = requestAnimationFrame(loop);
         const st = sRef.current;
-        if (now - lastSync > 200) { lastSync = now; ws.setQuality(st.settings.quality); ws.sync(st); }
+        if (now - lastSync > 200) {
+          lastSync = now; ws.setQuality(st.settings.quality); ws.sync(st);
+          sfx.setIntensity(st.space);
+          sfx.updateMachines(ws.audioPositions());
+        }
         ws.frame(st, now / 1000);
         // Posiciones proyectadas + separación simple para que no se pisen
         const items = [];
@@ -73,8 +78,16 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow }) {
       };
       raf = requestAnimationFrame(loop);
     }).catch(() => onFail?.());
-    return () => { alive = false; cancelAnimationFrame(raf); ro?.disconnect(); wsRef.current?.dispose(); wsRef.current = null; };
+    return () => { alive = false; cancelAnimationFrame(raf); ro?.disconnect(); wsRef.current?.dispose(); wsRef.current = null; sfx.updateMachines([]); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // "Ver de cerca": el panel de la máquina pide acercar la cámara
+  useEffect(() => {
+    const onFocus = (e) => { if (wsRef.current?.focusMachine(e.detail)) setFocused(true); };
+    window.addEventListener('mt-focus', onFocus);
+    return () => window.removeEventListener('mt-focus', onFocus);
+  }, []);
+  const [focused, setFocused] = useState(false);
 
   // Clic/toque sobre el canvas (distinto de arrastrar para girar)
   const down = useRef(null);
@@ -121,7 +134,8 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow }) {
           </button>
         ))}
       </div>
-      {ready && <button className="icon-btn sm scene-center" title="Centrar vista" onClick={() => wsRef.current?.fit()}><Icon name="target" size={18} /></button>}
+      {ready && <button className="icon-btn sm scene-center" title="Ver todo el taller" onClick={() => { wsRef.current?.fit(); setFocused(false); }}><Icon name="target" size={18} /></button>}
+      {ready && focused && <button className="chip-btn scene-back" onClick={() => { wsRef.current?.fit(); setFocused(false); }}>← Ver todo el taller</button>}
       {ready && <span className="scene-hint">Arrastrá para girar · rueda o pellizco para acercar</span>}
     </div>
   );

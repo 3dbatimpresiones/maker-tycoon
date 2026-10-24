@@ -7,11 +7,13 @@
 import {
   UNIT, MATERIALS, MATERIAL_ORDER, STAR_MULT, SPACES, MACHINES, MACHINE_ORDER, PRODUCTS, PRODUCT_ORDER, SIZES,
   UPGRADES, repNeeded, REP_PRICE_BONUS, ORDER_TEMPLATES, ORDER_OFFER_LIFE, ORDER_SPAWN_EVERY, CONTRACT_CLIENTS,
-  MACHINE_EVENTS, GLOBAL_EVENTS, OFICIO_BONUS, MAKER_TITLES, MASTERY_BASE, MASTERY_GROWTH, MASTERY_BONUS,
+  MACHINE_EVENTS, GLOBAL_EVENTS, MAKER_TITLES, MASTERY_BASE, MASTERY_GROWTH, MASTERY_BONUS,
   MASTERY_CHALLENGES, TECHS,
 } from './data.js';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
+// Escala de la Mudanza: con AR$ 1.000 M ganados en una partida se obtienen ~3 puntos de Oficio.
+export const OFICIO_SCALE = 4.5e8;
 export const FIRST_FREE_MISSION = 5; // las 5 primeras misiones son el tutorial
 
 // ---------- Azar con semilla ----------
@@ -37,7 +39,8 @@ function freshStats() {
 }
 function freshRun() { return { pieces: 0, products: {}, mates: 0, orders: 0, spools: 0, xl: 0 }; }
 export function defaultSettings() {
-  return { sound: true, volume: 0.6, anim: 'full', led: 'cyan', quality: 'auto', view: '3d' };
+  return { sound: true, volume: 0.6, anim: 'full', led: 'cyan', quality: 'auto', view: '3d', currency: 'ARS',
+    vol: { music: 0.35, ambient: 0.5, machines: 0.6, fx: 0.7 } };
 }
 const emptyMats = () => Object.fromEntries(MATERIAL_ORDER.map((k) => [k, 0]));
 
@@ -84,7 +87,7 @@ export function newGame(keep = null, seed = (Date.now() ^ 0x5bd1e995) >>> 0, cha
   };
   if (!s.prestige.mastery) s.prestige.mastery = {};
   addMachine(s, 'ender3', 0, !keep);
-  if (perks.mesa && !rule(s, 'soloender')) { addMachine(s, 'magna', 0, false); s.money += 200; }
+  if (perks.mesa && !rule(s, 'soloender')) { addMachine(s, 'magna', 0, false); s.money += 150000; }
   if (perks.cuarto) s.space = Math.max(s.space, 1);
   if (perks.garage) s.space = Math.max(s.space, 2);
   if (perks.local) s.space = Math.max(s.space, 3);
@@ -132,7 +135,10 @@ export function repProgress(s) {
   return { level: l, frac: (s.rep - a) / (b - a), cur: s.rep - a, next: b - a };
 }
 export const repMult = (s) => 1 + REP_PRICE_BONUS * (repLevel(s) - 1);
-export const oficioMult = (s) => 1 + OFICIO_BONUS * s.prestige.total;
+// Bonus del Oficio: crece cada vez más lento (logarítmico) para que la economía no se dispare.
+export const oficioMultOf = (total) => 1 + 0.5 * Math.log(1 + total);
+export const oficioMult = (s) => oficioMultOf(s.prestige.total);
+export const oficioPct = (total) => Math.round((oficioMultOf(total) - 1) * 100);
 export function makerTitle(total) {
   let t = MAKER_TITLES[0][1];
   for (const [n, name] of MAKER_TITLES) if (total >= n) t = name;
@@ -171,10 +177,10 @@ export const mateBoost = (s) => (mastered(s, 'sinmate') ? 2 : 1.5);
 
 export function speedMult(s, model, withMate = true) {
   const M = MACHINES[model];
-  let k = Math.pow(1.2, lvlOf(s, 'granja'));
+  let k = Math.pow(1.1, lvlOf(s, 'granja'));
   if (M.tech === 'fdm') {
-    k *= Math.pow(1.1, lvlOf(s, 'slicer')) * Math.pow(1.25, lvlOf(s, 'hotend'));
-    if (has(s, 'input') && M.enclosed) k *= 1.5;
+    k *= Math.pow(1.05, lvlOf(s, 'slicer')) * Math.pow(1.1, lvlOf(s, 'hotend'));
+    if (has(s, 'input') && M.enclosed) k *= 1.2;
   } else if (M.tech === 'resin') k *= Math.pow(1.15, lvlOf(s, 'exposicion'));
   else if (M.tech === 'laser') k *= Math.pow(1.15, lvlOf(s, 'potencia'));
   else if (M.tech === 'cnc') k *= Math.pow(1.15, lvlOf(s, 'fresas'));
@@ -224,7 +230,7 @@ export const canPrint = (s, m, pid) => machineCantReason(s, m, pid) === null;
 
 export function pieceValue(s, pid, stars) {
   return PRODUCTS[pid].price * STAR_MULT[Math.max(1, Math.min(5, stars))] * repMult(s) * oficioMult(s)
-    * Math.pow(1.12, lvlOf(s, 'marca')) * masteryInfo(s, pid).mult;
+    * Math.pow(1.08, lvlOf(s, 'marca')) * masteryInfo(s, pid).mult;
 }
 export const trendActive = (s, pid) => s.trend.p === pid && s.time < s.trend.until;
 export function saleMult(s, pid) {
@@ -311,7 +317,7 @@ export function boardSize(s) { return (has(s, 'tablero') ? 5 : 3) + (perk(s, 'co
 export function offlineEff(s) { return Math.min(1, (has(s, 'remota') ? 0.8 : 0.5) + (perk(s, 'duermo') ? 0.2 : 0)); }
 export function offlineCapH(s) { return (has(s, 'remota') ? 6 : 2) + (perk(s, 'duermo') ? 3 : 0); }
 export function orderMult(s) {
-  return Math.pow(1.15, lvlOf(s, 'instagram')) * (perk(s, 'contactos') ? 1.2 : 1) * (mastered(s, 'exigente') ? 1.25 : 1);
+  return Math.pow(1.1, lvlOf(s, 'instagram')) * (perk(s, 'contactos') ? 1.2 : 1) * (mastered(s, 'exigente') ? 1.25 : 1);
 }
 
 function addMoney(s, x) {
@@ -650,7 +656,7 @@ export function spawnContract(s) {
   const chosen = [];
   while (chosen.length < n) { const p = ranked[Math.floor(rand(s) * ranked.length)]; if (!chosen.includes(p)) chosen.push(p); }
   const duration = 1800 + Math.round(rand(s) * 4) * 300; // 30 a 50 min
-  const capacity = s.machines.reduce((a, m) => a + machineSpeed(s, m, false), 0) * duration * 0.35;
+  const capacity = s.machines.reduce((a, m) => a + machineSpeed(s, m, false), 0) * duration * 0.22;
   const items = chosen.map((pid) => [pid, Math.max(2, Math.round(capacity / chosen.length / PRODUCTS[pid].time))]);
   const client = CONTRACT_CLIENTS[Math.floor(rand(s) * CONTRACT_CLIENTS.length)];
   const lvl = repLevel(s);
@@ -972,7 +978,8 @@ export function buyTokenItem(s, id, TOKEN_SHOP) {
 }
 
 // ---------- Mudanza (prestigio) y desafíos de maestría ----------
-export function oficioGain(s) { return Math.floor(2 * Math.sqrt(s.runEarned / 1e6)); }
+export function oficioGain(s) { return Math.floor(2 * Math.sqrt(s.runEarned / OFICIO_SCALE)); }
+export const firstOficioAt = () => OFICIO_SCALE / 4;
 export function canMove(s) {
   const g = oficioGain(s);
   return g >= 1 && (s.space >= 3 || g >= 3);
@@ -1037,6 +1044,44 @@ export function serialize(s) {
 // Partidas de la v0.1 (máquinas genéricas) → v0.2 (marcas reales).
 const V1_MODELS = { kit: 'ender3', cartesiana: 'magna', rayo: 'k1c', bunker: 'p1s', gigante: 'sidewinder' };
 const V1_PRODUCTS = { xl: 'casco' };
+// Precios y tiempos de la v0.2 (antes de pasar a AR$), para convertir la plata de forma justa:
+// lo que tenías ahorrado equivale a los mismos minutos de producción de tu taller.
+const V2_PRODUCTS = {
+  llavero: [5, 20], benchy: [14, 45], soporte: [35, 90], maceta: [80, 180], gancho: [40, 60], figura: [140, 240], engranaje: [120, 120],
+  topes: [90, 120], organizador: [300, 360], llaveromulti: [60, 60], carcasa: [500, 300], casco: [2500, 900], lampara: [700, 420],
+  maqueta: [6000, 1500], figurapintada: [2500, 600], dron: [4000, 600], armadura: [40000, 3600], silla: [1.2e5, 7200], industrial: [6e4, 1800],
+  miniatura: [600, 600], joya: [3000, 900], dental: [7000, 1200], busto: [3e4, 2400], llaveroacr: [40, 30], posavasos: [120, 60], caja: [500, 120],
+  cartel: [4000, 300], mural: [2e5, 3600], tabla: [4000, 600], cartelmad: [4e4, 1800], alu: [6e4, 1200], mueble: [8e5, 7200],
+};
+// Fórmulas de la v0.2 para estimar el ritmo viejo del taller.
+const V2_SPEED = { ender3: 1, magna: 1.3, a1mini: 2.4, kobra3: 2.2, neptune: 1.8, mk4s: 3, k1c: 4, p1s: 4.5, sidewinder: 2.6, k2plus: 5, x1c: 5.5,
+  coreone: 5.2, voron: 7.5, h2d: 7, prusaxl: 6.5, giga: 3.5, rack: 40, rackpro: 60, mars: 1, photon: 1.6, saturn: 2.2, form4: 4, falcon: 1, xtools1: 2,
+  xtoolp2: 4, g3018: 1, artisan: 2, shapeoko: 4 };
+const V2_STAR = [1, 1, 1.25, 1.6, 2, 2.5];
+const V2_REP = [0, 0, 3, 8, 16, 30, 55, 90, 140, 220, 330];
+function v2RepLevel(rep) { let l = 1; const need = (n) => (n < V2_REP.length ? V2_REP[n] : Math.round(330 * Math.pow(1.45, n - 10))); while (rep >= need(l + 1)) l++; return l; }
+function v2Mastery(c) { return c < 25 ? 0 : Math.floor(Math.log(c / 25) / Math.log(2.5) + 1e-9) + 1; }
+export function economyFactor(s) {
+  let oldR = 0, newR = 0;
+  const L = (id) => s.upgrades[id] || 0;
+  for (const m of s.machines) {
+    const M = MACHINES[m.model];
+    const pid = canPrint(s, m, m.product) ? m.product : bestProductFor(s, m);
+    const o = pid && V2_PRODUCTS[pid];
+    if (!o) continue;
+    let sp = (V2_SPEED[m.model] || M.speed) * Math.pow(1.2, L('granja'));
+    if (M.tech === 'fdm') sp *= Math.pow(1.1, L('slicer')) * Math.pow(1.25, L('hotend')) * (L('input') && M.enclosed ? 1.5 : 1);
+    else if (M.tech === 'resin') sp *= Math.pow(1.15, L('exposicion'));
+    else if (M.tech === 'laser') sp *= Math.pow(1.15, L('potencia'));
+    else sp *= Math.pow(1.15, L('fresas'));
+    const val = (o[0] / o[1]) * V2_STAR[machineStars(s, m)] * (1 + 0.05 * (v2RepLevel(s.rep) - 1)) * Math.pow(1.12, L('marca'))
+      * Math.pow(1.2, v2Mastery(s.mastery?.[pid] || 0)) * (1 + 0.03 * (s.prestige?.total || 0));
+    oldR += val * sp;
+    newR += productRate(s, m, pid);
+  }
+  const f = oldR > 0 ? newR / oldR : 700;
+  return Math.max(50, Math.min(5000, f));
+}
 export function migrate(obj) {
   if (!obj || typeof obj !== 'object' || !Array.isArray(obj.machines) || typeof obj.money !== 'number') return null;
   if ((obj.v || 0) > SAVE_VERSION) return null;
@@ -1057,6 +1102,13 @@ export function migrate(obj) {
     for (const m of obj.machines) { m.orderId = null; m.curOrder = null; }
     obj.mastery = { ...(obj.run?.products || {}) };
   }
+  const toV3 = (obj.v || 1) < 3;
+  if (toV3) {
+    for (const m of obj.machines) m.paid = MACHINES[m.model] ? MACHINES[m.model].cost : 0;
+    if (obj.orders) { obj.orders.offers = []; obj.orders.active = []; }
+    for (const m of obj.machines) { m.orderId = null; m.curOrder = null; }
+    obj.global = null;
+  }
   const base = newGame();
   for (const k of Object.keys(base)) if (obj[k] === undefined) obj[k] = base[k];
   obj.machines = obj.machines.filter((m) => MACHINES[m.model]);
@@ -1074,6 +1126,14 @@ export function migrate(obj) {
   obj.prestige = { ...base.prestige, ...obj.prestige };
   if (!obj.prestige.mastery) obj.prestige.mastery = {};
   if (obj.space >= SPACES.length) obj.space = SPACES.length - 1;
+  if (toV3) {
+    // La plata vale los mismos minutos de producción que antes (ritmo viejo vs. ritmo nuevo del mismo taller).
+    const f = economyFactor(obj);
+    obj.econFactor = f;
+    for (const k of ['money', 'runEarned', 'totalEarned']) obj[k] = (obj[k] || 0) * f;
+    obj.stats.earned = (obj.stats.earned || 0) * f;
+    for (const set of [obj.daily, obj.weekly]) if (set) for (const c of set.list) if (c.type === 'ganar') { c.target *= f; c.prog *= f; c.base = (c.base || 0) * f; }
+  }
   obj.v = SAVE_VERSION;
   return obj;
 }

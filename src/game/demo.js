@@ -23,8 +23,8 @@ export function demoState(kind) {
   while (s.space < D.space) { s.money += 1e15; E.buySpace(s); }
   for (const u of D.ups) { s.upgrades[u] = (s.upgrades[u] || 0) + 1; }
   for (const md of D.machines) E.buyMachine(s, md);
-  s.money = { cuarto: 950, garage: 48000, local: 1.9e6, industrial: 3.2e8, planta: 4.5e12 }[kind];
-  s.runEarned = s.money * 4;
+  s.money = { cuarto: 300000, garage: 4e6, local: 3e7, industrial: 9e8, planta: 2e10 }[kind];
+  s.runEarned = Math.max(s.money * 4, kind === 'cuarto' || kind === 'garage' ? 0 : 4 * E.OFICIO_SCALE);
   s.tokens = 7;
   for (const k of MATERIAL_ORDER) s.mat[k] = E.materialUnlocked(s, k) ? 6 * UNIT : 0;
   s.machines.forEach((m, i) => { const b = E.bestProductFor(s, m); if (b) m.product = b; m.waitStart = false; m.progress = 0; });

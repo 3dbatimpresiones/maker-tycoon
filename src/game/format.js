@@ -18,13 +18,30 @@ export function num(n) {
   const e = Math.floor(Math.log10(a));
   return nf2.format(n / Math.pow(10, e)) + 'e' + e;
 }
-export const money = (n) => '$' + num(n);
-export const full = (n) => '$' + nf0.format(Math.round(n));
+// Moneda: la economía es en AR$; en USD solo cambia cómo se muestra (cotización fija por temporada).
+export const CURRENCIES = {
+  ARS: { id: 'ARS', prefix: 'AR$ ', flag: '🇦🇷', label: 'ARS' },
+  USD: { id: 'USD', prefix: 'US$ ', flag: '🌎', label: 'USD' },
+};
+export const SEASON = { name: 'Temporada 1', usdRate: 1600 }; // US$ 1 = AR$ 1.600
+let currency = 'ARS';
+export function setCurrency(c) { currency = CURRENCIES[c] ? c : 'ARS'; }
+export const getCurrency = () => currency;
+const conv = (n) => (currency === 'USD' ? n / SEASON.usdRate : n);
+
+export function money(n) {
+  const v = conv(n);
+  const c = CURRENCIES[currency];
+  if (currency === 'USD' && Math.abs(v) < 1000) return c.prefix + nf2.format(Math.round(v * 100) / 100);
+  return c.prefix + num(v);
+}
+export const full = (n) => CURRENCIES[currency].prefix + nf0.format(Math.round(conv(n)));
 
 export function rate(n) {
-  if (n > 0 && n < 10) return '$' + nf2.format(n) + '/s';
   return money(n) + '/s';
 }
+// Reemplaza {$:1234} por el importe formateado en la moneda elegida.
+export const fmtText = (str) => (typeof str === 'string' ? str.replace(/\{\$:([\d.e+]+)\}/g, (_, v) => money(Number(v))) : str);
 
 // 45 s · 3 min 20 s · 1 h 20 min
 export function dur(sec) {

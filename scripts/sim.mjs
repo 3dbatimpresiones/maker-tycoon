@@ -33,7 +33,7 @@ function act() {
   for (const m of s.machines) if (m.state === 'done') E.retrieve(s, m.id, ctx, 'hand');
   if (s.global) E.resolveGlobal(s, s.global.id === 'misteriosa' ? 1 : 0, ctx);
   E.useMate(s, ctx);
-  for (const o of [...s.orders.offers]) if (E.suggestAssign(s, o).enough) E.acceptOrder(s, o.id);
+  for (const o of [...s.orders.offers]) { const sug = E.suggestAssign(s, o); if (sug.enough || (o.contract && sug.machines.length >= 2)) E.acceptOrder(s, o.id); }
 }
 function buy() {
   for (const mat of MATERIAL_ORDER) {
@@ -41,29 +41,45 @@ function buy() {
     if (used && s.mat[mat] < 300 && !E.hasProveedor(s)) E.buyMat(s, mat);
   }
   for (const m of s.machines) { const b = E.bestProductFor(s, m); if (b && b !== m.product) E.setProduct(s, m.id, b); }
+  // Cada candidato: costo y cuánto ingreso extra aporta (dv). Se elige el que antes se paga solo.
+  const total = Math.max(1, E.potentialRate(s));
+  const techRate = (tech) => s.machines.filter((m) => MACHINES[m.model].tech === tech).reduce((a, m) => a + E.productRate(s, m, m.product), 0);
+  const fdm = techRate('fdm');
+  const UPV = {
+    slicer: 0.1 * fdm, hotend: 0.25 * fdm, input: 0.4 * fdm, boquilla: 0.25 * fdm, calibracion: 0.15 * fdm, marca: 0.12 * total,
+    instagram: 0.07 * total, granja: 0.2 * total, exposicion: 0.15 * techRate('resin'), potencia: 0.15 * techRate('laser'), fresas: 0.15 * techRate('cnc'),
+  };
   const cands = [];
   for (const id of UPGRADE_ORDER) {
     if (!E.upgradeUnlocked(s, id) || E.upgradeMaxed(s, id)) continue;
-    cands.push({ c: E.upgradeCost(s, id), f: () => E.buyUpgrade(s, id) });
+    const U = UPGRADES[id];
+    const dv = UPV[id] ?? (U.cat === 'Tecnología' ? 0.3 * total : 0.06 * total);
+    cands.push({ c: E.upgradeCost(s, id), dv: Math.max(dv, 0.001), f: () => E.buyUpgrade(s, id) });
   }
   const sp = E.nextSpace(s);
-  if (sp && E.repLevel(s) >= sp.rep) cands.push({ c: sp.cost * (s.machines.length >= E.slots(s) ? 0.4 : 1.5), real: sp.cost, f: () => E.buySpace(s) });
+  const full = s.machines.length >= E.slots(s);
+  if (sp && E.repLevel(s) >= sp.rep) cands.push({ c: sp.cost, dv: full ? 0.6 * total : 0.02 * total, f: () => E.buySpace(s) });
   const unlocked = MACHINE_ORDER.filter((m) => E.machineUnlocked(s, m));
   const vals = Object.fromEntries(unlocked.map((m) => [m, machineValue(m)]));
-  if (s.machines.length < E.slots(s)) {
-    let best = null, bv = 0;
-    for (const md of unlocked) { const v = vals[md] / E.machineCost(s, md); if (v > bv) { bv = v; best = md; } }
-    if (best) cands.push({ c: E.machineCost(s, best), f: () => E.buyMachine(s, best) });
+  if (!full) {
+    for (const md of unlocked) cands.push({ c: E.machineCost(s, md), dv: vals[md], f: () => E.buyMachine(s, md) });
   } else {
-    const top = [...unlocked].sort((a, b) => vals[b] - vals[a])[0];
-    const worst = [...s.machines].sort((a, b) => (machineValue(a.model)) - (machineValue(b.model)))[0];
-    if (top && vals[top] > machineValue(worst.model) * 1.6) {
-      cands.push({ c: E.machineCost(s, top) * 1.2, real: E.machineCost(s, top), f: () => { E.sellMachine(s, worst.id); return E.buyMachine(s, top); } });
+    const worst = [...s.machines].sort((a, b) => machineValue(a.model) - machineValue(b.model))[0];
+    const wv = machineValue(worst.model);
+    for (const md of unlocked) {
+      if (vals[md] <= wv * 1.3) continue;
+      cands.push({ c: E.machineCost(s, md) - (worst.paid || 0) * 0.5, real: E.machineCost(s, md), dv: vals[md] - wv, f: () => { E.sellMachine(s, worst.id); return E.buyMachine(s, md); } });
     }
   }
-  cands.sort((a, b) => a.c - b.c);
-  for (const c of cands) { if (s.money >= (c.real ?? c.c)) return !!c.f(); break; }
-  return false;
+  if (!cands.length) return false;
+  for (const c of cands) c.pay = Math.max(0, c.c) / c.dv;
+  cands.sort((a, b) => a.pay - b.pay);
+  const best = cands[0];
+  if (s.money >= (best.real ?? best.c)) return !!best.f();
+  const wait = ((best.real ?? best.c) - s.money) / total;
+  if (wait < 240) return false; // conviene esperar
+  const alt = cands.find((c) => c.pay < best.pay * 2.5 && s.money >= (c.real ?? c.c));
+  return alt ? !!alt.f() : false;
 }
 function maybeMove() {
   if (!E.canMove(s)) return;

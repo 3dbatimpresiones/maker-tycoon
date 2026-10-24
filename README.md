@@ -9,6 +9,18 @@ crecer hasta una planta de producción con impresoras 3D, resina, láser y CNC. 
 - Se puede pasar la partida a otro dispositivo con un código (Ajustes → Tu partida).
 - Las marcas y modelos mencionados pertenecen a sus dueños; el juego no está afiliado ni patrocinado (solo nombres, sin logos).
 
+## Novedades v0.3
+
+- **Economía argentina realista en AR$** (nunca `$` solo), con precios relevados del mercado argentino: ver `docs/precios-referencia.md`.
+- **Selector 🇦🇷 ARS | 🌎 USD** siempre visible: misma partida, solo cambia cómo se ven los importes (cotización fija por temporada en `src/game/format.js`).
+- **Máquinas reconocibles** modeladas con proporciones reales: Ender-3 V3 SE, A1 mini, A1, K1C, P1S Combo con AMS, H2S, K2 Pro Combo con CFS, Snapmaker U1, y el resto del catálogo mejorado.
+- **Gráficos PBR**: bordes redondeados, aluminio cepillado, vidrio, cama PEI texturada, piezas con líneas de capa y la capa caliente;
+  oclusión ambiental, luz de ventana y antialias en modo Calidad (PC); modos Equilibrado y Rendimiento para celulares.
+- **Efectos con lógica**: humo del láser, viruta de la CNC, curado UV de la resina, cajas de pedidos en la zona de packing, zonas que aparecen al desbloquear resina, láser y CNC.
+- **Audio nuevo**: ambiente de taller, sonido ubicado por máquina (FDM, resina, láser, CNC), música electrónica adaptable y volúmenes separados.
+- **Ver de cerca**: desde el panel de cada máquina, la cámara se acerca para inspeccionarla.
+- Las partidas anteriores se convierten solas: la plata conserva los mismos minutos de producción y queda una copia intacta (`mt3dbat.save.v1.v2`).
+
 ## Qué tiene (v0.2)
 
 - **Taller en 3D** (Three.js): 7 ambientes (escritorio, cuarto, garage, local, taller industrial, nave, planta), máquinas animadas,
@@ -44,11 +56,12 @@ Parámetros **solo de desarrollo** (no existen en la versión publicada):
 | `src/three/` | Gráficos 3D: `Workshop3D.js` (escena), `machines.js`, `rooms.js`, `pieces.js`, `materials.js` (texturas por código), `thumbs.js` (renders para menús). |
 | `src/ui/` | Pantallas en React. `Scene3D.jsx` monta el 3D con los carteles de cada máquina; `Bati.jsx` es la mascota en SVG. |
 | `src/styles/base.css` | CSS base del **Design System 3DBAT** (copiado tal cual). |
-| `scripts/` | `test.mjs` (pruebas) y `sim.mjs` (balance). |
+| `scripts/` | `test.mjs` (pruebas), `sim.mjs` (balance largo con Mudanzas) y `early.mjs` (primeras horas con un jugador normal). |
 
-## Balance (bot que juega sin parar, semilla 12345)
+## Balance (v0.3, economía en AR$)
 
-Cuarto ≈ 25 min · Garage ≈ 2 h · Local ≈ 5 h 30 · Taller industrial ≈ 8 h · Nave ≈ 17 h · Planta ≈ 31 h.
+Jugador eficiente (`scripts/early.mjs`): 2ª impresora ≈ 15–20 min · Cuarto ≈ 26 min · Garage ≈ 51 min · Local ≈ 2 h · Taller industrial ≈ 4 h.
+Bot de largo plazo (`scripts/sim.mjs 40`): Nave ≈ 14 h; la Planta queda para jugadores dedicados (más de 40 h).
 Una persona real juega en sesiones cortas (más el tiempo offline), así que son semanas. Después siguen las mejoras
 infinitas, la experiencia por producto, la reputación y las Mudanzas.
 

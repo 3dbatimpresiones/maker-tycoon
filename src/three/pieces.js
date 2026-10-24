@@ -51,7 +51,41 @@ function matFor(pid, color, opts = {}) {
   if (mat.id === 'MADERA' || mat.id === 'MDF') Object.assign(base, { roughness: 0.8 });
   if (mat.id === 'PACF') Object.assign(base, { roughness: 0.7, metalness: 0.15 });
   if (opts.emissive) Object.assign(base, { emissive: opts.emissive, emissiveIntensity: 0.9 });
+  if (P.tech === 'fdm' || P.tech === 'resin') Object.assign(base, { roughness: P.tech === 'resin' ? 0.3 : 0.5 });
   return new THREE.MeshStandardMaterial(base);
+}
+
+// Líneas de capa reales (según la altura en el mundo) + franja de plástico caliente en la capa que se está imprimiendo.
+// tech: 'fdm' (capas marcadas), 'resin' (capas finísimas), resto sin capas.
+export function applyLayers(mats, tech, scale = 0.1) {
+  if (tech !== 'fdm' && tech !== 'resin') return;
+  const layer = tech === 'fdm' ? 0.0011 : 0.00035; // metros (exagerado un poco para que se vea)
+  for (const m of mats) {
+    if (m.transparent) continue;
+    m.userData.cut = { value: 1e9 };
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uCut = m.userData.cut;
+      sh.uniforms.uLayer = { value: layer };
+      sh.uniforms.uHot = { value: tech === 'fdm' ? 1 : 0 };
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
+        .replace('#include <project_vertex>', '#include <project_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nuniform float uCut;\nuniform float uLayer;\nuniform float uHot;')
+        .replace('#include <color_fragment>', `#include <color_fragment>
+        float lf = fract(vWPos.y / uLayer);
+        float ridge = smoothstep(0.0, 0.22, lf) * smoothstep(1.0, 0.78, lf);
+        diffuseColor.rgb *= mix(0.84, 1.0, ridge);`)
+        .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+        roughnessFactor = clamp(roughnessFactor + (1.0 - ridge) * 0.18, 0.0, 1.0);`)
+        .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        float dh = uCut - vWPos.y;
+        float hot = uHot * (1.0 - smoothstep(0.0, uLayer * 3.0, dh)) * step(0.0, dh);
+        totalEmissiveRadiance += vec3(1.0, 0.42, 0.12) * hot * 0.9;`);
+    };
+    m.customProgramCacheKey = () => 'layers-' + tech;
+    m.needsUpdate = true;
+  }
 }
 
 // Cada builder agrega mallas al grupo. c = colores [principal, secundario, terciario]

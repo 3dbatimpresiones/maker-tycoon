@@ -1,0 +1,14 @@
+/* ===================== v0.3: moneda, calidad visual ===================== */
+.cur-toggle { padding: 3px; gap: 2px; }
+.cur-toggle .seg { padding: 6px 10px; font-size: 12px; white-space: nowrap; }
+.cur-toggle.compact { align-self: center; }
+@media (max-width: 760px) {
+  .top-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .cur-toggle.compact .seg { padding: 5px 7px; font-size: 11px; }
+}
+.vol-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; margin-top: 8px; }
+.vol-grid label { display: flex; flex-direction: column; font-size: 12px; color: #cbd5e1; font-weight: 600; }
+.vol-grid input[type=range] { margin: 6px 0 4px; }
+.cur-toggle .seg { display: inline-flex; align-items: center; gap: 5px; }
+.flag { display: block; flex: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
+.scene-back { position: absolute; left: 10px; top: 10px; z-index: 3; background: rgba(13,20,51,.85); }

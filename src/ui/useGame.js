@@ -5,7 +5,7 @@ import * as E from '../game/engine.js';
 import { step, startMissionHooks, currentMission, skipTutorial, claimChallenge } from '../game/progress.js';
 import { PRODUCTS, MACHINES, UPGRADES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, TOKEN_SHOP, MASTERY_CHALLENGES, fullName } from '../game/data.js';
 import { SAVE_KEY, BACKUP_KEY } from '../config.js';
-import { money, num } from '../game/format.js';
+import { money, num, setCurrency, fmtText } from '../game/format.js';
 import { sfx } from './sfx.js';
 import { demoState } from '../game/demo.js';
 
@@ -120,11 +120,11 @@ export function useGame() {
         case 'offer':
           if (!st.tutorial.active) sayOnce('offer1', 'Los pedidos aparecen en el tablero. Al aceptar uno, le asigno las impresoras que hacen falta (podés sumar o sacar con − y +).');
           break;
-        case 'urgent': sfx.alert(); toast('⚡ ¡Pedido urgente en el tablero! Paga x5.', 'warn'); break;
+        case 'urgent': sfx.urgent(); toast('⚡ ¡Pedido urgente en el tablero! Paga x5.', 'warn'); break;
         case 'repUp': {
           sfx.achievement();
           const un = unlocksAt(e.level);
-          say(`¡Subiste a Reputación ${e.level}! Tus piezas valen un 5 % más.${un.length ? ' Nuevo: ' + un.join(', ') + '.' : ''}`, { mood: 'happy' });
+          say(`¡Subiste a Reputación ${e.level}! Tus piezas valen un 3 % más.${un.length ? ' Nuevo: ' + un.join(', ') + '.' : ''}`, { mood: 'happy' });
           break;
         }
         case 'trend': toast(`📈 Tendencia: «${PRODUCTS[e.pid].name}» paga el doble por 8 min`, 'info', 4500); break;
@@ -135,13 +135,13 @@ export function useGame() {
           break;
         }
         case 'mission':
-          if (!st.tutorial.active && e.id !== 'nivelar') toast(`🎯 Misión cumplida: ${e.text}${e.reward?.money ? ' · +' + money(e.reward.money) : e.reward?.spool ? ' · +1 bobina de ' + e.reward.spool : ''}`);
+          if (!st.tutorial.active && e.id !== 'nivelar') toast(`🎯 Misión cumplida: ${fmtText(e.text)}${e.reward?.money ? ' · +' + money(e.reward.money) : e.reward?.spool ? ' · +1 bobina de ' + e.reward.spool : ''}`);
           if (!st.tutorial.active && e.id !== 'nivelar') {
             const next = currentMission(st);
             if (e.cta === 'instagram') say('¡Ya tenés un cuarto maker! Si te gusta el juego, seguinos en Instagram: ahí mostramos impresiones reales del taller 3DBAT.', { mood: 'happy', ctas: ['instagram'] });
             else if (e.cta === 'batbox') say('¡Garage propio! En la vida real también podés crecer: en BATBOX tenés el Cotizador gratis, tutoriales y la WikiBAT.', { mood: 'happy', ctas: ['batbox'] });
             else if (e.cta === 'comunidad') say('¡Local con vidriera! Ya sos un referente. Sumate a la Comunidad Makers 3DBAT y contanos hasta dónde llegaste.', { mood: 'happy', ctas: ['comunidad', 'instagram'] });
-            else if (next && next.id !== 'libre') say('Próxima misión: ' + next.text + '.');
+            else if (next && next.id !== 'libre') say('Próxima misión: ' + fmtText(next.text) + '.');
           }
           break;
         case 'tutorialDone':
@@ -150,7 +150,7 @@ export function useGame() {
           break;
         case 'achievement': sfx.achievement(); toast(`🏆 Logro: ${e.name}`, 'info', 4000); break;
         case 'mastery':
-          if (e.level >= 2) toast(`⭐ Experiencia en «${PRODUCTS[e.pid].name}»: nivel ${e.level} (+20 % de precio)`, 'info', 3500);
+          if (e.level >= 2) toast(`⭐ Experiencia en «${PRODUCTS[e.pid].name}»: nivel ${e.level} (+12 % de precio)`, 'info', 3500);
           sayOnce('mastery', 'Cada producto tiene su experiencia: cuanto más lo fabricás, mejor te sale y más lo cobrás. Y eso no se pierde nunca, ni con la Mudanza.', { mood: 'happy' });
           break;
         case 'contract':
@@ -162,6 +162,7 @@ export function useGame() {
           if (!st.seen.daily1) { st.seen.daily1 = 1; say('Hay desafíos nuevos todos los días (y uno semanal). Dan fichas para canjear por turbos, saltos de tiempo y más. Están en el botón 🎯 Desafíos.'); }
           break;
         case 'nofil':
+          sfx.nofil();
           sayOnce('nofil_' + e.mat, `Se terminó: ${MATERIALS[e.mat].name}. Comprá más en Tienda → Materiales (o contratá al proveedor y olvidate).`, { mood: 'worried' });
           break;
         case 'mate': sfx.mate(); break;
@@ -184,7 +185,8 @@ export function useGame() {
   // Arranque: tiempo offline desde la última vez.
   useEffect(() => {
     const st = ref.current;
-    sfx.configure(st.settings.sound, st.settings.volume);
+    sfx.configure(st.settings.sound, st.settings.volume, st.settings.vol);
+    setCurrency(st.settings.currency);
     const gap = Date.now() - (st.lastSeen || Date.now());
     if (gap > 60000) catchUp(gap);
     st.lastSeen = Date.now();
@@ -264,13 +266,14 @@ export function useGame() {
     abandonChallenge: () => act((st) => { E.abandonChallenge(st); toast('Desafío abandonado: seguís jugando sin las reglas.', 'info'); }),
     setProduct: (mid, pid) => act((st) => E.setProduct(st, mid, pid)),
     mate: () => act((st, ctx) => E.useMate(st, ctx)),
-    accept: (oid) => act((st) => { const ok = E.acceptOrder(st, oid); if (ok) sfx.click(); return ok; }),
+    accept: (oid) => act((st) => { const ok = E.acceptOrder(st, oid); if (ok) sfx.accept(); return ok; }),
     decline: (oid) => act((st) => E.declineOrder(st, oid)),
     assign: (oid, d) => act((st) => E.assignMore(st, oid, d)),
     resolveGlobal: (opt) => act((st, ctx) => E.resolveGlobal(st, opt, ctx)),
     skipTutorial: () => act((st) => { skipTutorial(st); say('¡Dale! Te dejo las misiones arriba a la izquierda. Si me necesitás, tocame.', { mood: 'happy' }); }),
     setName: (name) => act((st) => { st.name = name.slice(0, 28); }),
-    setting: (k, v) => act((st) => { st.settings[k] = v; sfx.configure(st.settings.sound, st.settings.volume); }),
+    setting: (k, v) => act((st) => { st.settings[k] = v; sfx.configure(st.settings.sound, st.settings.volume, st.settings.vol); if (k === 'currency') setCurrency(v); }),
+    setVol: (k, v) => act((st) => { st.settings.vol = { ...(st.settings.vol || {}), [k]: v }; sfx.configure(st.settings.sound, st.settings.volume, st.settings.vol); }),
     buyPerk: (id, PERKS) => act((st) => { const ok = E.buyPerk(st, id, PERKS); if (ok) sfx.buy(); return ok; }),
     move: (pid) => { const next = E.doMove(ref.current, pid); if (next) { sfx.achievement(); replace(next); say('¡Nueva sede! Arrancás de nuevo, pero con todo el oficio encima: tus piezas valen más para siempre.', { mood: 'happy' }); } return !!next; },
     reset: () => { const next = E.newGame(); try { localStorage.removeItem(BACKUP_KEY); } catch { /* sin acceso */ } replace(next); setBati([]); },

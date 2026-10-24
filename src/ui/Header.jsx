@@ -1,8 +1,9 @@
 import Icon from './Icon.jsx';
 import * as E from '../game/engine.js';
 import { MATERIALS, MATERIAL_ORDER, MACHINES } from '../game/data.js';
-import { money, rate, kg, num } from '../game/format.js';
+import { money, rate, kg, num, full } from '../game/format.js';
 import { VERSION, LINKS } from '../config.js';
+import { CurrencyToggle } from './Panels.jsx';
 
 export const readyClaims = (s) => [s.daily, s.weekly].filter(Boolean).reduce((a, set) => a + set.list.filter((c) => !c.claimed && c.prog >= c.target).length, 0);
 
@@ -25,6 +26,7 @@ export function Header({ s, actions, open }) {
           onChange={(e) => actions.setName(e.target.value)} onFocus={(e) => e.target.select()} />
       </div>
       <div className="top-actions">
+        <CurrencyToggle s={s} actions={actions} compact />
         <a className="icon-btn hide-sm" href={LINKS.instagram} target="_blank" rel="noopener noreferrer" title="Instagram de 3DBAT"><Icon name="instagram" /></a>
         <a className="icon-btn hide-sm" href={LINKS.batbox} target="_blank" rel="noopener noreferrer" title="BATBOX: herramientas y tutoriales gratis"><Icon name="box" /></a>
         <button className="icon-btn hide-sm" onClick={() => open('logros')} title="Logros"><Icon name="trophy" /></button>
@@ -49,7 +51,7 @@ export function Hud({ s, onFilament, onTokens }) {
     <div className="hud" role="region" aria-label="Recursos">
       <div className="hud-money">
         <span className="hud-label">DINERO</span>
-        <b title={'$' + Math.floor(s.money).toLocaleString('es-AR')}>{money(s.money)}</b>
+        <b title={full(s.money)}>{money(s.money)}</b>
         <small>{rate(r)}</small>
       </div>
       <div className="hud-rep" title={rp.next ? `${Math.floor(rp.cur)} / ${rp.next} para el próximo nivel` : 'Nivel máximo'}>
@@ -76,7 +78,7 @@ export function Hud({ s, onFilament, onTokens }) {
         <div className="hud-maker">
           <span className="hud-label">NIVEL MAKER</span>
           <b>{E.makerTitle(s.prestige.total)}</b>
-          <small>+{num(s.prestige.total * 3)} % ingresos</small>
+          <small>+{num(E.oficioPct(s.prestige.total))} % ingresos</small>
         </div>
       )}
     </div>

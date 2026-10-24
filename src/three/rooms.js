@@ -205,5 +205,91 @@ export function buildRoom(space, n) {
     list.slice(-6).forEach((v, i) => { const pc = buildPiece(v.p); pc.group.scale.setScalar(0.22); pc.group.position.set(-0.7 + i * 0.28, 0, 0); vg.add(pc.group); });
     room.vitGroup = vg; g.add(vg);
   };
+
+  // ---------- Zona de packing: cada pedido entregado deja una caja lista para despachar ----------
+  const packing = new THREE.Group();
+  const rightX = Math.min(W / 2 - 0.7, L.cols * SX / 2 + 0.75);
+  packing.position.set(rightX, 0, D / 2 - 1.05);
+  g.add(packing);
+  if (space >= 2) {
+    const top = std('#ffffff', 0.7, 0, { map: TEX.wood([1, 1], '#9a7650') });
+    box(1.1, 0.04, 0.6, top, 0, 0.82, 0, packing);
+    for (const [x, z] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) box(0.04, 0.8, 0.04, std('#2b2f38', 0.45, 0.6), x * 0.5, 0.4, z * 0.26, packing);
+    // rollo de cinta, balanza y rollo de film
+    const tape = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.018, 10, 24), std('#c9a46a', 0.4, 0)); tape.rotation.x = Math.PI / 2; tape.position.set(-0.38, 0.86, 0.15); packing.add(tape);
+    box(0.22, 0.03, 0.18, std('#d9dce3', 0.4, 0.3), 0.32, 0.855, 0.12, packing);
+    const film = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.3, 20), std('#e8eef7', 0.15, 0, { transparent: true, opacity: 0.7 })); film.rotation.z = Math.PI / 2; film.position.set(0, 0.89, -0.2); packing.add(film);
+  }
+  const boxMat = std('#c49a6c', 0.85, 0);
+  const tapeMat = std('#a07a4a', 0.6, 0);
+  const labelMat = std('#f4f4f4', 0.6, 0);
+  const boxes = [];
+  const baseY = space >= 2 ? 0.84 : 0;
+  function makeBox(i) {
+    const b = new THREE.Group();
+    const s = 0.22 + (i % 3) * 0.03;
+    box(s, s * 0.8, s, boxMat, 0, s * 0.4, 0, b);
+    box(s * 1.01, 0.004, 0.04, tapeMat, 0, s * 0.8 + 0.002, 0, b, false);
+    box(s * 0.4, s * 0.25, 0.002, labelMat, 0, s * 0.45, s / 2 + 0.002, b, false);
+    const col = i % 3, row = Math.floor(i / 3) % 2, lev = Math.floor(i / 6);
+    b.position.set(-0.32 + col * 0.31, baseY + lev * 0.26, -0.1 + row * 0.26 * (space >= 2 ? 0.8 : 1));
+    b.rotation.y = (i * 0.37) % 0.3 - 0.15;
+    b.userData.y0 = b.position.y;
+    return b;
+  }
+  room.setBoxes = (n) => {
+    while (boxes.length) packing.remove(boxes.pop());
+    for (let i = 0; i < n; i++) { const b = makeBox(i); packing.add(b); boxes.push(b); }
+  };
+  room.addBox = () => {
+    if (boxes.length >= 9) { const old = boxes.shift(); old.userData.leaving = 0; room.leaving.push(old); }
+    boxes.forEach((b, i) => { const nb = makeBox(i); b.position.copy(nb.position); b.userData.y0 = nb.position.y; });
+    const b = makeBox(boxes.length); b.position.y += 0.5; b.userData.drop = 0; packing.add(b); boxes.push(b);
+  };
+  room.leaving = [];
+  room.updaters.push((t, dt = 0.016) => {
+    for (const b of boxes) if (b.userData.drop != null) {
+      b.userData.drop += dt * 3;
+      const k = Math.min(1, b.userData.drop);
+      b.position.y = b.userData.y0 + 0.5 * (1 - k * k);
+      if (k >= 1) delete b.userData.drop;
+    }
+    for (const b of [...room.leaving]) {
+      b.userData.leaving += dt;
+      b.position.x += dt * 1.2;
+      if (b.userData.leaving > 1.2) { packing.remove(b); room.leaving.splice(room.leaving.indexOf(b), 1); }
+    }
+  });
+
+  // ---------- Zonas que aparecen al desbloquear cada tecnología ----------
+  const zones = new THREE.Group(); g.add(zones);
+  room.setZones = (s) => {
+    const key = ['resina', 'laser', 'cnc'].map((k) => (s.upgrades[k] ? 1 : 0)).join('');
+    if (room.zoneKey === key) return;
+    room.zoneKey = key;
+    while (zones.children.length) zones.remove(zones.children[0]);
+    const duct = std('#9aa2ae', 0.35, 0.85);
+    if (s.upgrades.resina) {
+      // Campana de ventilación + bidón de alcohol isopropílico
+      const hood = new THREE.Group(); hood.position.set(-W / 2 + 0.6, wallH - 0.9, -D / 2 + 0.45); zones.add(hood);
+      const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.35, 0.3, 4, 1, true), std('#c7ccd4', 0.3, 0.9, { side: THREE.DoubleSide })); cone.rotation.y = Math.PI / 4; hood.add(cone);
+      const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.9, 20), duct); pipe.position.y = 0.6; hood.add(pipe);
+      const ipa = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 20), std('#f4f4f4', 0.4, 0)); ipa.position.set(-W / 2 + 0.35, 0.15, -D / 2 + 0.35); zones.add(ipa);
+      box(0.12, 0.08, 0.002, std('#3a86ff', 0.5, 0), -W / 2 + 0.35, 0.18, -D / 2 + 0.432, zones, false);
+    }
+    if (s.upgrades.laser) {
+      // Conducto de extracción de humo a lo largo de la pared del fondo
+      const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, W * 0.7, 24), duct); pipe.rotation.z = Math.PI / 2; pipe.position.set(0.3, wallH - 0.45, -D / 2 + 0.15); pipe.castShadow = true; zones.add(pipe);
+      const ex = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.12, 24), std('#2b2f38', 0.5, 0.5)); ex.rotation.x = Math.PI / 2; ex.position.set(W * 0.35 + 0.3, wallH - 0.45, -D / 2 + 0.08); zones.add(ex);
+      const ext = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.42, 16), std('#d62828', 0.35, 0.2)); ext.position.set(W / 2 - 0.35, 0.21, -D / 2 + 0.3); zones.add(ext);
+    }
+    if (s.upgrades.cnc) {
+      // Aspiradora industrial para la viruta
+      const vac = new THREE.Group(); vac.position.set(W / 2 - 0.5, 0, -D / 2 + 0.9); zones.add(vac);
+      const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.55, 24), std('#f2b705', 0.45, 0.2)); drum.position.y = 0.28; drum.castShadow = true; vac.add(drum);
+      const lid2 = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.08, 24), std('#1d1f24', 0.5, 0.3)); lid2.position.y = 0.6; vac.add(lid2);
+      const hose = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.03, 8, 24, Math.PI), std('#2b2f38', 0.7, 0)); hose.position.set(-0.2, 0.75, 0); vac.add(hose);
+    }
+  };
   return room;
 }

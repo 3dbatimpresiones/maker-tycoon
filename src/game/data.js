@@ -10,16 +10,16 @@ export const SPOOL_GRAMS = UNIT;
 
 // tech: con qué tecnología se trabaja · unitName: cómo se compra
 export const MATERIALS = {
-  PLA: { id: 'PLA', name: 'PLA', tech: 'fdm', price: 60, unitName: 'bobina', color: '#5DDADB', brand: 'Grilon3 / Printalot', desc: 'El de todos los días. Fácil de imprimir.' },
-  PETG: { id: 'PETG', name: 'PETG', tech: 'fdm', price: 90, unitName: 'bobina', color: '#7c83ff', brand: 'Printalot / 3N3', desc: 'Más resistente y aguanta el sol.', upgrade: 'petg' },
-  TPU: { id: 'TPU', name: 'TPU', tech: 'fdm', price: 140, unitName: 'bobina', color: '#F78EB6', brand: 'Grilon3 Flex', desc: 'Flexible como goma. Pide extrusor directo.', upgrade: 'directo' },
-  ASA: { id: 'ASA', name: 'ABS / ASA', tech: 'fdm', price: 120, unitName: 'bobina', color: '#f2f2f2', brand: 'Polymaker', desc: 'Técnico y resistente al calor. Solo en impresoras cerradas.', upgrade: 'abs', enclosed: true },
-  PACF: { id: 'PACF', name: 'Nylon + fibra de carbono', tech: 'fdm', price: 600, unitName: 'bobina', color: '#3b3f4a', brand: 'Bambu Lab PAHT-CF', desc: 'Durísimo. Necesita impresora cerrada y boquilla de acero.', upgrade: 'nylon', enclosed: true },
-  RESINA: { id: 'RESINA', name: 'Resina', tech: 'resin', price: 250, unitName: 'litro', color: '#9be7c4', brand: 'Elegoo / Anycubic', desc: 'Detalle extremo. Con guantes y ventilación.', upgrade: 'resina' },
-  MDF: { id: 'MDF', name: 'MDF 3 mm', tech: 'laser', price: 150, unitName: 'plancha', color: '#b98a5a', brand: 'Corralón del barrio', desc: 'Se corta y se graba con láser.', upgrade: 'laser' },
-  ACRILICO: { id: 'ACRILICO', name: 'Acrílico', tech: 'laser', price: 400, unitName: 'plancha', color: '#f7a8c9', brand: 'Acrílicos Once', desc: 'Corte prolijo y canto brillante.', upgrade: 'laser' },
-  MADERA: { id: 'MADERA', name: 'Madera maciza', tech: 'cnc', price: 500, unitName: 'tabla', color: '#a0703f', brand: 'Aserradero', desc: 'Algarrobo, pino o guatambú.', upgrade: 'cnc' },
-  ALU: { id: 'ALU', name: 'Aluminio', tech: 'cnc', price: 3000, unitName: 'barra', color: '#c9d1dc', brand: 'Distribuidora de metales', desc: 'Mecanizado de precisión.', upgrade: 'cnc' },
+  PLA: { id: 'PLA', name: 'PLA', tech: 'fdm', price: 22000, unitName: 'bobina', color: '#5DDADB', brand: 'Grilon3 / Printalot', desc: 'El de todos los días. Fácil de imprimir.' },
+  PETG: { id: 'PETG', name: 'PETG', tech: 'fdm', price: 26000, unitName: 'bobina', color: '#7c83ff', brand: 'Printalot / 3N3', desc: 'Más resistente y aguanta el sol.', upgrade: 'petg' },
+  TPU: { id: 'TPU', name: 'TPU', tech: 'fdm', price: 38000, unitName: 'bobina', color: '#F78EB6', brand: 'Grilon3 Flex', desc: 'Flexible como goma. Pide extrusor directo.', upgrade: 'directo' },
+  ASA: { id: 'ASA', name: 'ABS / ASA', tech: 'fdm', price: 34000, unitName: 'bobina', color: '#f2f2f2', brand: 'Polymaker', desc: 'Técnico y resistente al calor. Solo en impresoras cerradas.', upgrade: 'abs', enclosed: true },
+  PACF: { id: 'PACF', name: 'Nylon + fibra de carbono', tech: 'fdm', price: 120000, unitName: 'bobina', color: '#3b3f4a', brand: 'Bambu Lab PAHT-CF', desc: 'Durísimo. Necesita impresora cerrada y boquilla de acero.', upgrade: 'nylon', enclosed: true },
+  RESINA: { id: 'RESINA', name: 'Resina', tech: 'resin', price: 45000, unitName: 'litro', color: '#9be7c4', brand: 'Elegoo / Anycubic', desc: 'Detalle extremo. Con guantes y ventilación.', upgrade: 'resina' },
+  MDF: { id: 'MDF', name: 'MDF 3 mm', tech: 'laser', price: 9000, unitName: 'plancha', color: '#b98a5a', brand: 'Corralón del barrio', desc: 'Se corta y se graba con láser.', upgrade: 'laser' },
+  ACRILICO: { id: 'ACRILICO', name: 'Acrílico', tech: 'laser', price: 38000, unitName: 'plancha', color: '#f7a8c9', brand: 'Acrílicos Once', desc: 'Corte prolijo y canto brillante.', upgrade: 'laser' },
+  MADERA: { id: 'MADERA', name: 'Madera maciza', tech: 'cnc', price: 55000, unitName: 'tabla', color: '#a0703f', brand: 'Aserradero', desc: 'Algarrobo, pino o guatambú.', upgrade: 'cnc' },
+  ALU: { id: 'ALU', name: 'Aluminio', tech: 'cnc', price: 140000, unitName: 'barra', color: '#c9d1dc', brand: 'Distribuidora de metales', desc: 'Mecanizado de precisión.', upgrade: 'cnc' },
 };
 export const MATERIAL_ORDER = Object.keys(MATERIALS);
 
@@ -34,180 +34,186 @@ export const SIZES = { S: 1, M: 2, L: 3, XL: 4 };
 export const SIZE_NAME = { S: 'Chica', M: 'Mediana', L: 'Grande', XL: 'Gigante' };
 
 // Calidad: multiplicador de precio por estrella (★1 a ★5).
-export const STAR_MULT = [1, 1, 1.25, 1.6, 2, 2.5];
+export const STAR_MULT = [1, 1, 1.15, 1.3, 1.45, 1.6];
 
 export const SPACES = [
   { id: 'escritorio', name: 'Escritorio del cuarto', slots: 2, cost: 0, rep: 1, blurb: 'Una impresora, una lámpara y el mate al lado.' },
-  { id: 'cuarto', name: 'Cuarto maker', slots: 4, cost: 800, rep: 2, blurb: 'Estantería de bobinas y tira LED. Ya es un taller.' },
-  { id: 'garage', name: 'Garage taller', slots: 8, cost: 60000, rep: 5, blurb: 'Panel de herramientas, extractor y espacio para crecer.' },
-  { id: 'local', name: 'Local con vidriera', slots: 12, cost: 1.5e6, rep: 7, blurb: 'Vidriera a la calle y cartel de neón. Sos un emprendimiento.' },
-  { id: 'industrial', name: 'Taller industrial', slots: 16, cost: 6e7, rep: 10, blurb: 'Galpón con racks, puente grúa y luz de fábrica.' },
-  { id: 'nave', name: 'Nave de producción', slots: 20, cost: 5e9, rep: 13, blurb: 'Una nave entera de máquinas trabajando las 24 horas.' },
-  { id: 'planta', name: 'Planta 3DBAT', slots: 24, cost: 8e11, rep: 16, blurb: 'La fábrica maker más grande del país.' },
+  { id: 'cuarto', name: 'Cuarto maker', slots: 4, cost: 600000, rep: 2, blurb: 'Estantería de bobinas y tira LED. Ya es un taller.' },
+  { id: 'garage', name: 'Garage taller', slots: 8, cost: 12e6, rep: 5, blurb: 'Panel de herramientas, zona de packing y espacio para crecer.' },
+  { id: 'local', name: 'Local con vidriera', slots: 12, cost: 150e6, rep: 7, blurb: 'Vidriera a la calle y cartel de neón. Sos un emprendimiento.' },
+  { id: 'industrial', name: 'Taller industrial', slots: 16, cost: 1.6e9, rep: 10, blurb: 'Galpón con racks, puente grúa y luz de fábrica.' },
+  { id: 'nave', name: 'Nave de producción', slots: 20, cost: 8e9, rep: 13, blurb: 'Una nave entera de máquinas trabajando las 24 horas.' },
+  { id: 'planta', name: 'Planta 3DBAT', slots: 24, cost: 4.8e10, rep: 16, blurb: 'La fábrica maker más grande del país.' },
 ];
 
 // art: cómo se dibuja en 3D (ver src/three/machines.js)
 // size: tamaño máximo de pieza · multi: multicolor de fábrica · amsable: admite sistema multicolor
 export const MACHINES = {
-  // ---------- FDM ----------
-  ender3: { brand: 'Creality', name: 'Ender-3 V3 SE', tech: 'fdm', size: 'M', speed: 1, stars: 1, fail: 0.06, cost: 50, rep: 1, space: 0,
-    flavor: 'La escuela de todos. Todos empezamos con una de estas.', art: { type: 'bed', frame: '#1d1f24', accent: '#c9ced8', bed: '#2a2d33' } },
-  magna: { brand: 'Hellbot', name: 'Magna SE', tech: 'fdm', size: 'M', speed: 1.3, stars: 2, fail: 0.045, cost: 300, rep: 2, space: 0,
+  // ---------- FDM ---------- (precios de referencia en AR$: ver docs/precios-referencia.md)
+  ender3: { brand: 'Creality', name: 'Ender-3 V3 SE', tech: 'fdm', size: 'M', speed: 1, stars: 1, fail: 0.06, cost: 400000, rep: 1, space: 0,
+    flavor: 'La escuela de todos. Todos empezamos con una de estas.', art: { type: 'ender', frame: '#1d1f24', accent: '#c9ced8', bed: '#2a2d33' } },
+  a1mini: { brand: 'Bambu Lab', name: 'A1 mini', tech: 'fdm', size: 'S', speed: 2.2, stars: 3, fail: 0.025, cost: 580000, rep: 2, space: 0, autolevel: true, amsable: true,
+    flavor: 'Chiquita, silenciosa y rapidísima. Eso sí: cama de 18 cm.', art: { type: 'mini', frame: '#e3e5ea', accent: '#00ae42', bed: '#2b2b2b' } },
+  magna: { brand: 'Hellbot', name: 'Magna SE', tech: 'fdm', size: 'M', speed: 1.3, stars: 2, fail: 0.045, cost: 520000, rep: 2, space: 0,
     flavor: 'Industria nacional. Repuestos a la vuelta de la esquina.', art: { type: 'bed', frame: '#202227', accent: '#e63946', bed: '#30333a', top: true } },
-  a1mini: { brand: 'Bambu Lab', name: 'A1 mini', tech: 'fdm', size: 'S', speed: 2.4, stars: 3, fail: 0.025, cost: 1500, rep: 3, space: 1, autolevel: true,
-    flavor: 'Chiquita, silenciosa y rapidísima. Eso sí: cama de 18 cm.', art: { type: 'mini', frame: '#e9ebef', accent: '#00ae42', bed: '#2b2b2b' } },
-  kobra3: { brand: 'Anycubic', name: 'Kobra 3', tech: 'fdm', size: 'M', speed: 2.2, stars: 2, fail: 0.035, cost: 2500, rep: 3, space: 1, autolevel: true, amsable: true,
+  a1: { brand: 'Bambu Lab', name: 'A1', tech: 'fdm', size: 'M', speed: 2.4, stars: 3, fail: 0.02, cost: 960000, rep: 3, space: 1, autolevel: true, amsable: true,
+    flavor: 'La hermana grande de la A1 mini: cama de 25 cm y AMS lite opcional.', art: { type: 'a1', frame: '#e3e5ea', accent: '#00ae42', bed: '#2b2b2b' } },
+  k1c: { brand: 'Creality', name: 'K1C', tech: 'fdm', size: 'M', speed: 3.2, stars: 3, fail: 0.022, cost: 1150000, rep: 3, space: 1, enclosed: true, autolevel: true,
+    flavor: 'CoreXY cerrada que imprime fibra de carbono de fábrica.', art: { type: 'cube', frame: '#222428', accent: '#9aa3b2', glass: '#9fb4d8', model: 'k1c' } },
+  kobra3: { brand: 'Anycubic', name: 'Kobra 3', tech: 'fdm', size: 'M', speed: 2, stars: 2, fail: 0.035, cost: 750000, rep: 3, space: 1, autolevel: true, amsable: true,
     flavor: 'Rápida y con el ACE Pro imprime a varios colores.', art: { type: 'bed', frame: '#17181c', accent: '#2b6cff', bed: '#3a3a3a', top: true } },
-  neptune: { brand: 'Elegoo', name: 'Neptune 4 Max', tech: 'fdm', size: 'L', speed: 1.8, stars: 2, fail: 0.04, cost: 6000, rep: 4, space: 1, autolevel: true,
+  neptune: { brand: 'Elegoo', name: 'Neptune 4 Max', tech: 'fdm', size: 'L', speed: 1.8, stars: 2, fail: 0.04, cost: 1100000, rep: 4, space: 1, autolevel: true,
     flavor: 'Cama de 42 cm. Entra un casco entero.', art: { type: 'bed', frame: '#e6e7ea', accent: '#1d1f24', bed: '#2b2b2b', big: 1.35, top: true } },
-  mk4s: { brand: 'Prusa', name: 'MK4S', tech: 'fdm', size: 'M', speed: 3, stars: 4, fail: 0.012, cost: 15000, rep: 4, space: 2, autolevel: true, amsable: true,
+  p1s: { brand: 'Bambu Lab', name: 'P1S Combo (AMS)', tech: 'fdm', size: 'M', speed: 3.6, stars: 4, fail: 0.015, cost: 2000000, rep: 4, space: 2, enclosed: true, autolevel: true, multi: true,
+    flavor: 'La que más se ve en los talleres. Con el AMS arriba imprime a 4 colores.', art: { type: 'cube', frame: '#1b1c1f', accent: '#00ae42', glass: '#8fa3c2', ams: true, model: 'p1s' } },
+  mk4s: { brand: 'Prusa', name: 'MK4S', tech: 'fdm', size: 'M', speed: 2.8, stars: 4, fail: 0.012, cost: 2200000, rep: 5, space: 2, autolevel: true, amsable: true,
     flavor: 'Checa, confiable y naranja. Le das imprimir y te olvidás.', art: { type: 'bed', frame: '#fa6831', accent: '#16171a', bed: '#b8943d', top: true } },
-  k1c: { brand: 'Creality', name: 'K1C', tech: 'fdm', size: 'M', speed: 4, stars: 3, fail: 0.025, cost: 30000, rep: 5, space: 2, enclosed: true, autolevel: true,
-    flavor: 'CoreXY cerrada que imprime fibra de carbono de fábrica.', art: { type: 'cube', frame: '#222428', accent: '#9aa3b2', glass: '#9fb4d8' } },
-  p1s: { brand: 'Bambu Lab', name: 'P1S', tech: 'fdm', size: 'M', speed: 4.5, stars: 4, fail: 0.015, cost: 70000, rep: 5, space: 2, enclosed: true, autolevel: true, amsable: true,
-    flavor: 'La que más se ve en los talleres. Con AMS imprime a 4 colores.', art: { type: 'cube', frame: '#1b1c1f', accent: '#00ae42', glass: '#8fa3c2' } },
-  sidewinder: { brand: 'Artillery', name: 'Sidewinder X4 Plus', tech: 'fdm', size: 'L', speed: 2.6, stars: 3, fail: 0.03, cost: 1.2e5, rep: 6, space: 3, autolevel: true,
+  sidewinder: { brand: 'Artillery', name: 'Sidewinder X4 Plus', tech: 'fdm', size: 'L', speed: 2.4, stars: 3, fail: 0.03, cost: 1300000, rep: 5, space: 2, autolevel: true,
     flavor: 'Grandota y silenciosa. Para piezas de 30 × 30 cm.', art: { type: 'bed', frame: '#16171a', accent: '#1e90ff', bed: '#30323a', big: 1.45, top: true } },
-  k2plus: { brand: 'Creality', name: 'K2 Plus Combo', tech: 'fdm', size: 'L', speed: 5, stars: 4, fail: 0.015, cost: 4e5, rep: 6, space: 3, enclosed: true, multi: true, autolevel: true,
-    flavor: 'Gran volumen, cerrada y con CFS: hasta 16 colores.', art: { type: 'cube', frame: '#2a2c31', accent: '#9aa3b2', glass: '#a2b2cc', big: 1.3, ams: true } },
-  x1c: { brand: 'Bambu Lab', name: 'X1 Carbon', tech: 'fdm', size: 'M', speed: 5.5, stars: 5, fail: 0.01, cost: 9e5, rep: 7, space: 3, enclosed: true, autolevel: true, amsable: true, lidar: true,
-    flavor: 'Lidar, cámara con IA y velocidad absurda.', art: { type: 'cube', frame: '#111214', accent: '#00ae42', glass: '#7f93b5' } },
-  coreone: { brand: 'Prusa', name: 'Core One', tech: 'fdm', size: 'M', speed: 5.2, stars: 5, fail: 0.008, cost: 2.5e6, rep: 7, space: 4, enclosed: true, autolevel: true, amsable: true,
+  k2plus: { brand: 'Creality', name: 'K2 Pro Combo (CFS)', tech: 'fdm', size: 'L', speed: 4.5, stars: 4, fail: 0.015, cost: 1900000, rep: 6, space: 3, enclosed: true, multi: true, autolevel: true,
+    flavor: 'Volumen de 30 cm, cerrada, cámara doble y CFS para varios colores.', art: { type: 'cube', frame: '#2a2c31', accent: '#9aa3b2', glass: '#a2b2cc', big: 1.2, ams: 'cfs', model: 'k2' } },
+  h2s: { brand: 'Bambu Lab', name: 'H2S Combo (AMS)', tech: 'fdm', size: 'L', speed: 4.2, stars: 5, fail: 0.01, cost: 4700000, rep: 6, space: 3, enclosed: true, multi: true, autolevel: true, lidar: true,
+    flavor: 'Gran formato de Bambu: 34 cm de cama, cerrada y con AMS.', art: { type: 'cube', frame: '#e3e5ea', accent: '#00ae42', glass: '#8fa3c2', big: 1.3, ams: true, model: 'h2' } },
+  u1: { brand: 'Snapmaker', name: 'U1', tech: 'fdm', size: 'M', speed: 4, stars: 4, fail: 0.015, cost: 2450000, rep: 7, space: 3, multi: true, autolevel: true,
+    flavor: 'Cuatro cabezales que se cambian solos: multicolor sin purgar.', art: { type: 'u1', frame: '#2b2e35', accent: '#f5a623' } },
+  x1c: { brand: 'Bambu Lab', name: 'X1 Carbon', tech: 'fdm', size: 'M', speed: 4.8, stars: 5, fail: 0.01, cost: 3000000, rep: 7, space: 3, enclosed: true, autolevel: true, amsable: true, lidar: true,
+    flavor: 'Lidar, cámara con IA y velocidad absurda.', art: { type: 'cube', frame: '#111214', accent: '#00ae42', glass: '#7f93b5', model: 'p1s' } },
+  coreone: { brand: 'Prusa', name: 'Core One', tech: 'fdm', size: 'M', speed: 4.6, stars: 5, fail: 0.008, cost: 3200000, rep: 8, space: 4, enclosed: true, autolevel: true, amsable: true,
     flavor: 'La CoreXY cerrada de Prusa. Naranja, obvio.', art: { type: 'cube', frame: '#fa6831', accent: '#16171a', glass: '#9fb4d8' } },
-  voron: { brand: 'Voron', name: '2.4 (kit armado)', tech: 'fdm', size: 'L', speed: 7.5, stars: 5, fail: 0.03, cost: 6e6, rep: 8, space: 4, enclosed: true, autolevel: true,
+  voron: { brand: 'Voron', name: '2.4 (kit armado)', tech: 'fdm', size: 'L', speed: 6, stars: 5, fail: 0.03, cost: 2800000, rep: 8, space: 4, enclosed: true, autolevel: true,
     flavor: 'No se compra: se arma. Tres fines de semana y 400 tornillos.', art: { type: 'cube', frame: '#141416', accent: '#d22630', glass: '#9aa8c0', big: 1.2 } },
-  h2d: { brand: 'Bambu Lab', name: 'H2D', tech: 'fdm', size: 'L', speed: 7, stars: 5, fail: 0.008, cost: 2e7, rep: 9, space: 4, enclosed: true, multi: true, autolevel: true, lidar: true,
-    flavor: 'Doble boquilla y volumen grande. La bestia de escritorio.', art: { type: 'cube', frame: '#e8eaee', accent: '#00ae42', glass: '#8fa3c2', big: 1.35, ams: true } },
-  prusaxl: { brand: 'Prusa', name: 'XL 5 cabezales', tech: 'fdm', size: 'L', speed: 6.5, stars: 5, fail: 0.008, cost: 6e7, rep: 10, space: 5, multi: true, autolevel: true,
+  h2d: { brand: 'Bambu Lab', name: 'H2D', tech: 'fdm', size: 'L', speed: 6, stars: 5, fail: 0.008, cost: 6500000, rep: 9, space: 4, enclosed: true, multi: true, autolevel: true, lidar: true,
+    flavor: 'Doble boquilla y volumen grande. La bestia de escritorio.', art: { type: 'cube', frame: '#e3e5ea', accent: '#00ae42', glass: '#8fa3c2', big: 1.35, ams: true, model: 'h2' } },
+  prusaxl: { brand: 'Prusa', name: 'XL 5 cabezales', tech: 'fdm', size: 'L', speed: 5.5, stars: 5, fail: 0.008, cost: 9000000, rep: 10, space: 5, multi: true, autolevel: true,
     flavor: 'Cinco cabezales que se cambian solos. Multicolor sin desperdicio.', art: { type: 'pxl', frame: '#fa6831', accent: '#16171a', big: 1.5 } },
-  giga: { brand: 'Elegoo', name: 'OrangeStorm Giga', tech: 'fdm', size: 'XL', speed: 3.5, stars: 4, fail: 0.02, cost: 1.5e8, rep: 10, space: 5, autolevel: true,
+  giga: { brand: 'Elegoo', name: 'OrangeStorm Giga', tech: 'fdm', size: 'XL', speed: 3, stars: 4, fail: 0.02, cost: 7000000, rep: 10, space: 5, autolevel: true,
     flavor: '80 × 80 × 100 cm. Imprimís muebles enteros.', art: { type: 'giga', frame: '#1b1c20', accent: '#ff7a1a' } },
-  rack: { brand: 'Bambu Lab', name: 'Rack de granja 8× A1 mini', tech: 'fdm', size: 'S', speed: 40, stars: 3, fail: 0.02, cost: 5e8, rep: 11, space: 5, autolevel: true,
+  rack: { brand: 'Bambu Lab', name: 'Rack de granja 8× A1 mini', tech: 'fdm', size: 'S', speed: 16, stars: 3, fail: 0.02, cost: 5500000, rep: 11, space: 5, autolevel: true,
     flavor: 'Ocho A1 mini en un rack. Una granja en un metro cuadrado.', art: { type: 'rack', frame: '#3a3f4a', accent: '#00ae42', n: 8 } },
-  rackpro: { brand: 'Bambu Lab', name: 'Rack Pro 6× P1S', tech: 'fdm', size: 'M', speed: 60, stars: 4, fail: 0.012, cost: 6e9, rep: 13, space: 6, enclosed: true, autolevel: true,
+  rackpro: { brand: 'Bambu Lab', name: 'Rack Pro 6× P1S', tech: 'fdm', size: 'M', speed: 21, stars: 4, fail: 0.012, cost: 14000000, rep: 13, space: 6, enclosed: true, autolevel: true,
     flavor: 'Seis P1S apiladas con cambio automático de placas.', art: { type: 'rack', frame: '#2b2f38', accent: '#00ae42', n: 6, pro: true } },
   // ---------- Resina ----------
-  mars: { brand: 'Elegoo', name: 'Mars 5 Ultra', tech: 'resin', size: 'S', speed: 1, stars: 4, fail: 0.04, cost: 2e5, rep: 6, space: 3,
+  mars: { brand: 'Elegoo', name: 'Mars 5 Ultra', tech: 'resin', size: 'S', speed: 1, stars: 4, fail: 0.04, cost: 975000, rep: 6, space: 3,
     flavor: 'La puerta de entrada a la resina. Detalle que el FDM no tiene.', art: { type: 'resin', frame: '#18191c', lid: '#ff3b30' } },
-  photon: { brand: 'Anycubic', name: 'Photon Mono M7 Pro', tech: 'resin', size: 'M', speed: 1.6, stars: 4, fail: 0.03, cost: 9e5, rep: 7, space: 3,
+  photon: { brand: 'Anycubic', name: 'Photon Mono M7 Pro', tech: 'resin', size: 'M', speed: 1.6, stars: 4, fail: 0.03, cost: 1300000, rep: 7, space: 3,
     flavor: 'Calefacción de resina incluida: chau piezas frías en invierno.', art: { type: 'resin', frame: '#1c1d21', lid: '#ffb000', big: 1.15 } },
-  saturn: { brand: 'Elegoo', name: 'Saturn 4 Ultra 16K', tech: 'resin', size: 'M', speed: 2.2, stars: 5, fail: 0.02, cost: 4e6, rep: 8, space: 4,
+  saturn: { brand: 'Elegoo', name: 'Saturn 4 Ultra 16K', tech: 'resin', size: 'M', speed: 2.2, stars: 5, fail: 0.02, cost: 2500000, rep: 8, space: 4,
     flavor: '16K de resolución. Las miniaturas parecen reales.', art: { type: 'resin', frame: '#17181b', lid: '#ffcf33', big: 1.25 } },
-  form4: { brand: 'Formlabs', name: 'Form 4', tech: 'resin', size: 'M', speed: 4, stars: 5, fail: 0.006, cost: 4e7, rep: 10, space: 5,
+  form4: { brand: 'Formlabs', name: 'Form 4', tech: 'resin', size: 'M', speed: 4, stars: 5, fail: 0.006, cost: 12000000, rep: 10, space: 5,
     flavor: 'Resina profesional. Dentistas y joyeros la aman.', art: { type: 'resin', frame: '#e7e8ea', lid: '#ff7a00', big: 1.4, pro: true } },
   // ---------- Láser ----------
-  falcon: { brand: 'Creality', name: 'Falcon2 22W', tech: 'laser', size: 'L', speed: 1, stars: 3, fail: 0.04, cost: 3e6, rep: 8, space: 4,
+  falcon: { brand: 'Creality', name: 'Falcon2 22W', tech: 'laser', size: 'L', speed: 1, stars: 3, fail: 0.04, cost: 2050000, rep: 8, space: 4,
     flavor: 'Láser de diodo abierto. Gafas puestas, siempre.', art: { type: 'laser', frame: '#1b1c20', accent: '#3a86ff' } },
-  xtools1: { brand: 'xTool', name: 'S1 40W', tech: 'laser', size: 'L', speed: 2, stars: 4, fail: 0.02, cost: 1.5e7, rep: 9, space: 4,
+  xtools1: { brand: 'xTool', name: 'S1 40W', tech: 'laser', size: 'L', speed: 2, stars: 4, fail: 0.02, cost: 4500000, rep: 9, space: 4,
     flavor: 'Cerrada, con filtro y cámara. Corta acrílico de 10 mm.', art: { type: 'laserbox', frame: '#e9eaee', lid: '#ff8a1a' } },
-  xtoolp2: { brand: 'xTool', name: 'P2S CO₂ 55W', tech: 'laser', size: 'XL', speed: 4, stars: 5, fail: 0.01, cost: 1.2e8, rep: 11, space: 5,
+  xtoolp2: { brand: 'xTool', name: 'P2S CO₂ 55W', tech: 'laser', size: 'XL', speed: 4, stars: 5, fail: 0.01, cost: 9500000, rep: 11, space: 5,
     flavor: 'Láser de CO₂ con alimentador. Corta MDF como manteca.', art: { type: 'laserbox', frame: '#2a2d33', lid: '#ff8a1a', big: 1.45 } },
   // ---------- CNC ----------
-  g3018: { brand: 'Genmitsu', name: '3018-PROVer', tech: 'cnc', size: 'M', speed: 1, stars: 2, fail: 0.05, cost: 2e7, rep: 9, space: 5,
+  g3018: { brand: 'Genmitsu', name: '3018-PROVer', tech: 'cnc', size: 'M', speed: 1, stars: 2, fail: 0.05, cost: 450000, rep: 9, space: 5,
     flavor: '«La 3018». Chiquita, ruidosa y valiente.', art: { type: 'cnc', frame: '#2a6fd6', accent: '#c9d1dc' } },
-  artisan: { brand: 'Snapmaker', name: 'Artisan 3 en 1', tech: 'cnc', size: 'L', speed: 2, stars: 4, fail: 0.02, cost: 1.5e8, rep: 11, space: 5,
+  artisan: { brand: 'Snapmaker', name: 'Artisan 3 en 1', tech: 'cnc', size: 'L', speed: 2, stars: 4, fail: 0.02, cost: 4500000, rep: 11, space: 5,
     flavor: 'Imprime, graba y fresa. Acá trabaja de fresadora.', art: { type: 'cncbox', frame: '#2b2e35', lid: '#ffb000' } },
-  shapeoko: { brand: 'Carbide 3D', name: 'Shapeoko 5 Pro', tech: 'cnc', size: 'XL', speed: 4, stars: 5, fail: 0.01, cost: 1.5e9, rep: 12, space: 6,
+  shapeoko: { brand: 'Carbide 3D', name: 'Shapeoko 5 Pro', tech: 'cnc', size: 'XL', speed: 4, stars: 5, fail: 0.01, cost: 9000000, rep: 12, space: 6,
     flavor: 'Fresadora de 1,2 m. Hace muebles y moldes.', art: { type: 'cnc', frame: '#1a1b1f', accent: '#c9d1dc', big: 1.5 } },
 };
-for (const [id, m] of Object.entries(MACHINES)) { m.id = id; m.growth = m.growth || 1.5; }
+for (const [id, m] of Object.entries(MACHINES)) { m.id = id; m.growth = m.growth || 1.06; }
 export const MACHINE_ORDER = Object.keys(MACHINES);
 export const fullName = (M) => `${M.brand} ${M.name}`;
 
 // shape = modelo 3D/2D de la pieza · multi: necesita multicolor · enclosed: necesita impresora cerrada
 export const PRODUCTS = {
   // FDM
-  llavero: { name: 'Llavero con nombre', tech: 'fdm', mat: 'PLA', size: 'S', time: 20, price: 5, use: 8, rep: 1, shape: 'llavero', color: '#F78EB6' },
-  benchy: { name: 'Benchy de exhibición', tech: 'fdm', mat: 'PLA', size: 'S', time: 45, price: 14, use: 15, rep: 2, shape: 'benchy', color: '#ff7f50', tip: 'El barquito de prueba más famoso del mundo maker.' },
-  soporte: { name: 'Soporte de celular', tech: 'fdm', mat: 'PLA', size: 'M', time: 90, price: 35, use: 40, rep: 3, shape: 'soporte', color: '#5DDADB' },
-  maceta: { name: 'Maceta geométrica', tech: 'fdm', mat: 'PLA', size: 'M', time: 180, price: 80, use: 90, rep: 1, space: 1, shape: 'maceta', color: '#9ae6b4' },
-  gancho: { name: 'Gancho de pared reforzado', tech: 'fdm', mat: 'PETG', size: 'M', time: 60, price: 40, use: 30, rep: 1, shape: 'gancho', color: '#7c83ff' },
-  figura: { name: 'Figura de colección', tech: 'fdm', mat: 'PLA', size: 'M', time: 240, price: 140, use: 60, rep: 4, minStars: 3, shape: 'figura', color: '#c4b5fd' },
-  engranaje: { name: 'Engranaje de repuesto', tech: 'fdm', mat: 'PETG', size: 'S', time: 120, price: 120, use: 20, rep: 1, minStars: 3, shape: 'engranaje', color: '#a5b4fc' },
-  topes: { name: 'Topes y fundas flexibles', tech: 'fdm', mat: 'TPU', size: 'S', time: 120, price: 90, use: 15, rep: 1, shape: 'topes', color: '#F78EB6' },
-  organizador: { name: 'Organizador modular', tech: 'fdm', mat: 'PETG', size: 'M', time: 360, price: 300, use: 150, rep: 1, space: 2, shape: 'organizador', color: '#5DDADB' },
-  llaveromulti: { name: 'Llavero multicolor', tech: 'fdm', mat: 'PLA', size: 'S', time: 60, price: 60, use: 12, rep: 1, multi: true, shape: 'llavero', color: '#ffd166', colors: ['#ffd166', '#F78EB6', '#5DDADB'] },
-  carcasa: { name: 'Carcasa para electrónica', tech: 'fdm', mat: 'ASA', size: 'M', time: 300, price: 500, use: 120, rep: 1, enclosed: true, shape: 'carcasa', color: '#e8e8e8' },
-  casco: { name: 'Casco cosplay', tech: 'fdm', mat: 'PLA', size: 'L', time: 900, price: 2500, use: 600, rep: 5, shape: 'casco', color: '#e2e8f0' },
-  lampara: { name: 'Lámpara multicolor', tech: 'fdm', mat: 'PLA', size: 'M', time: 420, price: 700, use: 120, rep: 6, multi: true, shape: 'lampara', color: '#F78EB6', colors: ['#F78EB6', '#5DDADB', '#c4b5fd'] },
-  maqueta: { name: 'Maqueta de arquitectura', tech: 'fdm', mat: 'PLA', size: 'L', time: 1500, price: 6000, use: 400, rep: 7, minStars: 4, shape: 'maqueta', color: '#f1f1f1' },
-  figurapintada: { name: 'Figura multicolor premium', tech: 'fdm', mat: 'PLA', size: 'M', time: 600, price: 2500, use: 100, rep: 8, minStars: 4, multi: true, shape: 'figura', color: '#ffd166', colors: ['#ffd166', '#3437A2', '#F78EB6'] },
-  dron: { name: 'Frame de dron', tech: 'fdm', mat: 'PACF', size: 'M', time: 600, price: 4000, use: 150, rep: 9, minStars: 4, enclosed: true, shape: 'dron', color: '#3b3f4a' },
-  armadura: { name: 'Armadura cosplay completa', tech: 'fdm', mat: 'PLA', size: 'XL', time: 3600, price: 40000, use: 3000, rep: 9, minStars: 4, shape: 'armadura', color: '#c9d1dc' },
-  silla: { name: 'Silla impresa de diseño', tech: 'fdm', mat: 'PETG', size: 'XL', time: 7200, price: 1.2e5, use: 6000, rep: 11, minStars: 4, shape: 'silla', color: '#5DDADB' },
-  industrial: { name: 'Repuesto industrial', tech: 'fdm', mat: 'PACF', size: 'L', time: 1800, price: 6e4, use: 500, rep: 12, minStars: 5, enclosed: true, shape: 'engranaje', color: '#2b2f38' },
+  llavero: { name: 'Llavero con nombre', tech: 'fdm', mat: 'PLA', size: 'S', time: 12, price: 3500, use: 8, rep: 1, shape: 'llavero', color: '#F78EB6' },
+  benchy: { name: 'Benchy de exhibición', tech: 'fdm', mat: 'PLA', size: 'S', time: 25, price: 8000, use: 15, rep: 2, shape: 'benchy', color: '#ff7f50', tip: 'El barquito de prueba más famoso del mundo maker.' },
+  soporte: { name: 'Soporte de celular', tech: 'fdm', mat: 'PLA', size: 'M', time: 28, price: 9500, use: 40, rep: 3, shape: 'soporte', color: '#5DDADB' },
+  maceta: { name: 'Maceta geométrica', tech: 'fdm', mat: 'PLA', size: 'M', time: 42, price: 15000, use: 90, rep: 1, space: 1, shape: 'maceta', color: '#9ae6b4' },
+  gancho: { name: 'Gancho de pared reforzado', tech: 'fdm', mat: 'PETG', size: 'M', time: 16, price: 6000, use: 30, rep: 1, shape: 'gancho', color: '#7c83ff' },
+  figura: { name: 'Figura de colección', tech: 'fdm', mat: 'PLA', size: 'M', time: 62, price: 25000, use: 60, rep: 4, minStars: 3, shape: 'figura', color: '#c4b5fd' },
+  engranaje: { name: 'Engranaje de repuesto', tech: 'fdm', mat: 'PETG', size: 'S', time: 45, price: 20000, use: 20, rep: 1, minStars: 3, shape: 'engranaje', color: '#a5b4fc' },
+  topes: { name: 'Topes y fundas flexibles', tech: 'fdm', mat: 'TPU', size: 'S', time: 29, price: 12000, use: 15, rep: 1, shape: 'topes', color: '#F78EB6' },
+  organizador: { name: 'Organizador modular', tech: 'fdm', mat: 'PETG', size: 'M', time: 65, price: 30000, use: 150, rep: 1, space: 2, shape: 'organizador', color: '#5DDADB' },
+  llaveromulti: { name: 'Llavero multicolor', tech: 'fdm', mat: 'PLA', size: 'S', time: 18, price: 9000, use: 12, rep: 1, multi: true, shape: 'llavero', color: '#ffd166', colors: ['#ffd166', '#F78EB6', '#5DDADB'] },
+  carcasa: { name: 'Carcasa para electrónica', tech: 'fdm', mat: 'ASA', size: 'M', time: 62, price: 35000, use: 120, rep: 1, enclosed: true, shape: 'carcasa', color: '#e8e8e8' },
+  casco: { name: 'Casco cosplay', tech: 'fdm', mat: 'PLA', size: 'L', time: 185, price: 120000, use: 600, rep: 5, shape: 'casco', color: '#e2e8f0' },
+  lampara: { name: 'Lámpara multicolor', tech: 'fdm', mat: 'PLA', size: 'M', time: 73, price: 45000, use: 120, rep: 6, multi: true, shape: 'lampara', color: '#F78EB6', colors: ['#F78EB6', '#5DDADB', '#c4b5fd'] },
+  maqueta: { name: 'Maqueta de arquitectura', tech: 'fdm', mat: 'PLA', size: 'L', time: 312, price: 250000, use: 400, rep: 7, minStars: 4, shape: 'maqueta', color: '#f1f1f1' },
+  figurapintada: { name: 'Figura multicolor premium', tech: 'fdm', mat: 'PLA', size: 'M', time: 141, price: 120000, use: 100, rep: 8, minStars: 4, multi: true, shape: 'figura', color: '#ffd166', colors: ['#ffd166', '#3437A2', '#F78EB6'] },
+  dron: { name: 'Frame de dron', tech: 'fdm', mat: 'PACF', size: 'M', time: 189, price: 180000, use: 150, rep: 9, minStars: 4, enclosed: true, shape: 'dron', color: '#3b3f4a' },
+  armadura: { name: 'Armadura cosplay completa', tech: 'fdm', mat: 'PLA', size: 'XL', time: 750, price: 900000, use: 3000, rep: 9, minStars: 4, shape: 'armadura', color: '#c9d1dc' },
+  silla: { name: 'Silla impresa de diseño', tech: 'fdm', mat: 'PETG', size: 'XL', time: 857, price: 1200000, use: 6000, rep: 11, minStars: 4, shape: 'silla', color: '#5DDADB' },
+  industrial: { name: 'Repuesto industrial', tech: 'fdm', mat: 'PACF', size: 'L', time: 882, price: 1500000, use: 500, rep: 12, minStars: 5, enclosed: true, shape: 'engranaje', color: '#2b2f38' },
   // Resina
-  miniatura: { name: 'Miniatura de rol 32 mm', tech: 'resin', mat: 'RESINA', size: 'S', time: 600, price: 600, use: 20, rep: 1, shape: 'miniatura', color: '#9aa3b2' },
-  joya: { name: 'Prototipo de joyería', tech: 'resin', mat: 'RESINA', size: 'S', time: 900, price: 3000, use: 10, rep: 7, minStars: 5, shape: 'anillo', color: '#ffd166' },
-  dental: { name: 'Modelo dental', tech: 'resin', mat: 'RESINA', size: 'S', time: 1200, price: 7000, use: 40, rep: 9, minStars: 5, shape: 'dental', color: '#f4efe6' },
-  busto: { name: 'Busto de colección', tech: 'resin', mat: 'RESINA', size: 'M', time: 2400, price: 3e4, use: 300, rep: 10, minStars: 5, shape: 'busto', color: '#cfd6e0' },
+  miniatura: { name: 'Miniatura de rol 32 mm', tech: 'resin', mat: 'RESINA', size: 'S', time: 20, price: 12000, use: 20, rep: 1, shape: 'miniatura', color: '#9aa3b2' },
+  joya: { name: 'Prototipo de joyería', tech: 'resin', mat: 'RESINA', size: 'S', time: 67, price: 60000, use: 10, rep: 7, minStars: 5, shape: 'anillo', color: '#ffd166' },
+  dental: { name: 'Modelo dental', tech: 'resin', mat: 'RESINA', size: 'S', time: 109, price: 120000, use: 40, rep: 9, minStars: 5, shape: 'dental', color: '#f4efe6' },
+  busto: { name: 'Busto de colección', tech: 'resin', mat: 'RESINA', size: 'M', time: 300, price: 450000, use: 300, rep: 10, minStars: 5, shape: 'busto', color: '#cfd6e0' },
   // Láser
-  llaveroacr: { name: 'Llavero de acrílico grabado', tech: 'laser', mat: 'ACRILICO', size: 'S', time: 30, price: 40, use: 50, rep: 1, shape: 'placa', color: '#f7a8c9' },
-  posavasos: { name: 'Posavasos para cervecería', tech: 'laser', mat: 'MDF', size: 'S', time: 60, price: 120, use: 60, rep: 1, shape: 'posavasos', color: '#b98a5a' },
-  caja: { name: 'Caja de MDF encastrable', tech: 'laser', mat: 'MDF', size: 'M', time: 120, price: 500, use: 300, rep: 1, shape: 'caja', color: '#b98a5a' },
-  cartel: { name: 'Cartel de acrílico con LED', tech: 'laser', mat: 'ACRILICO', size: 'M', time: 300, price: 4000, use: 400, rep: 9, minStars: 4, shape: 'cartel', color: '#5DDADB' },
-  mural: { name: 'Mural de MDF calado', tech: 'laser', mat: 'MDF', size: 'XL', time: 3600, price: 2e5, use: 4000, rep: 11, minStars: 5, shape: 'mural', color: '#b98a5a' },
+  llaveroacr: { name: 'Llavero de acrílico grabado', tech: 'laser', mat: 'ACRILICO', size: 'S', time: 7, price: 4600, use: 50, rep: 1, shape: 'placa', color: '#f7a8c9' },
+  posavasos: { name: 'Set de 6 posavasos para cervecería', tech: 'laser', mat: 'MDF', size: 'S', time: 19, price: 15000, use: 60, rep: 1, shape: 'posavasos', color: '#b98a5a' },
+  caja: { name: 'Caja de MDF encastrable', tech: 'laser', mat: 'MDF', size: 'M', time: 39, price: 35000, use: 300, rep: 1, shape: 'caja', color: '#b98a5a' },
+  cartel: { name: 'Cartel de acrílico con LED', tech: 'laser', mat: 'ACRILICO', size: 'M', time: 138, price: 180000, use: 400, rep: 9, minStars: 4, shape: 'cartel', color: '#5DDADB' },
+  mural: { name: 'Mural de MDF calado', tech: 'laser', mat: 'MDF', size: 'XL', time: 1091, price: 2400000, use: 4000, rep: 11, minStars: 5, shape: 'mural', color: '#b98a5a' },
   // CNC
-  tabla: { name: 'Tabla de asado grabada', tech: 'cnc', mat: 'MADERA', size: 'M', time: 600, price: 4000, use: 400, rep: 1, shape: 'tabla', color: '#a0703f' },
-  cartelmad: { name: 'Cartel tallado en madera', tech: 'cnc', mat: 'MADERA', size: 'L', time: 1800, price: 4e4, use: 900, rep: 10, shape: 'cartelmad', color: '#8a5a2b' },
-  alu: { name: 'Pieza de aluminio mecanizada', tech: 'cnc', mat: 'ALU', size: 'S', time: 1200, price: 6e4, use: 200, rep: 11, minStars: 5, shape: 'alu', color: '#c9d1dc' },
-  mueble: { name: 'Mueble de diseño fresado', tech: 'cnc', mat: 'MADERA', size: 'XL', time: 7200, price: 8e5, use: 6000, rep: 12, minStars: 5, shape: 'mueble', color: '#a0703f' },
+  tabla: { name: 'Tabla de asado grabada', tech: 'cnc', mat: 'MADERA', size: 'M', time: 60, price: 60000, use: 400, rep: 1, shape: 'tabla', color: '#a0703f' },
+  cartelmad: { name: 'Cartel tallado en madera', tech: 'cnc', mat: 'MADERA', size: 'L', time: 267, price: 400000, use: 900, rep: 10, shape: 'cartelmad', color: '#8a5a2b' },
+  alu: { name: 'Pieza de aluminio mecanizada', tech: 'cnc', mat: 'ALU', size: 'S', time: 409, price: 900000, use: 200, rep: 11, minStars: 5, shape: 'alu', color: '#c9d1dc' },
+  mueble: { name: 'Mueble de diseño fresado', tech: 'cnc', mat: 'MADERA', size: 'XL', time: 2000, price: 6000000, use: 6000, rep: 12, minStars: 5, shape: 'mueble', color: '#a0703f' },
 };
 for (const [id, p] of Object.entries(PRODUCTS)) p.id = id;
 export const PRODUCT_ORDER = Object.keys(PRODUCTS);
 
-// Experiencia por producto (no se pierde con la Mudanza): cada nivel, ×1,2 de precio.
+// Experiencia por producto (no se pierde con la Mudanza): cada nivel, +12 % de precio.
 export const MASTERY_BASE = 25;
-export const MASTERY_GROWTH = 2.5;
-export const MASTERY_BONUS = 1.2;
+export const MASTERY_GROWTH = 3;
+export const MASTERY_BONUS = 1.12;
 
 // ---------- Mejoras ----------
 // max: niveles (sin max = infinita) · growth: multiplicador de costo por nivel
 export const UPGRADES = {
-  slicer: { name: 'Perfiles en Orca Slicer', cat: 'Velocidad', cost: 20, growth: 2.2, desc: '+10 % de velocidad en impresión 3D por nivel.', tip: 'El slicer corta el modelo en capas y decide cómo se imprime.' },
-  pei: { name: 'Cama PEI texturada', cat: 'Confiabilidad', cost: 120, max: 1, desc: 'Las piezas pegan mejor: la mitad de spaghetti, warping y primeras capas fallidas.' },
-  sobrino: { name: 'Sobrino ayudante', cat: 'Automatización', cost: 150, max: 1, desc: 'Retira una pieza terminada cada 8 s.', flavor: 'Sabe de compus. Más o menos.' },
-  termo: { name: 'Termo Stanley', cat: 'Mate', cost: 300, max: 1, desc: 'El mate dura 90 s en vez de 60 s.' },
-  calibracion: { name: 'Calibración de flujo', cat: 'Calidad', cost: 500, rep: 2, max: 1, desc: '+1★ en las impresoras de ★1 y ★2.' },
-  bulk: { name: 'Compra por mayor', cat: 'Materiales', cost: 1000, rep: 2, max: 1, desc: '−20 % en el precio de todos los materiales.' },
-  petg: { name: 'Kit PETG', cat: 'Tecnología', cost: 1200, rep: 3, max: 1, desc: 'Cama a 80 °C y hotend all-metal: desbloquea el PETG.' },
-  proveedor: { name: 'Proveedor de materiales', cat: 'Automatización', cost: 3000, rep: 3, max: 1, desc: 'Compra solo cuando se acaba un material (con 10 % de recargo).' },
-  retraccion: { name: 'Ajuste de retracción', cat: 'Calidad', cost: 2000, rep: 3, max: 1, desc: 'Chau hilos: elimina el stringing.', tip: 'La retracción tira el filamento para atrás para que no gotee.' },
-  yerba: { name: 'Yerba de la buena', cat: 'Mate', cost: 4000, rep: 3, max: 1, desc: 'El mate se recarga en 3 min en vez de 5.' },
-  instagram: { name: 'Ventas por Instagram', cat: 'Marca', cost: 5000, growth: 2.6, rep: 4, desc: '+15 % a la paga de los pedidos por nivel.', flavor: 'Fotos lindas, historias y respuestas rápidas.' },
-  hotend: { name: 'Hotend de alto flujo', cat: 'Velocidad', cost: 6000, growth: 15, max: 3, rep: 4, desc: '+25 % de velocidad en impresión 3D por nivel.' },
-  tablero: { name: 'Tablero de pedidos ampliado', cat: 'Capacidad', cost: 8000, rep: 4, max: 1, desc: 'Hasta 5 pedidos a la vez (en vez de 3).' },
-  secador: { name: 'Secador de filamento', cat: 'Confiabilidad', cost: 12000, rep: 4, max: 1, desc: 'Elimina el filamento húmedo.' },
-  directo: { name: 'Extrusor directo', cat: 'Tecnología', cost: 15000, rep: 4, max: 1, desc: 'Desbloquea el TPU.', flavor: 'Con bowden, ni lo intentes.' },
-  marca: { name: 'Marca personal', cat: 'Marca', cost: 15000, growth: 2.8, rep: 5, desc: '+12 % al precio de todo lo que vendés por nivel.' },
-  boquilla: { name: 'Boquilla de acero endurecido', cat: 'Calidad', cost: 25000, rep: 5, max: 1, desc: '+1★ en impresión 3D y −70 % de boquillas tapadas.' },
-  camara: { name: 'Cámara con detección de spaghetti', cat: 'Confiabilidad', cost: 40000, rep: 5, max: 1, desc: 'Detecta el spaghetti y limpia sola en 3 s.' },
-  abs: { name: 'Extractor y gabinete: ABS/ASA', cat: 'Tecnología', cost: 60000, rep: 5, max: 1, desc: 'Desbloquea ABS/ASA (solo en impresoras cerradas).' },
-  input: { name: 'Input shaping y Klipper', cat: 'Velocidad', cost: 90000, rep: 5, max: 1, desc: '+50 % de velocidad en las impresoras CoreXY cerradas.', tip: 'El firmware compensa las vibraciones para imprimir rápido sin "fantasmas".' },
-  remota: { name: 'Cámara remota', cat: 'Automatización', cost: 1.2e5, rep: 6, max: 1, desc: 'Mientras no estás: hasta 6 h y 80 % de rendimiento.' },
-  ams: { name: 'Sistema multicolor (AMS / ACE / MMU)', cat: 'Tecnología', cost: 1.5e5, rep: 6, max: 1, desc: 'Las impresoras compatibles imprimen piezas multicolor.' },
-  expulsion: { name: 'Expulsión automática', cat: 'Automatización', cost: 2e5, rep: 6, max: 1, desc: 'Las piezas se retiran solas al instante.' },
-  resina: { name: 'Rincón de resina', cat: 'Tecnología', cost: 2.5e5, rep: 6, space: 3, max: 1, desc: 'Estación de lavado y curado, guantes y ventilación: desbloquea la resina.' },
-  ups: { name: 'UPS: recuperación ante cortes', cat: 'Confiabilidad', cost: 3e5, rep: 6, max: 1, desc: 'Un corte de luz ya no reinicia las piezas.' },
-  gestor: { name: 'Gestor de pedidos', cat: 'Automatización', cost: 7e5, rep: 7, max: 1, desc: 'Acepta los pedidos que podés cumplir y les asigna máquinas.' },
-  exposicion: { name: 'Exposición calibrada', cat: 'Velocidad', cost: 4e5, growth: 2.5, rep: 7, req: 'resina', desc: '+15 % de velocidad en resina por nivel.' },
-  nylon: { name: 'Kit fibra de carbono', cat: 'Tecnología', cost: 2e6, rep: 8, max: 1, desc: 'Desbloquea el nylon con fibra de carbono.' },
-  laser: { name: 'Sala de láser', cat: 'Tecnología', cost: 5e6, rep: 8, space: 4, max: 1, desc: 'Extractor, gafas y matafuego: desbloquea el corte y grabado láser.' },
-  potencia: { name: 'Potencia y asistencia de aire', cat: 'Velocidad', cost: 8e6, growth: 2.5, rep: 8, req: 'laser', desc: '+15 % de velocidad en láser por nivel.' },
-  cnc: { name: 'Taller de CNC', cat: 'Tecnología', cost: 4e7, rep: 9, space: 5, max: 1, desc: 'Aspiradora, fresas y sujeciones: desbloquea el fresado CNC.' },
-  fresas: { name: 'Fresas de metal duro', cat: 'Velocidad', cost: 6e7, growth: 2.5, rep: 9, req: 'cnc', desc: '+15 % de velocidad en CNC por nivel.' },
-  granja: { name: 'Software de granja', cat: 'Automatización', cost: 1e9, growth: 3, rep: 11, desc: '+20 % de velocidad en todas las máquinas por nivel.' },
+  slicer: { name: 'Perfiles en Orca Slicer', cat: 'Velocidad', cost: 12000, growth: 3.2, desc: '+5 % de velocidad en impresión 3D por nivel.', tip: 'El slicer corta el modelo en capas y decide cómo se imprime.' },
+  pei: { name: 'Cama PEI texturada', cat: 'Confiabilidad', cost: 35000, max: 1, desc: 'Las piezas pegan mejor: la mitad de spaghetti, warping y primeras capas fallidas.' },
+  sobrino: { name: 'Sobrino ayudante', cat: 'Automatización', cost: 60000, max: 1, desc: 'Retira una pieza terminada cada 8 s.', flavor: 'Sabe de compus. Más o menos.' },
+  termo: { name: 'Termo Stanley', cat: 'Mate', cost: 80000, max: 1, desc: 'El mate dura 90 s en vez de 60 s.' },
+  calibracion: { name: 'Calibración de flujo', cat: 'Calidad', cost: 40000, rep: 2, max: 1, desc: '+1★ en las impresoras de ★1 y ★2.' },
+  bulk: { name: 'Compra por mayor', cat: 'Materiales', cost: 150000, rep: 2, max: 1, desc: '−20 % en el precio de todos los materiales.' },
+  petg: { name: 'Kit PETG', cat: 'Tecnología', cost: 120000, rep: 3, max: 1, desc: 'Cama a 80 °C y hotend all-metal: desbloquea el PETG.' },
+  proveedor: { name: 'Proveedor de materiales', cat: 'Automatización', cost: 300000, rep: 3, max: 1, desc: 'Compra solo cuando se acaba un material (con 10 % de recargo).' },
+  retraccion: { name: 'Ajuste de retracción', cat: 'Calidad', cost: 50000, rep: 3, max: 1, desc: 'Chau hilos: elimina el stringing.', tip: 'La retracción tira el filamento para atrás para que no gotee.' },
+  yerba: { name: 'Yerba de la buena', cat: 'Mate', cost: 15000, rep: 3, max: 1, desc: 'El mate se recarga en 3 min en vez de 5.', flavor: 'Con palo, obvio.' },
+  instagram: { name: 'Ventas por Instagram', cat: 'Marca', cost: 200000, growth: 4, rep: 4, desc: '+10 % a la paga de los pedidos por nivel.', flavor: 'Fotos lindas, historias y respuestas rápidas.' },
+  hotend: { name: 'Hotend de alto flujo', cat: 'Velocidad', cost: 180000, growth: 4, max: 3, rep: 4, desc: '+10 % de velocidad en impresión 3D por nivel.' },
+  tablero: { name: 'Tablero de pedidos ampliado', cat: 'Capacidad', cost: 250000, rep: 4, max: 1, desc: 'Hasta 5 pedidos a la vez (en vez de 3).' },
+  secador: { name: 'Secador de filamento', cat: 'Confiabilidad', cost: 120000, rep: 4, max: 1, desc: 'Elimina el filamento húmedo.' },
+  directo: { name: 'Extrusor directo', cat: 'Tecnología', cost: 150000, rep: 4, max: 1, desc: 'Desbloquea el TPU.', flavor: 'Con bowden, ni lo intentes.' },
+  marca: { name: 'Marca personal', cat: 'Marca', cost: 500000, growth: 4, rep: 5, desc: '+8 % al precio de todo lo que vendés por nivel.' },
+  boquilla: { name: 'Boquilla de acero endurecido', cat: 'Calidad', cost: 60000, rep: 5, max: 1, desc: '+1★ en impresión 3D y −70 % de boquillas tapadas.' },
+  camara: { name: 'Cámara con detección de spaghetti', cat: 'Confiabilidad', cost: 250000, rep: 5, max: 1, desc: 'Detecta el spaghetti y limpia sola en 3 s.' },
+  abs: { name: 'Extractor y gabinete: ABS/ASA', cat: 'Tecnología', cost: 450000, rep: 5, max: 1, desc: 'Desbloquea ABS/ASA (solo en impresoras cerradas).' },
+  input: { name: 'Input shaping y Klipper', cat: 'Velocidad', cost: 300000, rep: 5, max: 1, desc: '+20 % de velocidad en las impresoras CoreXY cerradas.', tip: 'El firmware compensa las vibraciones para imprimir rápido sin "fantasmas".' },
+  remota: { name: 'Cámara remota', cat: 'Automatización', cost: 400000, rep: 6, max: 1, desc: 'Mientras no estás: hasta 6 h y 80 % de rendimiento.' },
+  ams: { name: 'Sistema multicolor (AMS lite / ACE / MMU)', cat: 'Tecnología', cost: 900000, rep: 5, max: 1, desc: 'Las impresoras compatibles imprimen piezas multicolor.' },
+  expulsion: { name: 'Expulsión automática', cat: 'Automatización', cost: 1500000, rep: 6, max: 1, desc: 'Las piezas se retiran solas al instante.' },
+  resina: { name: 'Rincón de resina', cat: 'Tecnología', cost: 900000, rep: 6, space: 3, max: 1, desc: 'Estación de lavado y curado, guantes y ventilación: desbloquea la resina.' },
+  ups: { name: 'UPS: recuperación ante cortes', cat: 'Confiabilidad', cost: 800000, rep: 6, max: 1, desc: 'Un corte de luz ya no reinicia las piezas.' },
+  gestor: { name: 'Gestor de pedidos', cat: 'Automatización', cost: 2000000, rep: 7, max: 1, desc: 'Acepta los pedidos que podés cumplir y les asigna máquinas.' },
+  exposicion: { name: 'Exposición calibrada', cat: 'Velocidad', cost: 500000, growth: 4, rep: 7, req: 'resina', desc: '+15 % de velocidad en resina por nivel.' },
+  nylon: { name: 'Kit fibra de carbono', cat: 'Tecnología', cost: 1200000, rep: 8, max: 1, desc: 'Desbloquea el nylon con fibra de carbono.' },
+  laser: { name: 'Sala de láser', cat: 'Tecnología', cost: 3500000, rep: 8, space: 4, max: 1, desc: 'Extractor, gafas y matafuego: desbloquea el corte y grabado láser.' },
+  potencia: { name: 'Potencia y asistencia de aire', cat: 'Velocidad', cost: 2000000, growth: 4, rep: 8, req: 'laser', desc: '+15 % de velocidad en láser por nivel.' },
+  cnc: { name: 'Taller de CNC', cat: 'Tecnología', cost: 6000000, rep: 9, space: 5, max: 1, desc: 'Aspiradora, fresas y sujeciones: desbloquea el fresado CNC.' },
+  fresas: { name: 'Fresas de metal duro', cat: 'Velocidad', cost: 3000000, growth: 4, rep: 9, req: 'cnc', desc: '+15 % de velocidad en CNC por nivel.' },
+  granja: { name: 'Software de granja', cat: 'Automatización', cost: 50000000, growth: 5, rep: 11, desc: '+10 % de velocidad en todas las máquinas por nivel.' },
 };
 for (const [id, u] of Object.entries(UPGRADES)) { u.id = id; u.growth = u.growth || 1; u.rep = u.rep || 1; }
 export const UPGRADE_ORDER = Object.keys(UPGRADES);
 
 // Reputación: puntos necesarios para cada nivel (después del 10, sigue creciendo sin techo).
-export const REP_TABLE = [0, 0, 3, 8, 16, 30, 55, 90, 140, 220, 330];
+export const REP_TABLE = [0, 0, 3, 10, 24, 50, 95, 160, 250, 380, 560];
 export function repNeeded(level) {
   if (level < REP_TABLE.length) return REP_TABLE[level];
-  return Math.round(330 * Math.pow(1.45, level - 10));
+  return Math.round(560 * Math.pow(1.45, level - 10));
 }
-export const REP_PRICE_BONUS = 0.05;
+export const REP_PRICE_BONUS = 0.03;
 
 // ---------- Pedidos ----------
 export const ORDER_TEMPLATES = [
@@ -308,7 +314,7 @@ export const MASTERY_CHALLENGES = {
     reward: 'El mate da +100 % de velocidad (en vez de +50 %).' },
   amano: { name: 'Todo a mano', rule: 'Sin sobrino, sin expulsión, sin proveedor ni gestor.', goalText: 'Llegá al Garage taller.', goal: { space: 2 },
     reward: 'El sobrino retira cada 4 s.' },
-  soloender: { name: 'Solo Ender', rule: 'Solo podés comprar Creality Ender-3 V3 SE.', goalText: 'Juntá $50.000 en el Cuarto maker.', goal: { space: 1, earned: 5e4 },
+  soloender: { name: 'Solo Ender', rule: 'Solo podés comprar Creality Ender-3 V3 SE.', goalText: 'Juntá {$:3000000} en el Cuarto maker.', goal: { space: 1, earned: 3e6 },
     reward: 'Las Ender-3 van ×3 más rápido para siempre.' },
   verano: { name: 'Verano porteño', rule: 'Se corta la luz cada 6 minutos.', goalText: 'Abrí el Local con vidriera.', goal: { space: 3 },
     reward: 'Los cortes de luz nunca más reinician piezas.' },
@@ -318,7 +324,7 @@ export const MASTERY_CHALLENGES = {
     reward: '−30 % de problemas para siempre.' },
   bobina: { name: 'Bobina contada', rule: 'Los materiales cuestan ×5.', goalText: 'Abrí el Local con vidriera.', goal: { space: 3 },
     reward: 'Materiales −30 % para siempre.' },
-  mostrador: { name: 'Solo mostrador', rule: 'No llegan pedidos: solo venta suelta.', goalText: 'Ganá $1 M en la partida.', goal: { earned: 1e6 },
+  mostrador: { name: 'Solo mostrador', rule: 'No llegan pedidos: solo venta suelta.', goalText: 'Ganá {$:50000000} en la partida.', goal: { earned: 5e7 },
     reward: 'La venta suelta paga +25 % para siempre.' },
 };
 
@@ -334,7 +340,7 @@ export const TOKEN_SHOP = {
 export const PERKS = {
   sobrino: { name: 'Sobrino de confianza', cost: 1, desc: 'El sobrino ayudante está desde el principio.' },
   termo: { name: 'Termo grande', cost: 1, desc: 'El mate dura 30 s más.' },
-  mesa: { name: 'Mesa armada', cost: 1, desc: 'Arrancás con una Hellbot Magna SE además de la Ender, y $200 en la caja.' },
+  mesa: { name: 'Mesa armada', cost: 1, desc: 'Arrancás con una Hellbot Magna SE además de la Ender, y {$:150000} en la caja.' },
   proveedor: { name: 'Proveedor amigo', cost: 2, desc: 'Proveedor automático desde el inicio y −10 % en materiales.' },
   contactos: { name: 'Contactos', cost: 2, desc: '+1 lugar en el tablero de pedidos y pedidos ×1,2.' },
   duermo: { name: 'Duermo tranquilo', cost: 2, desc: 'Mientras no estás: +3 h de tope y +20 % de rendimiento.' },
@@ -344,19 +350,19 @@ export const PERKS = {
   reputacion: { name: 'Reputación que te precede', cost: 3, desc: 'Arrancás con Reputación 3.' },
   cuarto: { name: 'Dueño del cuarto', cost: 5, desc: 'Arrancás con el Cuarto maker ya armado.' },
   saberpetg: { name: 'Saber de materiales', cost: 8, desc: 'PETG y TPU desbloqueados desde el inicio.' },
-  garage: { name: 'Dueño del garage', cost: 30, desc: 'Arrancás con el Garage taller ya armado.' },
-  fieles: { name: 'Clientes fieles', cost: 50, desc: 'Al mudarte conservás el 25 % de tu reputación.' },
-  saberresina: { name: 'Saber de resina', cost: 60, desc: 'El Rincón de resina queda armado para siempre.' },
-  saberlaser: { name: 'Saber de láser', cost: 250, desc: 'La Sala de láser queda armada para siempre.' },
-  sabercnc: { name: 'Saber de CNC', cost: 1000, desc: 'El Taller de CNC queda armado para siempre.' },
-  fieles2: { name: 'Clientela de toda la vida', cost: 5000, desc: 'Al mudarte conservás el 50 % de tu reputación.' },
-  local: { name: 'Dueño del local', cost: 20000, desc: 'Arrancás con el Local con vidriera ya abierto.' },
+  garage: { name: 'Dueño del garage', cost: 20, desc: 'Arrancás con el Garage taller ya armado.' },
+  fieles: { name: 'Clientes fieles', cost: 25, desc: 'Al mudarte conservás el 25 % de tu reputación.' },
+  saberresina: { name: 'Saber de resina', cost: 30, desc: 'El Rincón de resina queda armado para siempre.' },
+  saberlaser: { name: 'Saber de láser', cost: 60, desc: 'La Sala de láser queda armada para siempre.' },
+  sabercnc: { name: 'Saber de CNC', cost: 120, desc: 'El Taller de CNC queda armado para siempre.' },
+  fieles2: { name: 'Clientela de toda la vida', cost: 200, desc: 'Al mudarte conservás el 50 % de tu reputación.' },
+  local: { name: 'Dueño del local', cost: 400, desc: 'Arrancás con el Local con vidriera ya abierto.' },
 };
 export const MAKER_TITLES = [
   [0, 'Curioso'], [1, 'Aprendiz'], [5, 'Maker'], [15, 'Maker Pro'], [35, 'Maestro Maker'], [75, 'Leyenda 3DBAT'],
   [200, 'Referente nacional'], [600, 'Ícono maker'], [2000, 'Leyenda viviente'], [10000, 'Mito del filamento'],
 ];
-export const OFICIO_BONUS = 0.03;
+export const OFICIO_BONUS = 0.5; // ver oficioMultOf en engine.js
 
 // LEDs del taller (cosméticos)
 export const LED_COLORS = {

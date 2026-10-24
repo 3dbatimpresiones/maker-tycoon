@@ -2,8 +2,8 @@
 import assert from 'node:assert/strict';
 import * as E from '../src/game/engine.js';
 import { step, skipTutorial, MISSIONS, ensureChallenges, claimChallenge } from '../src/game/progress.js';
-import { PERKS, TOKEN_SHOP } from '../src/game/data.js';
-import { money, dur, num } from '../src/game/format.js';
+import { PERKS, TOKEN_SHOP, PRODUCTS } from '../src/game/data.js';
+import { money, dur, num, setCurrency } from '../src/game/format.js';
 
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('  ✔', name); };
@@ -26,7 +26,7 @@ t('imprimir → terminar → retirar da plata y arranca la siguiente', () => {
   assert.equal(s.machines[0].state, 'done');
   const ctx = { out: [] };
   assert.ok(E.retrieve(s, s.machines[0].id, ctx));
-  assert.ok(s.money >= 5);
+  assert.ok(s.money >= 3500);
   assert.equal(s.machines[0].state, 'printing');
   assert.equal(s.mat.PLA, 1000 - 16);
 });
@@ -49,7 +49,7 @@ t('tutorial completo en menos de 2 min con un jugador atento', () => {
 
 t('sin filamento la máquina espera; al comprar bobina sigue', () => {
   const s = E.newGame(null, 4); skipTutorial(s);
-  s.mat.PLA = 0; s.money = 1000;
+  s.mat.PLA = 0; s.money = 100000;
   run(s, 2);
   assert.equal(s.machines[0].state, 'nofil');
   assert.ok(E.buySpool(s, 'PLA'));
@@ -89,7 +89,7 @@ t('offline: produce a 50 %, respeta el tope y frena sin filamento', () => {
   const s = E.newGame(null, 7); skipTutorial(s);
   s.mat.PLA = 80; // 10 llaveros
   const r = E.applyOffline(s, 3600);
-  assert.ok(r.earned > 0 && r.earned <= 10 * 5 * 0.5 + 1e-6, 'gana ' + r.earned);
+  assert.ok(r.earned > 0 && r.earned <= 10 * E.pieceValue(s, 'llavero', 1) * 0.5 + 1e-6, 'gana ' + r.earned);
   assert.deepEqual(r.stopped, ['PLA']);
   const s2 = E.newGame(null, 8); skipTutorial(s2); s2.mat.PLA = 1e9;
   const r2 = E.applyOffline(s2, 10 * 3600);
@@ -128,7 +128,7 @@ t('guardado: serializar y migrar devuelve la misma partida', () => {
 
 t('mudanza: da Oficio, conserva logros y vitrina, reinicia el taller', () => {
   const s = E.newGame(null, 12); skipTutorial(s);
-  s.runEarned = 4e6; s.space = 3; s.achievements.primera = 1;
+  s.runEarned = 4 * E.OFICIO_SCALE; s.space = 3; s.achievements.primera = 1;
   assert.ok(E.canMove(s));
   const n2 = E.doMove(s, 'casco');
   assert.equal(n2.prestige.total, 4);
@@ -145,7 +145,8 @@ t('migración v0.1 → v0.2: máquinas genéricas pasan a marcas reales', () => 
   const old = { v: 1, money: 500, machines: [{ id: 1, model: 'kit', product: 'llavero', state: 'printing', cur: 'llavero', progress: 3, need: 20 }, { id: 2, model: 'gigante', product: 'xl', state: 'idle' }],
     fil: { PLA: 2000, PETG: 500, TPU: 0 }, upgrades: { slicer: 2, input: 1 }, space: 2, rep: 40, orders: { offers: [], active: [] }, prestige: { points: 1, total: 2, perks: {}, moves: 1, vitrina: [{ p: 'xl' }] } };
   const s = E.migrate(old);
-  assert.equal(s.v, 2);
+  assert.equal(s.v, 3);
+  assert.ok(s.money > 500 * 100, 'la plata pasa a AR$');
   assert.deepEqual(s.machines.map((m) => m.model), ['ender3', 'sidewinder']);
   assert.equal(s.machines[1].product, 'casco');
   assert.equal(s.mat.PLA, 2000);
@@ -176,8 +177,8 @@ t('experiencia por producto: sube de nivel y paga más', () => {
   const v0 = E.pieceValue(s, 'llavero', 1);
   s.mastery.llavero = 25;
   assert.equal(E.masteryLevel(s, 'llavero'), 1);
-  assert.ok(Math.abs(E.pieceValue(s, 'llavero', 1) / v0 - 1.2) < 1e-9);
-  s.mastery.llavero = 157;
+  assert.ok(Math.abs(E.pieceValue(s, 'llavero', 1) / v0 - 1.12) < 1e-9);
+  s.mastery.llavero = 225;
   assert.equal(E.masteryLevel(s, 'llavero'), 3);
 });
 
@@ -211,7 +212,7 @@ t('desafíos diarios: se generan por día, avanzan y dan fichas', () => {
 
 t('contrato de empresa y tienda de fichas', () => {
   const s = E.newGame(null, 24); skipTutorial(s);
-  s.rep = 40; s.money = 1e6; s.tokens = 10;
+  s.rep = 40; s.money = 1e8; s.tokens = 10;
   for (let i = 0; i < 3; i++) E.buyMachine(s, 'ender3');
   const o = E.spawnContract(s);
   assert.ok(o.contract && o.tokens >= 2 && o.items.length >= 1);
@@ -222,13 +223,41 @@ t('contrato de empresa y tienda de fichas', () => {
   assert.ok(s.money > m0 && s.tokens === 2);
 });
 
+t('migración v0.2 → v0.3: la plata vale los mismos minutos de producción', () => {
+  // Partida v0.2 típica: cuarto maker, 3 máquinas, $24.599 ahorrados.
+  const v2 = E.newGame(null, 30); skipTutorial(v2);
+  v2.v = 2; v2.space = 1; v2.rep = 10;
+  v2.machines.push({ ...v2.machines[0], id: 2, model: 'a1mini', product: 'benchy' }, { ...v2.machines[0], id: 3, model: 'magna', product: 'soporte' });
+  v2.machines[0].product = 'llavero';
+  v2.money = 24599; v2.runEarned = 60000; v2.totalEarned = 80000;
+  v2.orders.active = [{ id: 1, tpl: 'cumple', items: [{ p: 'llavero', qty: 12, done: 3 }], reward: 90, deadline: 999 }];
+  // Ritmo con las fórmulas de la v0.2: velocidades viejas (A1 mini 2,4), estrellas viejas y reputación vieja (nivel 3 → +10 %).
+  const oldRate = (5 / 20 * 1 * 1 + 14 / 45 * 2.4 * 1.6 + 35 / 90 * 1.3 * 1.25) * 1.1;
+  const s = E.migrate(JSON.parse(JSON.stringify(v2)));
+  assert.equal(s.v, 3);
+  const f = s.econFactor;
+  assert.ok(f > 300 && f < 1500, 'factor ' + f);
+  // Minutos de producción equivalentes (±5 %)
+  const newRate = E.potentialRate(s);
+  assert.ok(Math.abs((s.money / newRate) / (24599 / oldRate) - 1) < 0.05);
+  assert.equal(s.orders.active.length, 0, 'pedidos viejos se limpian');
+  assert.equal(s.machines.length, 3);
+  assert.equal(s.space, 1);
+  assert.equal(s.rep, 10);
+  run(s, 5);
+});
+
 t('formato argentino', () => {
-  assert.equal(money(12500), '$12.500');
-  assert.equal(money(1.5e6), '$1,5 M');
-  assert.equal(money(3.2e9), '$3,2 mil M');
+  assert.equal(money(12500), 'AR$ 12.500');
+  assert.equal(money(1.5e6), 'AR$ 1,5 M');
+  assert.equal(money(3.2e9), 'AR$ 3,2 mil M');
+  setCurrency('USD');
+  assert.equal(money(3.2e6), 'US$ 2.000');
+  assert.equal(money(3500), 'US$ 2,19');
+  setCurrency('ARS');
   assert.equal(dur(4800), '1 h 20 min');
   assert.equal(num(4.5), '4,5');
-  assert.equal(money(2.5e18), '$2,5 Tr');
+  assert.equal(money(2.5e18), 'AR$ 2,5 Tr');
 });
 
 console.log(`\n${n} pruebas OK`);
