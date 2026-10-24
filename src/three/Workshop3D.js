@@ -11,7 +11,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 import { buildMachine } from './machines.js';
 import { buildRoom, buildBench, BENCH_H, SX } from './rooms.js';
-import { makeCat, animateCat, makeSobrino, SobrinoBrain } from './crew.js';
+import { makeSobrino, SobrinoBrain, CatActor } from './crew.js';
 import { MACHINES, SPACES, LED_COLORS } from '../game/data.js';
 import { isMulti, has } from '../game/engine.js';
 
@@ -293,7 +293,18 @@ export class Workshop3D {
     // Cajas de pedidos despachados en la zona de packing
     const orders = s.stats.orders || 0;
     if (this.ordersSeen == null) { this.ordersSeen = orders; this.room.setBoxes?.(Math.min(6, orders), false); }
-    else if (orders > this.ordersSeen) { this.room.addBox?.(); this.ordersSeen = orders; }
+    else if (orders > this.ordersSeen) {
+      this.room.addBox?.(); this.ordersSeen = orders;
+      // El sobrino lleva la caja del pedido a la salida.
+      if (this.sobrino && this.tasks.filter((x) => x === 'deliver').length < 3) this.tasks.push('deliver');
+    }
+    // Bobinas nuevas (compradas a mano o por el proveedor): el sobrino las trae a la estantería.
+    const spools = s.stats.spools || 0;
+    if (this.spoolsSeen == null) this.spoolsSeen = spools;
+    else if (spools > this.spoolsSeen) {
+      this.spoolsSeen = spools;
+      if (this.sobrino && this.tasks.filter((x) => x === 'restock').length < 2) this.tasks.push('restock');
+    }
   }
 
   frame(s, t) {
@@ -337,8 +348,19 @@ export class Workshop3D {
     for (const mk of this.emptyMarks) if (mk.visible) mk.material.opacity = 0.3 + Math.sin(t * 2.5) * 0.15;
     for (const u of this.room.updaters) u(anim === 'min' ? 0 : t, dt);
     // El gato del taller respira y mueve la cola; el del evento también.
-    if (this.pet && anim !== 'min') animateCat(this.pet, t);
-    if (anim !== 'min') for (const [, e] of this.machines) if (e.rig.fx?.cat) animateCat(e.rig.fx.cat, t * 1.3);
+    // El gato camina hasta la impresora del evento y se sube; al resolverlo, vuelve al almohadón.
+    if (this.cat) {
+      let target = null;
+      for (const m of s.machines) {
+        if (m.event?.id !== 'gato') continue;
+        const e = this.machines.get(m.id);
+        if (!e?.rig.catSpot) continue;
+        const sp = e.station.position;
+        target = { id: m.id, front: new THREE.Vector3(sp.x + 0.15, 0, sp.z + 0.55), top: e.rig.root.localToWorld(e.rig.catSpot.clone()) };
+        break;
+      }
+      this.cat.update(dt, t, target, anim !== 'min');
+    }
     if (this.sobrino && this.world) {
       this.sobrino.brain.update(dt, t, this.world, anim === 'min');
     }
@@ -369,34 +391,69 @@ export class Workshop3D {
     const pk = this.room.packing?.position;
     const shelf = this.room.shelf?.position;
     const V = (x, z) => new THREE.Vector3(x, 0, z);
+    const front = Math.min(D / 2 - 0.3, maxZ + 1.75);
+    this.tasks = [];
     this.world = {
       level: this.world?.level || 0,
       aisleZ: maxZ + 0.78,
       frontZ: maxZ + 0.58,
       sideX: half + 0.32,
-      packing: pk ? V(pk.x - 0.75, pk.z) : V(half + 0.6, maxZ + 1.2),
+      // Al costado izquierdo de la mesa de packing (sin la mesa, adelante a la derecha).
+      packing: pk ? V(pk.x - 0.95, pk.z) : V(half + 0.3, maxZ + 1.1),
       shelf: shelf ? V(shelf.x + 0.5, shelf.z) : V(-half - 0.6, maxZ - 0.5),
-      door: V(0, Math.min(D / 2 - 0.35, maxZ + 1.7)),
-      rest: pk ? V(pk.x - 0.75, pk.z - 0.2) : V(half + 0.5, maxZ + 1.0),
-      doneTargets: () => {
-        const out = [];
-        for (const [, e] of this.machines) if (e.status === 'done') { const p = e.station.position; out.push(V(p.x, p.z + 0.58)); }
-        return out;
-      },
+      door: V(-0.2, front),          // salida a la calle / entrada de bobinas
+      rest: pk ? V(pk.x - 0.95, Math.min(front, pk.z + 0.45)) : V(half + 0.3, front),
+      nextJob: (b) => this.nextJob(b),
     };
-    if (this.sobrino) { this.sobrino.g.position.set(this.world.rest.x, 0, this.world.rest.z); this.sobrino.brain.queue = []; }
-    // Gato del taller (desde el cuarto): duerme en su almohadón en el rincón de adelante.
-    if (this.pet) { this.scene.remove(this.petBase); this.pet = null; }
-    if (this.space >= 1) {
-      const base = new THREE.Group();
-      const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.33, 0.08, 28), new THREE.MeshStandardMaterial({ color: '#3437A2', roughness: 0.95 }));
-      cushion.position.y = 0.04; cushion.receiveShadow = true; cushion.castShadow = true; base.add(cushion);
-      const cat = makeCat({ lying: true });
-      cat.position.y = 0.075; cat.rotation.y = -0.6; cat.scale.setScalar(1.3); base.add(cat);
-      base.position.set(-W / 2 + 0.6, 0, D / 2 - 0.65);
-      this.scene.add(base);
-      this.pet = cat; this.petBase = base;
+    if (this.sobrino) { this.sobrino.g.position.set(this.world.rest.x, 0, this.world.rest.z); this.sobrino.brain.queue = []; this.sobrino.brain.job = null; this.sobrino.brain.step = null; }
+    // Gato del taller: duerme en su almohadón en el rincón de adelante y se sube a las impresoras en el evento.
+    if (this.petBase) { this.scene.remove(this.petBase); this.petBase = null; }
+    if (this.cat) { this.cat.dispose(this.scene); this.cat = null; }
+    const base = new THREE.Group();
+    const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.33, 0.08, 28), new THREE.MeshStandardMaterial({ color: '#3437A2', roughness: 0.95 }));
+    cushion.position.y = 0.04; cushion.receiveShadow = true; cushion.castShadow = true; base.add(cushion);
+    const home = V(-W / 2 + 0.6, D / 2 - 0.65);
+    base.position.copy(home);
+    this.scene.add(base);
+    this.petBase = base;
+    this.cat = new CatActor(this.scene, home);
+  }
+
+  // Próximo trabajo del sobrino (ver SobrinoBrain en crew.js).
+  nextJob(b) {
+    const w = this.world;
+    const hold = (k) => (br) => br.hold(k);
+    if (b.holding === 'piece') return { steps: [{ to: w.packing, then: hold(null), wait: 0.5, face: Math.PI / 2 }] };
+    if (w.level === 1) {
+      // Retira la pieza lista más cercana (la experiencia la retira el juego; él la lleva al packing).
+      const p = b.g.position;
+      let best = null, bd = 1e9;
+      for (const [id, e] of this.machines) {
+        if (e.status !== 'done' || id === this.lastPick) continue;
+        const sp = e.station.position; const d = Math.hypot(sp.x - p.x, sp.z - p.z);
+        if (d < bd) { bd = d; best = { id, e }; }
+      }
+      if (best) {
+        this.lastPick = best.id;
+        const sp = best.e.station.position;
+        return { steps: [
+          { to: new THREE.Vector3(sp.x, 0, sp.z + 0.58), then: hold('piece'), wait: 0.6, face: Math.PI / 2 },
+          { to: w.packing, then: hold(null), wait: 0.5 },
+        ] };
+      }
+      this.lastPick = null;
     }
+    const task = this.tasks.shift();
+    if (task === 'deliver') return { steps: [
+      { to: w.packing, then: (br) => { this.room.takeBox?.(); br.hold('box'); }, wait: 0.6 },
+      { to: w.door, then: hold(null), wait: 0.4 },
+    ] };
+    if (task === 'restock') return { steps: [
+      { to: w.door, then: hold('spool'), wait: 0.5 },
+      { to: w.shelf, then: hold(null), wait: 0.6 },
+    ] };
+    // Nada para hacer: espera al lado del packing mirando el taller (sin dar vueltas).
+    return { steps: [{ to: w.rest, wait: 1.2, face: Math.PI / 2 + 0.4 }] };
   }
 
   burst(e, pa, pb, n) {

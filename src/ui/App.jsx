@@ -11,7 +11,7 @@ import { readyClaims } from './Header.jsx';
 import { currentMission } from '../game/progress.js';
 import { TAGLINE } from '../config.js';
 import { useOnline } from '../online/useOnline.js';
-import { OnlineModal, ConflictModal, LockedOverlay, WelcomeGate, ProfileSetup, useGate } from './Online.jsx';
+import { OnlineModal, ConflictModal, LockedOverlay, WelcomeGate, ProfileSetup, useGate, FeedbackModal } from './Online.jsx';
 import { BRAND_DISCLAIMER } from '../game/data.js';
 
 const TAB_OF = { machine: 'taller', mate: 'taller', orders: 'pedidos', 'shop-machines': 'tienda', 'shop-upgrades': 'tienda', 'shop-space': 'tienda', oficio: 'mas', desafios: 'desafios' };
@@ -102,6 +102,7 @@ export default function App() {
       {modal?.kind === 'comunidad' && <CommunityModal s={s} onClose={close} />}
       {modal?.kind === 'desafios' && <ChallengesModal s={s} actions={actions} onClose={close} />}
       {modal?.kind === 'ajustes' && <SettingsModal s={s} actions={actions} onClose={close} online={online} open={open} />}
+      {modal?.kind === 'sugerencias' && <FeedbackModal s={s} online={online} onClose={close} />}
       {modal?.kind === 'online' && <OnlineModal s={s} actions={actions} online={online} tab={modal.tab} onClose={close} open={open} />}
       {online.conflict && !locked && <ConflictModal conflict={online.conflict} onChoose={online.resolveConflict} />}
       {gate.login && !locked && !modal && <WelcomeGate online={online} onSkip={gate.skipLogin} />}

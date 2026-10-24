@@ -2,7 +2,6 @@
 // Cada builder arma un "rig": root (Group), pieceSlot (donde crece la pieza), partes móviles,
 // luz de estado y emisores de efectos. update(st) anima todo según el estado del juego.
 import * as THREE from 'three';
-import { makeCat } from './crew.js';
 import { MAT, rb, bx, cy, extrusion, spool, fan, mat } from './kit.js';
 import { buildPiece, applyLayers } from './pieces.js';
 import { MACHINES, MATERIALS, PRODUCTS } from '../game/data.js';
@@ -626,6 +625,7 @@ function setEvent(rig, id) {
   rig.eventId = id;
   while (rig.extra.children.length) rig.extra.remove(rig.extra.children[0]);
   rig.fx = null;
+  if (id !== 'gato') rig.catSpot = null;
   if (!id) return;
   const at = new THREE.Vector3();
   rig.pieceSlot.getWorldPosition(at);
@@ -640,23 +640,17 @@ function setEvent(rig, id) {
     tube.position.copy(at); tube.castShadow = true;
     rig.extra.add(tube);
   } else if (id === 'gato') {
-    // Un gato de verdad es casi tan largo como la impresora: tiene que verse.
-    const cat = makeCat({ lying: true, fur: '#8a8e99', stripe: '#5d6069' });
+    // El gato del taller camina hasta acá y se sube: arriba de la carcasa si la impresora es cerrada,
+    // o acostado en la cama calentita si es abierta.
     const enclosed = !!rig.def?.enclosed || rig.def?.art?.type === 'cube';
-    cat.scale.setScalar(Math.max(0.55, (rig.footprint * (enclosed ? 0.8 : 0.95)) / 0.45));
     if (enclosed) {
-      // Arriba de la carcasa calentita
       rig.root.updateWorldMatrix(true, true);
       const box = new THREE.Box3().setFromObject(rig.root);
       const top = new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
-      rig.root.worldToLocal(top);
-      cat.position.copy(top);
+      rig.catSpot = rig.root.worldToLocal(top);
     } else {
-      cat.position.copy(at); cat.position.y += 0.003;
+      rig.catSpot = at.clone();
     }
-    cat.rotation.y = -0.6;
-    rig.extra.add(cat);
-    rig.fx = { cat };
   } else if (id === 'llama') {
     const fire = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.07, 12), MAT.glow('#ff7a1a', 4));
     fire.position.copy(at); fire.position.y += 0.035;

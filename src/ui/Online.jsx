@@ -742,6 +742,53 @@ function FilacolorTab() {
   );
 }
 
+// ---------- Sugerencias ----------
+const FB_KINDS = [['idea', '💡 Una idea'], ['error', '🐞 Algo anda mal'], ['otro', '💬 Otra cosa']];
+export function FeedbackModal({ s, online, onClose }) {
+  const [kind, setKind] = useState('idea');
+  const [msg, setMsg] = useState('');
+  const [contact, setContact] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [sent, setSent] = useState(false);
+  const send = async () => {
+    setBusy(true); setErr('');
+    try {
+      await rpc('bb_mt_feedback_send', { p_message: msg, p_kind: kind, p_contact: contact || null,
+        p_context: { v: s.v, space: s.space, machines: s.machines.length, ua: (navigator.userAgent || '').slice(0, 120), w: window.innerWidth } });
+      setSent(true);
+    } catch (e) { setErr(e.missing ? 'Las sugerencias todavía no están activadas. Probá en un rato.' : e.message); }
+    setBusy(false);
+  };
+  return (
+    <Modal title="Sugerencias" icon="message" onClose={onClose}>
+      {sent ? (
+        <div className="ol-soon">
+          <BatiArt mood="happy" size={80} />
+          <p><b>¡Gracias! Ya le llegó al equipo de 3DBAT.</b> Las leemos todas: muchas de las cosas del juego salieron de ideas de la comunidad.</p>
+          <button className="btn-center" onClick={onClose}>Seguir jugando</button>
+        </div>
+      ) : (
+        <>
+          <p className="hint">¿Qué te gustaría que tenga el juego? ¿Algo no funciona como esperabas? Contanos: lo lee el equipo de 3DBAT.</p>
+          <div className="priv-grid fb-kinds">{FB_KINDS.map(([k, l]) => <button key={k} className={'opt' + (kind === k ? ' active' : '')} onClick={() => setKind(k)}>{l}</button>)}</div>
+          <div className="pink-input fb-text"><textarea rows={5} maxLength={1000} value={msg} onChange={(e) => setMsg(e.target.value)}
+            placeholder={kind === 'error' ? 'Ej.: cuando compro una máquina en el celular, la pantalla…' : 'Ej.: estaría bueno poder pintar las piezas antes de venderlas…'} /></div>
+          <small className="muted fb-count">{msg.length}/1000</small>
+          {!online?.user && (
+            <label className="ol-field">Si querés que te respondamos (opcional)
+              <div className="pink-input"><input value={contact} maxLength={120} onChange={(e) => setContact(e.target.value)} placeholder="Tu Instagram, Discord o correo" /></div>
+            </label>
+          )}
+          {online?.user && <p className="hint">La mandás como {online.me?.player?.nick || online.user.email}.</p>}
+          <Err e={err} />
+          <button className="btn-center" disabled={busy || msg.trim().length < 5} onClick={send}><Icon name="message" size={16} /> {busy ? 'Enviando…' : 'Mandar sugerencia'}</button>
+        </>
+      )}
+    </Modal>
+  );
+}
+
 // ---------- Elegir partida ----------
 function SaveCard({ title, sm, when, device, onPick, label, primary }) {
   return (

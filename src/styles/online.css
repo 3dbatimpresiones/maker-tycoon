@@ -22,6 +22,18 @@
 .acct-txt b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acct-txt small { font-size: 10px; color: var(--cyan); font-weight: 700; }
 
+/* Botón de sugerencias del taller 3D (arriba a la izquierda) */
+.scene-fb { position: absolute; left: 10px; top: 10px; z-index: 3; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
+  border-radius: 12px; font-size: 12px; font-weight: 800; color: #fff; background: rgba(13,20,51,.82); border: 1px solid rgba(247,142,182,.55); cursor: pointer; }
+.scene-fb.static { position: static; align-self: flex-start; margin-bottom: 10px; }
+.scene-fb:hover { border-color: var(--pink); color: var(--pink); }
+.scene3d .scene-back { top: 54px; }
+.fb-kinds { margin-bottom: 10px; }
+.fb-text textarea { width: 100%; resize: vertical; min-height: 110px; padding: 12px 14px; border-radius: 16px; outline: none; font-family: inherit;
+  background: rgba(19,29,71,.5); border: 2px solid rgba(247,142,182,.5); color: #fff; font-size: 15px; line-height: 1.45; }
+.fb-text textarea:focus { border-color: var(--pink); box-shadow: 0 0 0 4px rgba(247,142,182,.2); }
+.fb-count { display: block; text-align: right; font-size: 11px; margin-top: 4px; }
+
 /* Bienvenida (cuenta y perfil) */
 .gate-back { z-index: 80; }
 .modal.gate { width: min(520px, 100%); }

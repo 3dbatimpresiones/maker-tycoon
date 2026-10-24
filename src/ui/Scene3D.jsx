@@ -17,7 +17,7 @@ function labelStatus(s, m) {
   return { k: 'idle', t: 'Sin trabajo' };
 }
 
-export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow }) {
+export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFeedback }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const wsRef = useRef(null);
@@ -134,6 +134,7 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow }) {
           </button>
         ))}
       </div>
+      {ready && onFeedback && <button className="scene-fb" title="Mandanos una idea o contanos si algo anda mal" onClick={onFeedback}><Icon name="message" size={16} /> Sugerencias</button>}
       {ready && <button className="icon-btn sm scene-center" title="Ver todo el taller" onClick={() => { wsRef.current?.fit(); setFocused(false); }}><Icon name="target" size={18} /></button>}
       {ready && focused && <button className="chip-btn scene-back" onClick={() => { wsRef.current?.fit(); setFocused(false); }}>← Ver todo el taller</button>}
       {ready && <span className="scene-hint">Arrastrá para girar · rueda o pellizco para acercar</span>}

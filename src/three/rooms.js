@@ -247,6 +247,13 @@ export function buildRoom(space, n) {
     boxes.forEach((b, i) => { const nb = makeBox(i); b.position.copy(nb.position); b.userData.y0 = nb.position.y; });
     const b = makeBox(boxes.length); b.position.y += 0.5; b.userData.drop = 0; packing.add(b); boxes.push(b);
   };
+  room.takeBox = () => {
+    const b = boxes.shift();
+    if (!b) return false;
+    packing.remove(b);
+    boxes.forEach((x, i) => { const nb = makeBox(i); x.position.copy(nb.position); x.userData.y0 = nb.position.y; });
+    return true;
+  };
   room.leaving = [];
   room.updaters.push((t, dt = 0.016) => {
     for (const b of boxes) if (b.userData.drop != null) {

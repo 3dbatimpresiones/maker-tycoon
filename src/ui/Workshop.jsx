@@ -129,8 +129,10 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
       <div className="scene-wrap">
         <GlobalBanner s={s} actions={actions} />
         {view === '3d' ? (
-          <Scene3D s={s} floats={floats} onTap={onTap} onEmpty={() => goShop('machines')} onFail={() => setFail3d(true)} glow={glow} />
+          <Scene3D s={s} floats={floats} onTap={onTap} onEmpty={() => goShop('machines')} onFail={() => setFail3d(true)} glow={glow} onFeedback={() => open('sugerencias')} />
         ) : (
+          <>
+          <button className="scene-fb static" title="Mandanos una idea o contanos si algo anda mal" onClick={() => open('sugerencias')}><Icon name="message" size={16} /> Sugerencias</button>
           <div className="bays">
             {s.machines.map((m) => (
               <Bay key={m.id} s={s} m={m} floats={floats.filter((f) => f.mid === m.id)} onTap={onTap} onGear={onMachine}
@@ -142,6 +144,7 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
               </button>
             ))}
           </div>
+          </>
         )}
       </div>
       {view === '3d' && s.machines.length > 0 && (

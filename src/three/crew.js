@@ -93,56 +93,46 @@ export function makeSobrino() {
   return g;
 }
 
-// Máquina de estados del sobrino.
-// world = { level, packing, shelf, door, rest, doneTargets(), aisleZ, frontZ, sideX }
-//   aisleZ: pasillo de adelante · frontZ: donde se para frente a la primera fila
-//   sideX: pasillos laterales (las columnas de bancos están muy juntas para pasar entre ellas)
+// Cerebro del sobrino: trabaja con "trabajos" concretos que le da el taller (world.nextJob):
+//   retirar (va a la impresora, agarra la pieza, la lleva al packing) · entregar (lleva la caja
+//   de un pedido a la salida) · reponer (trae bobinas de la entrada a la estantería) · esperar.
+// Un trabajo es una lista de pasos { to, then(brain), wait, valid() }.
+// world = { nextJob(brain), aisleZ, frontZ, sideX }
 export class SobrinoBrain {
-  constructor(group) {
-    this.g = group; this.queue = []; this.wait = 0; this.holding = null; this.phase = 0; this.speed = 0.95;
-  }
+  constructor(group) { this.g = group; this.queue = []; this.job = null; this.step = null; this.wait = 0; this.holding = null; this.speed = 1.05; }
   hold(kind) { const c = this.g.userData.carry; for (const k of Object.keys(c)) c[k].visible = k === kind; this.holding = kind; }
-  // Camino sin atravesar bancos: sale al pasillo de adelante (por un costado si está entre filas),
-  // camina por el pasillo y entra (por un costado si el destino está entre filas de atrás).
+  // Adelante del taller se camina derecho; para ir entre filas se entra por los pasillos laterales
+  // (las columnas de bancos están muy juntas para pasar entre ellas).
   route(to, w) {
     const p = this.g.position;
     const V = (x, z) => new THREE.Vector3(x, 0, z);
     const inner = (z) => z < w.frontZ - 0.05;
     const side = (x) => (x < 0 ? -w.sideX : w.sideX);
+    this.queue = [];
+    if (Math.hypot(to.x - p.x, to.z - p.z) < 0.05) return;
     if (inner(p.z)) this.queue.push(V(side(p.x), p.z), V(side(p.x), w.aisleZ));
-    else this.queue.push(V(p.x, w.aisleZ));
     if (inner(to.z)) this.queue.push(V(side(to.x), w.aisleZ), V(side(to.x), to.z), V(to.x, to.z));
-    else this.queue.push(V(to.x, w.aisleZ), V(to.x, to.z));
-  }
-  plan(w) {
-    if (w.level >= 2) {
-      // Logística: busca bobinas en la estantería, arma la caja en el packing y la despacha.
-      const step = this.phase++ % 3;
-      if (step === 0) { this.route(w.shelf, w); this.after = () => this.hold('spool'); }
-      else if (step === 1) { this.route(w.packing, w); this.after = () => this.hold('box'); }
-      else { this.route(w.door, w); this.after = () => this.hold(null); }
-      return;
-    }
-    const t = w.doneTargets();
-    if (this.holding === 'piece') { this.route(w.packing, w); this.after = () => this.hold(null); return; }
-    if (t.length) {
-      const p = this.g.position;
-      t.sort((a, b) => a.distanceTo(p) - b.distanceTo(p));
-      this.route(t[0], w); this.after = () => this.hold('piece');
-      return;
-    }
-    // Nada para retirar: espera cerca del packing mirando el taller.
-    this.route(w.rest, w); this.after = null; this.wait = 2.5;
+    else this.queue.push(V(to.x, to.z));
   }
   update(dt, t, w, still) {
-    const u = this.g.userData;
-    if (!this.queue.length) {
-      if (this.wait > 0) { this.wait -= dt; this.pose(t, false, still); return; }
-      if (this.after) { this.after(); this.after = null; this.wait = 0.7; this.pose(t, false, still); return; }
-      this.plan(w);
+    if (this.wait > 0) { this.wait -= dt; this.pose(t, false, still); return; }
+    if (!this.step) {
+      if (!this.job || !this.job.steps.length) this.job = w.nextJob(this);
+      this.step = this.job?.steps.shift() || null;
+      if (!this.step) { this.pose(t, false, still); return; }
+      this.route(this.step.to, w);
     }
+    // El trabajo dejó de tener sentido (por ejemplo, la pieza ya la retiraron): se busca otro.
+    if (this.step.valid && !this.step.valid()) { this.step = null; this.job = null; this.queue = []; return; }
     const target = this.queue[0];
-    if (!target) { this.pose(t, false, still); return; }
+    if (!target) {
+      this.step.then?.(this);
+      if (this.step.face != null) this.g.rotation.y = this.step.face;
+      this.wait = this.step.wait ?? 0.4;
+      this.step = null;
+      this.pose(t, false, still);
+      return;
+    }
     const p = this.g.position;
     const dx = target.x - p.x, dz = target.z - p.z;
     const dist = Math.hypot(dx, dz);
@@ -155,7 +145,6 @@ export class SobrinoBrain {
       this.g.rotation.y += d * Math.min(1, dt * 10);
     }
     this.pose(t, true, still);
-    u.carry && (u.hands.visible = true);
   }
   pose(t, walking, still) {
     const u = this.g.userData;
@@ -165,5 +154,67 @@ export class SobrinoBrain {
     u.arms.forEach((a, i) => { a.rotation.z = carrying ? 1.15 : (i ? sw : -sw) * 0.8; });
     this.g.position.y = walking && !still ? Math.abs(Math.sin(t * 9)) * 0.025 : 0;
     u.head.rotation.y = walking ? 0 : Math.sin(t * 0.8) * 0.4;
+  }
+}
+
+// ---------- Gato que se sube a la impresora ----------
+// Duerme en su almohadón; cuando hay evento "gato" camina hasta la máquina, salta arriba
+// y se acuesta. Al resolverlo, se baja de un salto y vuelve al almohadón.
+export class CatActor {
+  constructor(scene, home) {
+    this.g = new THREE.Group(); scene.add(this.g);
+    this.lying = makeCat({ lying: true }); this.standing = makeCat({ lying: false });
+    this.g.add(this.lying, this.standing);
+    this.home = home.clone(); this.g.position.copy(this.home); this.g.position.y = 0.075; this.g.rotation.y = -0.6;
+    this.g.scale.setScalar(1.25);
+    this.state = 'sleep'; this.show('lying'); this.k = 0;
+  }
+  show(which) { this.lying.visible = which === 'lying'; this.standing.visible = which === 'standing'; }
+  dispose(scene) { scene.remove(this.g); }
+  face(dx, dz) { this.g.rotation.y = Math.atan2(-dz, dx); }
+  walkTo(to, dt, speed = 1.3) {
+    const p = this.g.position; const dx = to.x - p.x, dz = to.z - p.z; const d = Math.hypot(dx, dz);
+    if (d < speed * dt || d < 0.01) { p.x = to.x; p.z = to.z; return true; }
+    p.x += (dx / d) * speed * dt; p.z += (dz / d) * speed * dt; p.y = Math.abs(Math.sin(this.k * 14)) * 0.02; this.face(dx, dz);
+    return false;
+  }
+  // target = { id, front: Vector3 (piso adelante del banco), top: Vector3 (donde se acuesta) } o null
+  update(dt, t, target, anim) {
+    this.k += dt;
+    const p = this.g.position;
+    if (this.state === 'sleep') {
+      if (target) { this.state = 'go'; this.goal = target; this.show('standing'); p.y = 0; }
+      else { if (anim) animateCat(this.lying, t); return; }
+    }
+    if (target && this.goal && target.id !== this.goal.id && (this.state === 'go')) this.goal = target;
+    if (this.state === 'go') {
+      if (!target) { this.state = 'home'; return; }
+      if (this.walkTo(this.goal.front, dt)) { this.state = 'up'; this.j = 0; this.from = p.clone(); }
+      if (anim) animateCat(this.standing, t * 2, 0.6);
+      return;
+    }
+    if (this.state === 'up' || this.state === 'down') {
+      const to = this.state === 'up' ? this.goal.top : this.goal.front;
+      this.j = Math.min(1, this.j + dt / 0.55);
+      p.lerpVectors(this.from, to, this.j);
+      p.y += Math.sin(this.j * Math.PI) * 0.45;
+      this.face(to.x - this.from.x || 0.001, to.z - this.from.z);
+      if (this.j >= 1) {
+        if (this.state === 'up') { this.state = 'on'; this.show('lying'); }
+        else { this.state = 'home'; this.show('standing'); p.y = 0; }
+      }
+      return;
+    }
+    if (this.state === 'on') {
+      p.copy(this.goal.top);
+      if (anim) animateCat(this.lying, t);
+      if (!target || target.id !== this.goal.id) { this.state = 'down'; this.j = 0; this.from = p.clone(); this.show('standing'); }
+      return;
+    }
+    if (this.state === 'home') {
+      if (target) { this.goal = target; this.state = 'go'; return; }
+      if (this.walkTo(this.home, dt)) { this.state = 'sleep'; this.show('lying'); p.y = 0.075; this.g.rotation.y = -0.6; }
+      if (anim) animateCat(this.standing, t * 2, 0.6);
+    }
   }
 }
