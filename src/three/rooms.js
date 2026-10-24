@@ -300,6 +300,45 @@ export function buildRoom(space, n) {
     }
   };
 
+  // ---------- Cuadro de honor: top 3 de la temporada en la pared del fondo ----------
+  const honor = new THREE.Group(); g.add(honor);
+  room.setPodium = (rows, season) => {
+    while (honor.children.length) honor.remove(honor.children[0]);
+    if (!rows) return;
+    const c = document.createElement('canvas'); c.width = 640; c.height = 400;
+    const x = c.getContext('2d');
+    const grd = x.createLinearGradient(0, 0, 640, 400); grd.addColorStop(0, '#1a2560'); grd.addColorStop(1, '#131D47');
+    x.fillStyle = grd; x.fillRect(0, 0, 640, 400);
+    x.strokeStyle = '#e8b33c'; x.lineWidth = 10; x.strokeRect(14, 14, 612, 372);
+    x.textAlign = 'center';
+    x.fillStyle = '#5DDADB'; x.font = '800 30px Outfit, Arial, sans-serif'; x.fillText('CUADRO DE HONOR', 320, 66);
+    x.fillStyle = 'rgba(255,255,255,.6)'; x.font = '600 20px Outfit, Arial, sans-serif'; x.fillText((season || 'Temporada') + ' · Top makers', 320, 96);
+    const medals = ['#e8b33c', '#c9ced8', '#c4693d'];
+    if (!rows.length) {
+      x.fillStyle = '#fff'; x.font = '700 30px Outfit, Arial, sans-serif'; x.fillText('¡Sé el primero!', 320, 230);
+      x.fillStyle = 'rgba(255,255,255,.6)'; x.font = '600 20px Outfit, Arial, sans-serif'; x.fillText('Ingresá con Google y sumá Puntos Maker', 320, 268);
+    }
+    rows.slice(0, 3).forEach((r, i) => {
+      const y = 158 + i * 78;
+      x.fillStyle = medals[i]; x.beginPath(); x.arc(76, y - 10, 24, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#131D47'; x.font = '800 26px Outfit, Arial, sans-serif'; x.fillText(String(i + 1), 76, y);
+      x.textAlign = 'left';
+      x.fillStyle = '#fff'; x.font = '800 32px Outfit, Arial, sans-serif';
+      let name = String(r.name || 'Maker'); while (x.measureText(name).width > 360 && name.length > 3) name = name.slice(0, -2) + '…';
+      x.fillText(name, 120, y);
+      x.textAlign = 'right'; x.fillStyle = '#F78EB6'; x.font = '700 26px Outfit, Arial, sans-serif';
+      x.fillText(Math.round(r.points).toLocaleString('es-AR') + ' pts', 590, y);
+      x.textAlign = 'center';
+    });
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    const w = Math.min(1.25, W * 0.24), h = w * 0.625;
+    const frame = box(w + 0.08, h + 0.08, 0.04, std('#2a1d12', 0.6, 0.1), 0, 0, 0, honor);
+    frame.castShadow = false;
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+    board.position.z = 0.022; honor.add(board);
+    honor.position.set(-W * 0.2, Math.min(wallH - h / 2 - 0.25, wallH * (space >= 3 ? 0.66 : 0.6)), -D / 2 + 0.03);
+  };
+
   // ---------- Decoración ganada en el juego online (solo estética) ----------
   const decor = new THREE.Group(); g.add(decor);
   room.setDecor = (list = []) => {
@@ -330,7 +369,7 @@ export function buildRoom(space, n) {
     }
     if (has('d_trofeo')) {
       // Repisa con copa dorada
-      const tr = new THREE.Group(); tr.position.set(-W * 0.22, wallH * 0.58, backZ + 0.13); decor.add(tr);
+      const tr = new THREE.Group(); tr.position.set(-W * 0.2 + Math.min(1.25, W * 0.24) / 2 + 0.4, wallH * 0.58, backZ + 0.13); decor.add(tr);
       box(0.5, 0.03, 0.22, std('#3a2b20', 0.6, 0), 0, 0, 0, tr);
       const gold = std('#e8b33c', 0.25, 1);
       const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.04, 0.14, 24, 1, true), gold); cup.position.y = 0.17; cup.castShadow = true; tr.add(cup);

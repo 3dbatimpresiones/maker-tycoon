@@ -61,7 +61,7 @@ export default function App() {
         <div className="col col-orders" data-tab="pedidos">
           <Orders s={s} actions={actions} glow={glow} />
         </div>
-        <Workshop s={s} actions={actions} floats={floats} glow={glow}
+        <Workshop s={s} actions={actions} floats={floats} glow={glow} podium={online.available === true ? online.podium : null}
           onMachine={(mm) => open('machine', mm.id)} onEvent={(mm) => open('event', mm.id)} goShop={goShop} open={open} />
         <div className="col col-shop" data-tab="tienda">
           <Shop s={s} actions={actions} tab={shopTab} setTab={setShopTab} glow={glow} />

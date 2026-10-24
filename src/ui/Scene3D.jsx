@@ -1,5 +1,6 @@
 // Vista 3D del taller + carteles HTML encima de cada máquina.
 import { useEffect, useRef, useState } from 'react';
+import { SEASON } from '../game/format.js';
 import Icon from './Icon.jsx';
 import { MACHINES, MACHINE_EVENTS, PRODUCTS, SPACES } from '../game/data.js';
 import * as E from '../game/engine.js';
@@ -17,7 +18,9 @@ function labelStatus(s, m) {
   return { k: 'idle', t: 'Sin trabajo' };
 }
 
-export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFeedback }) {
+export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFeedback, podium }) {
+  const podiumRef = useRef(podium);
+  podiumRef.current = podium;
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const wsRef = useRef(null);
@@ -45,7 +48,7 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFee
         raf = requestAnimationFrame(loop);
         const st = sRef.current;
         if (now - lastSync > 200) {
-          lastSync = now; ws.setQuality(st.settings.quality); ws.sync(st);
+          lastSync = now; ws.setQuality(st.settings.quality); ws.sync(st); ws.setPodium(podiumRef.current, SEASON.name);
           sfx.setIntensity(st.space);
           sfx.updateMachines(ws.audioPositions());
         }

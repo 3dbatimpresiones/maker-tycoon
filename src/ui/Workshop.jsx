@@ -92,7 +92,7 @@ function ChallengeStrip({ s, open }) {
   );
 }
 
-export default function Workshop({ s, actions, floats, onMachine, onEvent, goShop, glow, open }) {
+export default function Workshop({ s, actions, floats, onMachine, onEvent, goShop, glow, open, podium }) {
   const sp = SPACES[s.space];
   const free = sp.slots - s.machines.length;
   const mission = currentMission(s);
@@ -129,7 +129,7 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
       <div className="scene-wrap">
         <GlobalBanner s={s} actions={actions} />
         {view === '3d' ? (
-          <Scene3D s={s} floats={floats} onTap={onTap} onEmpty={() => goShop('machines')} onFail={() => setFail3d(true)} glow={glow} onFeedback={() => open('sugerencias')} />
+          <Scene3D s={s} floats={floats} onTap={onTap} onEmpty={() => goShop('machines')} onFail={() => setFail3d(true)} glow={glow} onFeedback={() => open('sugerencias')} podium={podium} />
         ) : (
           <>
           <button className="scene-fb static" title="Mandanos una idea o contanos si algo anda mal" onClick={() => open('sugerencias')}><Icon name="message" size={16} /> Sugerencias</button>

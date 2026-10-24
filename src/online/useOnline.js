@@ -39,6 +39,7 @@ export function useOnline(opts) {
   const [cloud, setCloud] = useState({ status: 'off', at: null }); // off · checking · ok · saving · error · conflict
   const [conflict, setConflict] = useState(null);     // { cloud, local }
   const [live, setLive] = useState(null);
+  const [podium, setPodium] = useState(null); // top 3 de la temporada (cuadro de honor del taller)
   const [sessionPoints, setSessionPoints] = useState(0);
   const sessionRef = useRef(null);
   const syncedRef = useRef(false);                     // ya se decidió qué partida usar
@@ -254,14 +255,19 @@ export function useOnline(opts) {
       if (document.visibilityState !== 'visible') return;
       rpc('bb_live_counts').then((d) => { setLive(d); setAvailable(true); }).catch((e) => { if (e.missing) setAvailable(false); });
     };
-    const t0 = setTimeout(() => { ping(); counts(); }, 900);
+    const top = () => {
+      if (document.visibilityState !== 'visible') return;
+      rpc('bb_mt_ranking', { p_kind: 'global', p_limit: 3 }).then((d) => setPodium({ rows: d?.rows || [], season: null })).catch(() => {});
+    };
+    const t0 = setTimeout(() => { ping(); counts(); top(); }, 900);
+    const t3 = setInterval(top, 5 * 60000);
     const t1 = setInterval(ping, PING_EVERY);
     const t2 = setInterval(counts, LIVE_EVERY);
-    return () => { clearTimeout(t0); clearInterval(t1); clearInterval(t2); };
+    return () => { clearTimeout(t0); clearInterval(t1); clearInterval(t2); clearInterval(t3); };
   }, [session]);
 
   return {
-    ready, available, session, user: session?.user || null, me, cloud, conflict, live, sessionPoints,
+    ready, available, session, user: session?.user || null, me, cloud, conflict, live, sessionPoints, podium,
     signIn, signOut, refreshMe, push, resolveConflict,
   };
 }

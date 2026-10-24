@@ -211,6 +211,7 @@ export class Workshop3D {
     this.scene.add(this.room.group);
     this.space = space;
     this.buildCrew();
+    this.podiumKey = null;
     const style = space === 0 ? 'desk' : space >= 4 ? 'steel' : 'wood';
     this.room.layout.pos.forEach((p, i) => {
       const b = buildBench(style);
@@ -417,6 +418,14 @@ export class Workshop3D {
     this.scene.add(base);
     this.petBase = base;
     this.cat = new CatActor(this.scene, home);
+  }
+
+  // Cuadro de honor con el top 3 de la temporada (idea de la comunidad).
+  setPodium(p, season) {
+    const key = p ? JSON.stringify([season, p.rows.map((r) => [r.name, r.points])]) : 'none';
+    if (key === this.podiumKey || !this.room) return;
+    this.podiumKey = key;
+    this.room.setPodium?.(p ? p.rows : null, season);
   }
 
   // Próximo trabajo del sobrino (ver SobrinoBrain en crew.js).
