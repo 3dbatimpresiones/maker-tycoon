@@ -1,6 +1,7 @@
 // Los que viven en el taller: el gato y el sobrino ayudante.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { buildPiece } from './pieces.js';
 
 const mat = (color, rough = 0.85, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0, ...extra });
 const mesh = (geo, m, parent, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; parent.add(o); return o; };
@@ -217,4 +218,62 @@ export class CatActor {
       if (anim) animateCat(this.standing, t * 2, 0.6);
     }
   }
+}
+
+// ---------- Regalos que dejan otros makers (solo decoración) ----------
+
+const giftMat = (c, r = 0.55) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: 0 });
+export function makeGift(item) {
+  const g = new THREE.Group();
+  if (item === 'g_dummy') {
+    // Dummy 13 gigante: figura articulada impresa en bloques (como la de verdad, pero de 1 m)
+    const a = giftMat('#F39237', 0.6), b = giftMat('#2b2f38', 0.6);
+    const part = (w, h, d, m, x, y, z) => mesh(new RoundedBoxGeometry(w, h, d, 2, Math.min(w, h, d) * 0.25), m, g, x, y, z);
+    for (const z of [-0.09, 0.09]) { part(0.12, 0.05, 0.16, b, 0.02, 0.025, z); part(0.1, 0.24, 0.1, a, 0, 0.17, z); mesh(new THREE.SphereGeometry(0.055, 12, 10), b, g, 0, 0.31, z); part(0.11, 0.24, 0.11, a, 0, 0.45, z); }
+    part(0.2, 0.1, 0.3, b, 0, 0.6, 0);
+    part(0.2, 0.3, 0.34, a, 0, 0.8, 0);
+    part(0.16, 0.08, 0.2, b, 0, 0.98, 0);
+    for (const z of [-0.22, 0.22]) { mesh(new THREE.SphereGeometry(0.05, 12, 10), b, g, 0, 0.92, z); part(0.08, 0.2, 0.08, a, 0, 0.8, z); part(0.08, 0.18, 0.08, a, 0.03, 0.6, z); }
+    part(0.2, 0.2, 0.2, a, 0, 1.12, 0);
+    mesh(new THREE.BoxGeometry(0.02, 0.05, 0.12), giftMat('#131D47'), g, 0.1, 1.13, 0);
+  } else if (item === 'g_benchy') {
+    const pc = buildPiece('benchy'); pc.group.scale.setScalar(0.55); g.add(pc.group);
+  } else if (item === 'g_maceta') {
+    const pc = buildPiece('maceta'); pc.group.scale.setScalar(0.45); g.add(pc.group);
+    const leaf = giftMat('#2f8f4e', 0.7);
+    for (let i = 0; i < 6; i++) { const l = mesh(new THREE.ConeGeometry(0.035, 0.22, 6), leaf, g, Math.cos(i) * 0.04, 0.3, Math.sin(i) * 0.04); l.rotation.set(Math.sin(i) * 0.4, 0, Math.cos(i) * 0.4); }
+  } else if (item === 'g_cartel') {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+    const x = c.getContext('2d'); x.fillStyle = '#F78EB6'; x.fillRect(0, 0, 256, 128); x.fillStyle = '#131D47';
+    x.font = '800 34px Outfit, Arial'; x.textAlign = 'center'; x.fillText('¡Gracias,', 128, 56); x.fillText('maker!', 128, 98);
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+    mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.7, 8), giftMat('#2b2f38'), g, 0, 0.35, 0);
+    const board = mesh(new THREE.BoxGeometry(0.02, 0.24, 0.46), giftMat('#F78EB6'), g, 0, 0.78, 0);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.23), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 }));
+    face.position.set(0.012, 0.78, 0); face.rotation.y = Math.PI / 2; g.add(face); board.castShadow = true;
+  } else {
+    // Mate impreso con bombilla
+    const m = giftMat('#5DDADB', 0.5);
+    const cup = mesh(new THREE.CylinderGeometry(0.11, 0.08, 0.2, 20), m, g, 0, 0.1, 0); cup.castShadow = true;
+    mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.01, 20), giftMat('#6a8f3a', 0.9), g, 0, 0.2, 0);
+    const bomb = mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.3, 8), new THREE.MeshStandardMaterial({ color: '#c9ced8', metalness: 0.9, roughness: 0.25 }), g, 0.03, 0.3, 0);
+    bomb.rotation.z = -0.25;
+  }
+  g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return g;
+}
+
+// Cartelito flotante "de NICK" arriba de cada regalo.
+export function giftLabel(text) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+  const x = c.getContext('2d');
+  x.fillStyle = 'rgba(19,29,71,.85)'; x.beginPath(); x.roundRect(4, 8, 248, 48, 18); x.fill();
+  x.strokeStyle = '#F78EB6'; x.lineWidth = 3; x.stroke();
+  x.fillStyle = '#fff'; x.font = '700 24px Outfit, Arial'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  let t = text; while (x.measureText(t).width > 220 && t.length > 4) t = t.slice(0, -2) + '…';
+  x.fillText(t, 128, 33);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  s.scale.set(0.5, 0.125, 1);
+  return s;
 }

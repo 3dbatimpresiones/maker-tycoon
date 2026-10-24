@@ -22,6 +22,20 @@
 .acct-txt b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acct-txt small { font-size: 10px; color: var(--cyan); font-weight: 700; }
 
+/* Visitas a otros talleres */
+.visit-btn { margin-left: 8px; flex: none; }
+.visit-modal .modal-body { min-height: 0; }
+.visit-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.visit-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; } .visit-txt b { color: #fff; font-size: 17px; } .visit-txt small { color: var(--muted); font-size: 12px; }
+.visit-farm { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #cbd5e1; }
+.scene3d.visit-scene { height: min(52vh, 440px); min-height: 280px; }
+.gift-box { margin-top: 12px; }
+.gift-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.gift-opt { display: flex; align-items: center; gap: 6px; text-align: left; font-size: 12px; }
+.gift-opt span { font-size: 18px; }
+.gift-send { display: flex; gap: 8px; margin-top: 10px; align-items: center; } .gift-send .pink-input { flex: 1; }
+.gift-send .pink-input input { font-size: 14px; padding: 10px 14px; }
+
 /* Cartel mínimo de las máquinas que imprimen solas (talleres con más de 8 máquinas) */
 .ml.mini { padding: 2px 6px 3px; gap: 1px; opacity: .9; border-radius: 8px; }
 .ml.mini .ml-name { display: none; }

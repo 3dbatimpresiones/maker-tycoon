@@ -18,9 +18,14 @@ function labelStatus(s, m) {
   return { k: 'idle', t: 'Sin trabajo' };
 }
 
-export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFeedback, podium }) {
+// Mientras se visita otro taller, el propio deja de dibujarse (ahorra placa de video).
+export const scenePause = { on: false };
+
+export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFeedback, podium, gifts }) {
   const podiumRef = useRef(podium);
   podiumRef.current = podium;
+  const giftsRef = useRef(gifts);
+  giftsRef.current = gifts;
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const wsRef = useRef(null);
@@ -46,9 +51,10 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFee
       setReady(true);
       const loop = (now) => {
         raf = requestAnimationFrame(loop);
+        if (scenePause.on) return;
         const st = sRef.current;
         if (now - lastSync > 200) {
-          lastSync = now; ws.setQuality(st.settings.quality); ws.sync(st); ws.setPodium(podiumRef.current, SEASON.name);
+          lastSync = now; ws.setQuality(st.settings.quality); ws.sync(st); ws.setPodium(podiumRef.current, SEASON.name); ws.setGifts(giftsRef.current);
           sfx.setIntensity(st.space);
           sfx.updateMachines(ws.audioPositions());
         }

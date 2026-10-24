@@ -110,9 +110,9 @@ export function OnlineModal({ s, actions, online, tab: tab0, onClose, open }) {
       {online.available === false && tab !== 'filacolor' ? <Soon /> : (
         <>
           {tab === 'perfil' && <ProfileTab s={s} actions={actions} online={online} />}
-          {tab === 'ranking' && <RankingTab online={online} />}
+          {tab === 'ranking' && <RankingTab online={online} onVisit={(n) => open('visita', null, n)} />}
           {tab === 'retos' && <ChallengesTab online={online} open={open} />}
-          {tab === 'granja' && <FarmTab online={online} />}
+          {tab === 'granja' && <FarmTab online={online} onVisit={(n) => open('visita', null, n)} />}
           {tab === 'filacolor' && <FilacolorTab />}
         </>
       )}
@@ -362,7 +362,9 @@ function ProfileView({ s, actions, online }) {
 const RANKS = [['global', 'Temporada'], ['semanal', 'Semanal'], ['granjas', 'Granjas'], ['comunidad', 'Comunidad'], ['fama', 'Hall de la Fama']];
 const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : `#${r}`);
 
-function RankingTab({ online }) {
+const visitable = (r) => r.name && r.name !== 'Maker anónimo';
+
+function RankingTab({ online, onVisit }) {
   const [kind, setKind] = useState('global');
   const [data, setData] = useState(null);
   const [err, setErr] = useState('');
@@ -407,6 +409,7 @@ function RankingTab({ online }) {
                 <span className="rn">{r.name}{titleName(r.title) && <em className="rt">{titleName(r.title)}</em>}
                   {r.farm && <small className="rf"><Emblem emblem={r.farm.emblem} color={r.farm.color} size={14} /> {r.farm.name}</small>}</span>
                 <b>{num(r.points)}</b>
+                {visitable(r) && <button className="chip-btn visit-btn" onClick={() => onVisit(r.name)} title={r.me ? 'Ver cómo ven tu taller' : `Visitar el taller de ${r.name}`}>{r.me ? 'Mi taller' : 'Visitar'}</button>}
               </div>
             ))}
           </div>
@@ -471,13 +474,13 @@ function ChallengesTab({ online, open }) {
 }
 
 // ---------- Granja ----------
-function FarmTab({ online }) {
+function FarmTab({ online, onVisit }) {
   const me = online.me;
   if (!online.ready) return <Spinner />;
   if (!online.user) return <><p className="hint">Las Granjas Maker son equipos de hasta 6 makers: cada uno juega en su taller y entre todos suman puntos, cumplen contratos cooperativos y suben de nivel su nave de producción.</p><SignInBox online={online} /></>;
   if (!me) return <Spinner />;
   if (!me.player) return <p className="hint">Primero creá tu perfil en la pestaña «Perfil».</p>;
-  if (me.farm) return <FarmView id={me.farm.id} online={online} />;
+  if (me.farm) return <FarmView id={me.farm.id} online={online} onVisit={onVisit} />;
   return <FarmLobby online={online} />;
 }
 
@@ -575,7 +578,7 @@ function FarmLobby({ online }) {
 
 const ROLE = { fundador: 'Fundador', encargado: 'Encargado', miembro: 'Miembro' };
 
-function FarmView({ id, online }) {
+function FarmView({ id, online, onVisit }) {
   const [f, setF] = useState(null);
   const [err, setErr] = useState('');
   const [edit, setEdit] = useState(false);
@@ -628,6 +631,7 @@ function FarmView({ id, online }) {
           <div key={i} className={'fm-row' + (m.me ? ' me' : '')}>
             <Avatar name={m.name} frame={m.frame} size={32} />
             <span className="fm-txt"><b>{m.name}{m.playing && <i className="live-dot" title="Jugando ahora" />}</b><small>{ROLE[m.role]}{titleName(m.title) ? ` · ${titleName(m.title)}` : ''} · aportó {num(m.contributed)} pts</small></span>
+            {visitable(m) && !m.me && <button className="chip-btn visit-btn" onClick={() => onVisit(m.name)}>Ver taller</button>}
             {can(m) && (
               <span className="fm-act">
                 {myRole === 'fundador' && m.role !== 'encargado' && <button className="chip-btn" onClick={() => act({ p_user: m.id, p_role: 'encargado' })}>Hacer encargado</button>}

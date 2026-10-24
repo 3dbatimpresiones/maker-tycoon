@@ -56,6 +56,15 @@ export const rewardName = (id) => REWARDS[id]?.name || id;
 export const titleName = (id) => (id && REWARDS[id]?.kind === 'title' ? REWARDS[id].name : null);
 export const frameClass = (id) => (id && REWARDS[id]?.css) || '';
 
+// Regalos que se dejan al visitar el taller de otro maker (solo decoración; migración 028).
+export const GIFTS = {
+  g_dummy: { name: 'Dummy 13 gigante', icon: '🤖' },
+  g_benchy: { name: 'Benchy gigante', icon: '⛵' },
+  g_maceta: { name: 'Maceta con suculenta', icon: '🪴' },
+  g_cartel: { name: 'Cartel «¡Gracias, maker!»', icon: '🪧' },
+  g_mate: { name: 'Mate impreso', icon: '🧉' },
+};
+
 // Emblemas y colores de las granjas.
 export const EMBLEMS = {
   nozzle: { name: 'Boquilla', path: 'M8 3h8v5l-2 3h-4L8 8zM10 11h4l-2 4zM12 15v6' },

@@ -40,6 +40,7 @@ export function useOnline(opts) {
   const [conflict, setConflict] = useState(null);     // { cloud, local }
   const [live, setLive] = useState(null);
   const [podium, setPodium] = useState(null); // top 3 de la temporada (cuadro de honor del taller)
+  const [gifts, setGifts] = useState([]);    // regalos que me dejaron otros makers
   const [sessionPoints, setSessionPoints] = useState(0);
   const sessionRef = useRef(null);
   const syncedRef = useRef(false);                     // ya se decidió qué partida usar
@@ -53,6 +54,7 @@ export function useOnline(opts) {
       const m = await rpc('bb_mt_me');
       setMe(m);
       setAvailable(true);
+      loadGifts();
       if (m?.season) setSeason(m.season.name, m.season.usd_rate);
       // Premios ganados → la partida los recuerda (para el taller 3D, también sin conexión).
       const st = getState();
@@ -67,6 +69,26 @@ export function useOnline(opts) {
       return null;
     }
   }, [getState]);
+
+  // ---------- Regalos recibidos ----------
+  const loadGifts = useCallback(async () => {
+    if (!sessionRef.current) return;
+    try {
+      const list = await rpc('bb_mt_my_gifts');
+      if (!Array.isArray(list)) return;
+      setGifts(list);
+      const st = getState();
+      if (!st) return;
+      const seen = st.seen.giftsSeen || [];
+      const fresh = list.filter((g) => !seen.includes(g.id));
+      if (fresh.length && seen.length) {
+        const g = fresh[0];
+        say(`🎁 ¡${g.from} visitó tu taller y te dejó un regalo${g.note ? `: «${g.note}»` : ''}! Ya está en tu taller.`, { mood: 'happy' });
+      }
+      st.seen.giftsSeen = list.map((g) => g.id).concat(seen).slice(0, 40);
+      if (!seen.length) st.seen.giftsSeen.push(0); // primera lectura: no avisar de los viejos
+    } catch { /* sin la migración 028 todavía */ }
+  }, [getState, say]);
 
   // ---------- Guardar en la nube ----------
   const push = useCallback(async (force = false) => {
@@ -260,14 +282,14 @@ export function useOnline(opts) {
       rpc('bb_mt_ranking', { p_kind: 'global', p_limit: 3 }).then((d) => setPodium({ rows: d?.rows || [], season: null })).catch(() => {});
     };
     const t0 = setTimeout(() => { ping(); counts(); top(); }, 900);
-    const t3 = setInterval(top, 5 * 60000);
+    const t3 = setInterval(() => { top(); loadGifts(); }, 5 * 60000);
     const t1 = setInterval(ping, PING_EVERY);
     const t2 = setInterval(counts, LIVE_EVERY);
     return () => { clearTimeout(t0); clearInterval(t1); clearInterval(t2); clearInterval(t3); };
   }, [session]);
 
   return {
-    ready, available, session, user: session?.user || null, me, cloud, conflict, live, sessionPoints, podium,
+    ready, available, session, user: session?.user || null, me, cloud, conflict, live, sessionPoints, podium, gifts, loadGifts,
     signIn, signOut, refreshMe, push, resolveConflict,
   };
 }

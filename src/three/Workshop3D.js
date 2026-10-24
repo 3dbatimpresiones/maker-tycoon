@@ -11,7 +11,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 import { buildMachine } from './machines.js';
 import { buildRoom, buildBench, BENCH_H, SX } from './rooms.js';
-import { makeSobrino, SobrinoBrain, CatActor } from './crew.js';
+import { makeSobrino, SobrinoBrain, CatActor, makeGift, giftLabel } from './crew.js';
 import { MACHINES, SPACES, LED_COLORS } from '../game/data.js';
 import { isMulti, has } from '../game/engine.js';
 
@@ -212,6 +212,7 @@ export class Workshop3D {
     this.space = space;
     this.buildCrew();
     this.podiumKey = null;
+    this.giftKey = null;
     const style = space === 0 ? 'desk' : space >= 4 ? 'steel' : 'wood';
     this.room.layout.pos.forEach((p, i) => {
       const b = buildBench(style);
@@ -426,6 +427,28 @@ export class Workshop3D {
     if (key === this.podiumKey || !this.room) return;
     this.podiumKey = key;
     this.room.setPodium?.(p ? p.rows : null, season);
+  }
+
+  // Regalos que dejaron otros makers: en fila sobre el borde de adelante (sin tapar la salida ni el packing).
+  setGifts(list) {
+    const key = JSON.stringify((list || []).map((g) => g.id));
+    if (key === this.giftKey || !this.room) return;
+    this.giftKey = key;
+    if (this.giftGroup) this.scene.remove(this.giftGroup);
+    const grp = new THREE.Group(); this.scene.add(grp); this.giftGroup = grp;
+    const { W, D } = this.room;
+    const doorX = this.world?.door?.x ?? 0;
+    const maxX = this.space >= 2 && this.room.packing ? this.room.packing.position.x - 1.25 : W / 2 - 0.5;
+    // Adelante de las máquinas (entre el pasillo y el borde), a la vista de la cámara.
+    const z = this.world ? Math.min(D / 2 - 0.35, this.world.frontZ + 0.95) : D / 2 - 0.5;
+    let x = this.world ? -this.world.sideX + 0.85 : -W / 2 + 1.45;
+    for (const gift of (list || []).slice(0, 6)) {
+      while (Math.abs(x - doorX) < 0.6) x += 0.75;
+      if (x > maxX) break;
+      const o = makeGift(gift.item); o.position.set(x, 0, z); o.rotation.y = 0.5; grp.add(o);
+      const lab = giftLabel('de ' + gift.from); lab.position.set(x, gift.item === 'g_dummy' ? 1.42 : gift.item === 'g_cartel' ? 1.08 : 0.85, z); grp.add(lab);
+      x += 0.75;
+    }
   }
 
   // Próximo trabajo del sobrino (ver SobrinoBrain en crew.js).
