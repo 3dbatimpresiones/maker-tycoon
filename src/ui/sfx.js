@@ -55,14 +55,14 @@ function ensure() {
     return ctx;
   } catch { return null; }
 }
-// Con Spotify sonando, la música y el ambiente del juego se apagan (los efectos siguen).
+// Con Spotify sonando, se apaga SOLO la música del juego (ambiente, máquinas y efectos siguen).
 let ducked = false;
 function applyVolumes() {
   if (!buses) return;
   const m = enabled ? master : 0;
   buses.out.gain.value = m;
   for (const k of ['music', 'ambient', 'machines', 'fx']) {
-    const v = (ducked && (k === 'music' || k === 'ambient')) ? 0 : (vols[k] ?? 0.5);
+    const v = (ducked && k === 'music') ? 0 : (vols[k] ?? 0.5);
     const gp = buses[k].gain;
     try { gp.cancelScheduledValues(ctx.currentTime); gp.setTargetAtTime(v, ctx.currentTime, 0.25); } catch { gp.value = v; }
   }

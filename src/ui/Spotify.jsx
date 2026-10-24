@@ -1,5 +1,5 @@
 // Tu música de Spotify mientras jugás (reproductor oficial embebido de Spotify).
-// Cuando suena, la música y el ambiente del juego se apagan solos; al pausar, vuelven.
+// Cuando suena, se apaga solo la música del juego (el ambiente y los efectos siguen); al pausar, vuelve.
 // Sin cuenta de Spotify abierta en el navegador, Spotify pasa fragmentos de 30 s.
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Icon from './Icon.jsx';
@@ -103,24 +103,20 @@ export function SpotifyDock({ s, actions }) {
       </button>
       <div className="sd-head">
         <span className="sd-title"><Icon name="spotify" size={18} /> {st.playing ? 'Sonando tu música' : 'Tu música'}</span>
-        {st.playing && <span className="sd-duck" title="La música y el ambiente del juego se apagan mientras suena Spotify">Juego en silencio</span>}
+        {st.playing && <span className="sd-duck" title="La música del juego se pausa mientras suena Spotify (los demás sonidos siguen)">Música del juego en pausa</span>}
         <button className="icon-btn sm" onClick={() => set({ min: !st.min })} title={st.min ? 'Mostrar' : 'Achicar'}><Icon name={st.min ? 'plus' : 'minus'} size={16} /></button>
         <button className="icon-btn sm" onClick={close} title="Cerrar Spotify"><Icon name="x" size={16} /></button>
       </div>
       <div className="sd-body">
         <div className="sd-player" ref={holder} />
-        <label className="sd-vol">
-          <span>Sonidos del juego</span>
-          <input type="range" min="0" max="1" step="0.05" value={s.settings.volume ?? 0.6} onChange={(e) => actions.setting('volume', Number(e.target.value))} />
-        </label>
-        <p className="hint sd-vol-hint">El volumen de Spotify se maneja desde el volumen de tu compu o celular: Spotify no deja que una web lo cambie. Con esta barra equilibrás los sonidos del juego.</p>
+        <p className="hint sd-vol-hint">🔊 <b>Volumen de Spotify:</b> el reproductor de Spotify no tiene volumen propio y no deja que una web lo cambie. Bajalo con el volumen de tu celular, o en la compu con <b>clic derecho en el parlante → Mezclador de volumen</b> (ahí bajás solo el navegador).</p>
         <div className="sd-suggest">{SUGGESTED.map((p) => <button key={p.uri} className={'opt sm' + (uri === p.uri ? ' active' : '')} onClick={() => load(p.uri)}>{p.name}</button>)}</div>
         <div className="sd-link">
           <div className="pink-input"><input value={link} onChange={(e) => setLink(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') fromLink(); }} placeholder="Pegá el link de tu playlist de Spotify" /></div>
           <button className="chip-btn" onClick={fromLink}>Cargar</button>
         </div>
         {err && <p className="ol-err">{err}</p>}
-        <p className="hint">Con tu cuenta de Spotify abierta en este navegador suenan las canciones completas (si no, Spotify pasa 30 s de cada una). Mientras suena, la música del juego se apaga sola.</p>
+        <p className="hint">Con tu cuenta de Spotify abierta en este navegador suenan las canciones completas (si no, Spotify pasa 30 s de cada una). Mientras suena, se pausa solo la música del juego: los sonidos del taller siguen.</p>
       </div>
     </div>
   );
