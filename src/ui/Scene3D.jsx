@@ -112,13 +112,14 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFee
       <div className="labels" aria-hidden={!ready}>
         {ready && s.machines.map((m) => {
           const st = labelStatus(s, m);
-          if (s.machines.length > 8 && (st.k === 'print' || st.k === 'idle' || st.k === 'pause')) return null;
+          // Con muchas máquinas, las que trabajan solas muestran un cartel mínimo (barra y segundos) para no taparse.
+          const mini = s.machines.length > 8 && (st.k === 'print' || st.k === 'idle' || st.k === 'pause');
           const M = MACHINES[m.model];
           const p = m.state === 'done' ? 1 : m.need ? m.progress / m.need : 0;
           const order = !!m.orderId;
           return (
             <button key={m.id} ref={(el) => { if (el) labels.current.set(m.id, el); else labels.current.delete(m.id); }}
-              className={`ml ml-${st.k}` + (s.machines.length > 6 ? ' compact' : '') + (glow === 'machine' && (st.k === 'start' || st.k === 'done' || st.k === 'event') ? ' tut-glow' : '')}
+              className={`ml ml-${st.k}` + (mini ? ' mini' : s.machines.length > 6 ? ' compact' : '') + (glow === 'machine' && (st.k === 'start' || st.k === 'done' || st.k === 'event') ? ' tut-glow' : '')}
               onClick={() => onTap(m)} title={`${M.brand} ${M.name}`}>
               <span className="ml-name">{order && <em>📋</em>}{M.brand === 'Bambu Lab' ? 'Bambu' : M.brand} {M.name}</span>
               <span className="ml-st">{st.t}</span>
