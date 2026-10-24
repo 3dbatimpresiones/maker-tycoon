@@ -33,7 +33,8 @@ export function useOnline(opts) {
   const isLocked = () => !!ext.current.isLocked?.();
   const [session, setSession] = useState(null);
   const [ready, setReady] = useState(false);          // ya se sabe si hay sesión
-  const [available, setAvailable] = useState(true);   // la base tiene el modo online (migración 026)
+  // ¿La base tiene el modo online (migración 026)? null = todavía no se sabe.
+  const [available, setAvailable] = useState(null);
   const [me, setMe] = useState(null);
   const [cloud, setCloud] = useState({ status: 'off', at: null }); // off · checking · ok · saving · error · conflict
   const [conflict, setConflict] = useState(null);     // { cloud, local }
@@ -50,6 +51,7 @@ export function useOnline(opts) {
     try {
       const m = await rpc('bb_mt_me');
       setMe(m);
+      setAvailable(true);
       if (m?.season) setSeason(m.season.name, m.season.usd_rate);
       // Premios ganados → la partida los recuerda (para el taller 3D, también sin conexión).
       const st = getState();
@@ -250,7 +252,7 @@ export function useOnline(opts) {
     };
     const counts = () => {
       if (document.visibilityState !== 'visible') return;
-      rpc('bb_live_counts').then(setLive).catch((e) => { if (e.missing) setAvailable(false); });
+      rpc('bb_live_counts').then((d) => { setLive(d); setAvailable(true); }).catch((e) => { if (e.missing) setAvailable(false); });
     };
     const t0 = setTimeout(() => { ping(); counts(); }, 2500);
     const t1 = setInterval(ping, PING_EVERY);

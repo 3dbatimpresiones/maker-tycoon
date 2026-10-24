@@ -54,7 +54,7 @@ function Err({ e }) { return e ? <p className="ol-err">{e}</p> : null; }
 
 // ---------- Encabezado ----------
 export function CloudPill({ online, s, open }) {
-  if (!online.available) return <div className="pill">Se guarda en este navegador</div>;
+  if (online.available !== true) return <div className="pill">Se guarda en este navegador</div>;
   if (!online.user) {
     return (
       <button className="pill pill-btn" onClick={() => open('online', null, 'perfil')} title="Guardá tu partida en la nube con tu cuenta de Google">
@@ -70,7 +70,7 @@ export function CloudPill({ online, s, open }) {
 }
 
 export function AccountChip({ online, open }) {
-  if (!online.available) return null;
+  if (online.available !== true) return null;
   if (!online.user) {
     return <button className="acct-chip" onClick={() => open('online', null, 'perfil')} title="Ingresar con Google"><GoogleG size={16} /><span>Ingresar</span></button>;
   }
@@ -107,7 +107,7 @@ export function OnlineModal({ s, actions, online, tab: tab0, onClose, open }) {
           </button>
         ))}
       </div>
-      {!online.available && tab !== 'filacolor' ? <Soon /> : (
+      {online.available === false && tab !== 'filacolor' ? <Soon /> : (
         <>
           {tab === 'perfil' && <ProfileTab s={s} actions={actions} online={online} />}
           {tab === 'ranking' && <RankingTab online={online} />}

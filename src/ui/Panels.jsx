@@ -458,7 +458,7 @@ export function SettingsModal({ s, actions, onClose, online, open }) {
       </div>
 
       <div className="section-label">TU PARTIDA</div>
-      <p className="hint">{online?.user
+      <p className="hint">{online?.available !== true ? <>Se guarda sola en este navegador. Para pasarla a otro dispositivo, copiá el código y pegalo allá.</> : online?.user
         ? <>Se guarda en este navegador y en la nube ({online.user.email}). Desde otro dispositivo, entrá con la misma cuenta de Google.</>
         : <>Se guarda sola en este navegador. <button className="link-btn" onClick={() => open?.('online', null, 'perfil')}>Ingresá con Google</button> para tenerla en la nube, o pasala con un código:</>}</p>
       <div className="two-col">
