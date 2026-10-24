@@ -748,13 +748,15 @@ export function FeedbackModal({ s, online, onClose }) {
   const [kind, setKind] = useState('idea');
   const [msg, setMsg] = useState('');
   const [contact, setContact] = useState('');
+  const [name, setName] = useState('');
+  const logged = !!online?.user;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [sent, setSent] = useState(false);
   const send = async () => {
     setBusy(true); setErr('');
     try {
-      await rpc('bb_mt_feedback_send', { p_message: msg, p_kind: kind, p_contact: contact || null,
+      await rpc('bb_mt_feedback_send', { p_message: msg, p_kind: kind, p_contact: contact || null, p_name: logged ? null : name.trim(),
         p_context: { v: s.v, space: s.space, machines: s.machines.length, ua: (navigator.userAgent || '').slice(0, 120), w: window.innerWidth } });
       setSent(true);
     } catch (e) { setErr(e.missing ? 'Las sugerencias todavía no están activadas. Probá en un rato.' : e.message); }
@@ -775,14 +777,20 @@ export function FeedbackModal({ s, online, onClose }) {
           <div className="pink-input fb-text"><textarea rows={5} maxLength={1000} value={msg} onChange={(e) => setMsg(e.target.value)}
             placeholder={kind === 'error' ? 'Ej.: cuando compro una máquina en el celular, la pantalla…' : 'Ej.: estaría bueno poder pintar las piezas antes de venderlas…'} /></div>
           <small className="muted fb-count">{msg.length}/1000</small>
-          {!online?.user && (
-            <label className="ol-field">Si querés que te respondamos (opcional)
-              <div className="pink-input"><input value={contact} maxLength={120} onChange={(e) => setContact(e.target.value)} placeholder="Tu Instagram, Discord o correo" /></div>
-            </label>
+          {!logged && (
+            <>
+              <label className="ol-field">¿Quién sos? (obligatorio)
+                <div className="pink-input"><input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre o apodo" /></div>
+              </label>
+              <label className="ol-field">¿Cómo te respondemos? (opcional)
+                <div className="pink-input"><input value={contact} maxLength={120} onChange={(e) => setContact(e.target.value)} placeholder="Tu Instagram, Discord o correo" /></div>
+              </label>
+              {online?.available === true && <p className="hint">O <button className="link-btn" onClick={online.signIn}>ingresá con Google</button> y se firma sola.</p>}
+            </>
           )}
-          {online?.user && <p className="hint">La mandás como {online.me?.player?.nick || online.user.email}.</p>}
+          {logged && <p className="hint">La mandás como <b>{[online.me?.player?.nick, online.user.email].filter(Boolean).join(' · ')}</b>.</p>}
           <Err e={err} />
-          <button className="btn-center" disabled={busy || msg.trim().length < 5} onClick={send}><Icon name="message" size={16} /> {busy ? 'Enviando…' : 'Mandar sugerencia'}</button>
+          <button className="btn-center" disabled={busy || msg.trim().length < 5 || (!logged && name.trim().length < 2)} onClick={send}><Icon name="message" size={16} /> {busy ? 'Enviando…' : 'Mandar sugerencia'}</button>
         </>
       )}
     </Modal>
