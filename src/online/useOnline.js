@@ -254,7 +254,7 @@ export function useOnline(opts) {
       if (document.visibilityState !== 'visible') return;
       rpc('bb_live_counts').then((d) => { setLive(d); setAvailable(true); }).catch((e) => { if (e.missing) setAvailable(false); });
     };
-    const t0 = setTimeout(() => { ping(); counts(); }, 2500);
+    const t0 = setTimeout(() => { ping(); counts(); }, 900);
     const t1 = setInterval(ping, PING_EVERY);
     const t2 = setInterval(counts, LIVE_EVERY);
     return () => { clearTimeout(t0); clearInterval(t1); clearInterval(t2); };

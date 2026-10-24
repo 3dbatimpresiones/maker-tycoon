@@ -168,7 +168,64 @@ const PRIVACY = [
 ];
 const cleanNick = (v) => (v || '').replace(/[^A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ _.-]/g, '').slice(0, 20);
 
-function CreateProfile({ online }) {
+// ---------- Bienvenida: primero la cuenta, después el perfil ----------
+const GATE_KEY = 'mt3dbat.gate';
+const skipped = (k) => { try { return sessionStorage.getItem(GATE_KEY + k) === '1'; } catch { return false; } };
+const skip = (k) => { try { sessionStorage.setItem(GATE_KEY + k, '1'); } catch { /* sin storage */ } };
+
+export function useGate(online) {
+  const [, force] = useState(0);
+  const need = online.available === true && online.ready;
+  const login = need && !online.user && !skipped('login');
+  const profile = need && !!online.user && online.me && online.me.player === null && !skipped('perfil');
+  return { login, profile, skipLogin: () => { skip('login'); force((x) => x + 1); }, skipProfile: () => { skip('perfil'); force((x) => x + 1); } };
+}
+
+export function WelcomeGate({ online, onSkip }) {
+  return (
+    <div className="modal-back gate-back">
+      <div className="modal gate" role="dialog" aria-modal="true" aria-label="Bienvenida">
+        <div className="gate-top">
+          <BatiArt mood="happy" size={92} />
+          <div>
+            <div className="section-label">3DBAT MAKER TYCOON</div>
+            <h2>¡Bienvenido al taller!</h2>
+            <p>Ingresá con Google y desde el primer minuto tu taller queda guardado en la nube y empezás a sumar en el ranking.</p>
+          </div>
+        </div>
+        <ul className="benefits">
+          <li>🏆 Sumás Puntos Maker en el ranking de la temporada y el semanal.</li>
+          <li>☁️ Seguís tu partida desde la compu o el celular.</li>
+          <li>🏭 Armás una granja con otros makers y jugás los retos de la comunidad.</li>
+        </ul>
+        <button className="btn-google" onClick={online.signIn}><GoogleG size={20} /> Ingresar con Google</button>
+        <p className="hint">La misma cuenta de BATBOX y del Cotizador. Si ya venías jugando en este navegador, tu taller se sube tal cual.</p>
+        <button className="link-btn gate-skip" onClick={onSkip}>Jugar sin cuenta (podés ingresar después)</button>
+      </div>
+    </div>
+  );
+}
+
+export function ProfileSetup({ online, onSkip }) {
+  return (
+    <div className="modal-back gate-back">
+      <div className="modal gate" role="dialog" aria-modal="true" aria-label="Creá tu perfil">
+        <div className="gate-top">
+          <BatiArt mood="wink" size={80} />
+          <div>
+            <div className="section-label">ÚLTIMO PASO</div>
+            <h2>Creá tu perfil de maker</h2>
+            <p>Con tu perfil ya entrás al ranking: todo lo que fabriques desde ahora suma puntos.</p>
+          </div>
+        </div>
+        <CreateProfile online={online} compact />
+        <button className="link-btn gate-skip" onClick={onSkip}>Ahora no</button>
+      </div>
+    </div>
+  );
+}
+
+function CreateProfile({ online, compact = false }) {
   const meta = online.user.user_metadata || {};
   const [nick, setNick] = useState(cleanNick((meta.full_name || meta.name || online.user.email || '').split(/[ @]/)[0]));
   const [privacy, setPrivacy] = useState('public');
@@ -182,7 +239,7 @@ function CreateProfile({ online }) {
   };
   return (
     <div>
-      <div className="section-label">TU PERFIL DE JUGADOR</div>
+      {!compact && <div className="section-label">TU PERFIL DE JUGADOR</div>}
       <p className="hint">Elegí cómo te van a ver los demás makers. Lo podés cambiar cuando quieras.</p>
       <label className="ol-field">Apodo
         <div className="pink-input"><input value={nick} maxLength={20} onChange={(e) => setNick(cleanNick(e.target.value))} placeholder="Tu apodo maker" /></div>

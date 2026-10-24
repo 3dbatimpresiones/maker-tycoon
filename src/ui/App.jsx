@@ -11,7 +11,7 @@ import { readyClaims } from './Header.jsx';
 import { currentMission } from '../game/progress.js';
 import { TAGLINE } from '../config.js';
 import { useOnline } from '../online/useOnline.js';
-import { OnlineModal, ConflictModal, LockedOverlay } from './Online.jsx';
+import { OnlineModal, ConflictModal, LockedOverlay, WelcomeGate, ProfileSetup, useGate } from './Online.jsx';
 import { BRAND_DISCLAIMER } from '../game/data.js';
 
 const TAB_OF = { machine: 'taller', mate: 'taller', orders: 'pedidos', 'shop-machines': 'tienda', 'shop-upgrades': 'tienda', 'shop-space': 'tienda', oficio: 'mas', desafios: 'desafios' };
@@ -20,6 +20,7 @@ const NAV = [['taller', 'Taller', 'factory'], ['pedidos', 'Pedidos', 'clipboard'
 export default function App() {
   const { s, actions, floats, toasts, bati, offline, locked, getState } = useGame();
   const online = useOnline({ getState, adoptSave: actions.adoptSave, toast: actions.toast, say: actions.say, isLocked: () => locked });
+  const gate = useGate(online);
   const [tab, setTab] = useState('taller');
   const [shopTab, setShopTab] = useState('machines');
   const [modal, setModal] = useState(null); // { kind, mid, tab }
@@ -103,8 +104,10 @@ export default function App() {
       {modal?.kind === 'ajustes' && <SettingsModal s={s} actions={actions} onClose={close} online={online} open={open} />}
       {modal?.kind === 'online' && <OnlineModal s={s} actions={actions} online={online} tab={modal.tab} onClose={close} open={open} />}
       {online.conflict && !locked && <ConflictModal conflict={online.conflict} onChoose={online.resolveConflict} />}
+      {gate.login && !locked && !modal && <WelcomeGate online={online} onSkip={gate.skipLogin} />}
+      {gate.profile && !locked && !online.conflict && !modal && <ProfileSetup online={online} onSkip={gate.skipProfile} />}
       {locked && <LockedOverlay onTakeOver={actions.takeOver} />}
-      {offline && !modal && !online.conflict && !locked && <OfflineModal r={offline} onClose={actions.closeOffline} />}
+      {offline && !modal && !online.conflict && !locked && !gate.login && !gate.profile && <OfflineModal r={offline} onClose={actions.closeOffline} />}
     </div>
   );
 }

@@ -31,16 +31,16 @@ export function Header({ s, actions, open, online }) {
       <div className="top-actions">
         <AccountChip online={online} open={open} />
         <CurrencyToggle s={s} actions={actions} compact />
-        <a className="icon-btn hide-sm" href={LINKS.instagram} target="_blank" rel="noopener noreferrer" title="Instagram de 3DBAT"><Icon name="instagram" /></a>
-        {!BATBOX_HERE && <a className="icon-btn hide-sm" href={LINKS.batbox} target="_blank" rel="noopener noreferrer" title="BATBOX: herramientas y tutoriales gratis"><Icon name="box" /></a>}
-        <button className="icon-btn hide-sm" onClick={() => open('online', null, 'ranking')} title="Ranking, retos y granjas"><Icon name="users" /></button>
-        <button className="icon-btn hide-sm" onClick={() => open('logros')} title="Logros"><Icon name="trophy" /></button>
-        <button className={'icon-btn hide-sm' + (readyClaims(s) ? ' attn' : '')} onClick={() => open('desafios')} title="Desafíos"><Icon name="target" /></button>
-        <button className={'icon-btn hide-sm' + (E.canMove(s) ? ' attn' : '')} onClick={() => open('oficio')} title="Oficio y Mudanza"><Icon name="award" /></button>
-        <button className="icon-btn" onClick={() => actions.setting('sound', !s.settings.sound)} title={s.settings.sound ? 'Silenciar' : 'Activar sonido'}>
-          <Icon name={s.settings.sound ? 'volume' : 'mute'} />
+        <a className="icon-btn lbl-btn hide-sm" href={LINKS.instagram} target="_blank" rel="noopener noreferrer" title="Instagram de 3DBAT"><Icon name="instagram" /><span>Instagram</span></a>
+        {!BATBOX_HERE && <a className="icon-btn lbl-btn hide-sm" href={LINKS.batbox} target="_blank" rel="noopener noreferrer" title="BATBOX: herramientas y tutoriales gratis"><Icon name="box" /><span>BATBOX</span></a>}
+        <button className="icon-btn lbl-btn hide-sm" onClick={() => open('online', null, 'ranking')} title="Ranking, retos y granjas"><Icon name="users" /><span>Ranking</span></button>
+        <button className="icon-btn lbl-btn hide-sm" onClick={() => open('logros')} title="Logros"><Icon name="trophy" /><span>Logros</span></button>
+        <button className={'icon-btn lbl-btn hide-sm' + (readyClaims(s) ? ' attn' : '')} onClick={() => open('desafios')} title="Desafíos"><Icon name="target" /><span>Desafíos</span></button>
+        <button className={'icon-btn lbl-btn hide-sm' + (E.canMove(s) ? ' attn' : '')} onClick={() => open('oficio')} title="Oficio y Mudanza"><Icon name="award" /><span>Mudanza</span></button>
+        <button className="icon-btn lbl-btn" onClick={() => actions.setting('sound', !s.settings.sound)} title={s.settings.sound ? 'Silenciar' : 'Activar sonido'}>
+          <Icon name={s.settings.sound ? 'volume' : 'mute'} /><span>{s.settings.sound ? 'Sonido' : 'Sin sonido'}</span>
         </button>
-        <button className="icon-btn" onClick={() => open('ajustes')} title="Ajustes"><Icon name="settings" /></button>
+        <button className="icon-btn lbl-btn" onClick={() => open('ajustes')} title="Ajustes"><Icon name="settings" /><span>Ajustes</span></button>
       </div>
     </header>
   );
