@@ -5,10 +5,12 @@ import { money, rate, kg, num, full } from '../game/format.js';
 import { VERSION, LINKS, BATBOX_HERE } from '../config.js';
 import { CurrencyToggle } from './Panels.jsx';
 import { CloudPill, AccountChip, LiveChip } from './Online.jsx';
+import { useSpotify } from './Spotify.jsx';
 
 export const readyClaims = (s) => [s.daily, s.weekly].filter(Boolean).reduce((a, set) => a + set.list.filter((c) => !c.claimed && c.prog >= c.target).length, 0);
 
 export function Header({ s, actions, open, online }) {
+  const sp = useSpotify();
   return (
     <header className="topbar">
       <div className="top-left">
@@ -40,6 +42,7 @@ export function Header({ s, actions, open, online }) {
         <button className="icon-btn lbl-btn" onClick={() => actions.setting('sound', !s.settings.sound)} title={s.settings.sound ? 'Silenciar' : 'Activar sonido'}>
           <Icon name={s.settings.sound ? 'volume' : 'mute'} /><span>{s.settings.sound ? 'Sonido' : 'Sin sonido'}</span>
         </button>
+        <button className={'icon-btn lbl-btn spotify-btn' + (sp.playing ? ' on' : '')} onClick={() => sp.toggle()} title="Escuchá tu música de Spotify mientras jugás"><Icon name="spotify" /><span>{sp.playing ? 'Sonando' : 'Spotify'}</span></button>
         <button className="icon-btn lbl-btn" onClick={() => open('ajustes')} title="Ajustes"><Icon name="settings" /><span>Ajustes</span></button>
       </div>
     </header>

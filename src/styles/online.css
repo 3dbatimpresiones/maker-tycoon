@@ -306,3 +306,20 @@
    apaisada y la barra de ingreso queda pegada abajo, sin espacio muerto. */
 .layout > .main-card { align-self: start; }
 .main-card > .scene-wrap { flex: 0 0 auto; }
+
+/* Spotify: reproductor flotante */
+.spotify-btn { color: #1DB954; }
+.spotify-btn.on { border-color: #1DB954; background: rgba(29,185,84,.14); }
+.spotify-dock { position: fixed; right: 18px; bottom: 18px; z-index: 60; width: min(380px, calc(100vw - 32px)); padding: 10px 12px 12px; border-radius: 18px;
+  background: rgba(13,20,51,.96); border: 1px solid rgba(29,185,84,.55); box-shadow: 0 18px 40px rgba(0,0,0,.45); }
+.sd-head { display: flex; align-items: center; gap: 8px; }
+.sd-title { flex: 1; display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; color: #1DB954; }
+.sd-duck { font-size: 10px; font-weight: 700; color: #cbd5e1; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,.08); }
+.sd-body { margin-top: 8px; }
+.spotify-dock.min .sd-body { height: 0; overflow: hidden; margin: 0; }
+.sd-player { min-height: 152px; border-radius: 12px; overflow: hidden; background: #121212; }
+.sd-player iframe { display: block; border: 0; border-radius: 12px; }
+.sd-suggest { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.sd-link { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.sd-link .pink-input { flex: 1; } .sd-link input { font-size: 13px; padding: 9px 12px; }
+@media (max-width: 760px) { .spotify-dock { right: 16px; bottom: 84px; } }

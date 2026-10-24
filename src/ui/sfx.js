@@ -55,11 +55,17 @@ function ensure() {
     return ctx;
   } catch { return null; }
 }
+// Con Spotify sonando, la música y el ambiente del juego se apagan (los efectos siguen).
+let ducked = false;
 function applyVolumes() {
   if (!buses) return;
   const m = enabled ? master : 0;
   buses.out.gain.value = m;
-  for (const k of ['music', 'ambient', 'machines', 'fx']) buses[k].gain.value = vols[k] ?? 0.5;
+  for (const k of ['music', 'ambient', 'machines', 'fx']) {
+    const v = (ducked && (k === 'music' || k === 'ambient')) ? 0 : (vols[k] ?? 0.5);
+    const gp = buses[k].gain;
+    try { gp.cancelScheduledValues(ctx.currentTime); gp.setTargetAtTime(v, ctx.currentTime, 0.25); } catch { gp.value = v; }
+  }
 }
 function throttle(key, ms) {
   const now = performance.now();
@@ -101,6 +107,8 @@ const chord = (notes, opts = {}) => notes.forEach((f, i) => tone(f, opts.dur || 
 export const sfx = {
   configure(on, vol, v) { enabled = !!on; if (vol != null) master = vol; if (v) vols = { ...vols, ...v }; applyVolumes(); if (enabled) music.maybeStart(); else music.stop(); },
   unlock() { if (ensure()) { music.maybeStart(); ambient.start(); } },
+  setDucked(on) { if (ducked === !!on) return; ducked = !!on; applyVolumes(); },
+  isDucked: () => ducked,
   // Sin «clic»: molestaba a cada rato (pedido del usuario). Se deja la función para no romper llamadas.
   click() {},
   sale() {

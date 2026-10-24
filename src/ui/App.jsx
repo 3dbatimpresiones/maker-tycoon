@@ -13,6 +13,7 @@ import { TAGLINE } from '../config.js';
 import { useOnline } from '../online/useOnline.js';
 import { OnlineModal, ConflictModal, LockedOverlay, WelcomeGate, ProfileSetup, useGate, FeedbackModal } from './Online.jsx';
 import { VisitModal } from './Visit.jsx';
+import { SpotifyDock } from './Spotify.jsx';
 import { BRAND_DISCLAIMER } from '../game/data.js';
 
 const TAB_OF = { machine: 'taller', mate: 'taller', orders: 'pedidos', 'shop-machines': 'tienda', 'shop-upgrades': 'tienda', 'shop-space': 'tienda', oficio: 'mas', desafios: 'desafios' };
@@ -91,6 +92,8 @@ export default function App() {
       <BatiGuide tutorial={s.tutorial.active} mission={mission} queue={bati}
         onDismiss={actions.dismissBati} onSkip={actions.skipTutorial}
         onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('comunidad'); }} onCta={(k) => k === 'online' && open('online', null, 'perfil')} />
+
+      <SpotifyDock s={s} actions={actions} />
 
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => <div key={t.id} className={'toast t-' + t.kind}>{t.text}</div>)}
