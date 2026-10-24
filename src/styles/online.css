@@ -250,6 +250,7 @@
   .back-bb { padding: 7px 9px; }
 }
 
-/* El taller 3D ocupa todo el alto de la tarjeta: sin espacio muerto entre la escena y la barra de ingreso. */
-.scene-wrap > .scene3d { flex: 1 1 auto; height: auto; min-height: clamp(440px, 64vh, 760px); }
-@media (max-width: 760px) { .scene-wrap > .scene3d { min-height: max(360px, 58vh); } }
+/* La tarjeta del taller no se estira a la altura de Pedidos/Tienda: el 3D mantiene su proporción
+   apaisada y la barra de ingreso queda pegada abajo, sin espacio muerto. */
+.layout > .main-card { align-self: start; }
+.main-card > .scene-wrap { flex: 0 0 auto; }

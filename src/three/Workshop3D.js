@@ -165,7 +165,8 @@ export class Workshop3D {
   fit(instant = false) {
     if (!this.room) return;
     const { layout } = this.room;
-    const spanW = layout.cols * 1.2 + 0.3, spanD = layout.rows * 1.45;
+    // Ancho: las máquinas + la mesa de packing y el rincón del gato (desde el garage), por donde camina el sobrino.
+    const spanW = layout.cols * 1.2 + 0.3 + (this.space >= 2 ? 1.6 : this.space >= 1 ? 0.8 : 0), spanD = layout.rows * 1.45 + 0.6;
     const vt = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
     const aspect = this.camera.aspect || 1.5;
     const distW = (spanW * 0.5) / (vt * Math.min(aspect, 1.9));
