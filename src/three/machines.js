@@ -2,6 +2,7 @@
 // Cada builder arma un "rig": root (Group), pieceSlot (donde crece la pieza), partes móviles,
 // luz de estado y emisores de efectos. update(st) anima todo según el estado del juego.
 import * as THREE from 'three';
+import { makeCat } from './crew.js';
 import { MAT, rb, bx, cy, extrusion, spool, fan, mat } from './kit.js';
 import { buildPiece, applyLayers } from './pieces.js';
 import { MACHINES, MATERIALS, PRODUCTS } from '../game/data.js';
@@ -639,15 +640,21 @@ function setEvent(rig, id) {
     tube.position.copy(at); tube.castShadow = true;
     rig.extra.add(tube);
   } else if (id === 'gato') {
-    const cat = new THREE.Group();
-    const fur = MAT.matte('#141418', 0.9);
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.045, 16, 12), fur); body.scale.set(1.5, 0.9, 1); body.position.y = 0.04; cat.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.03, 16, 12), fur); head.position.set(0.065, 0.075, 0); cat.add(head);
-    for (const z of [-0.016, 0.016]) { const e = new THREE.Mesh(new THREE.ConeGeometry(0.01, 0.025, 4), fur); e.position.set(0.07, 0.105, z); cat.add(e); }
-    for (const z of [-0.011, 0.011]) { const eye = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 8, 6), MAT.glow('#ffd166', 1.6)); eye.position.set(0.093, 0.08, z); cat.add(eye); }
-    const tail = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.007, 8, 20, Math.PI), fur); tail.position.set(-0.065, 0.05, 0); tail.rotation.z = Math.PI / 2; cat.add(tail);
-    cat.position.copy(at); cat.position.y += 0.003; cat.rotation.y = -0.6;
-    cat.traverse((o) => { o.castShadow = true; });
+    // Un gato de verdad es casi tan largo como la impresora: tiene que verse.
+    const cat = makeCat({ lying: true, fur: '#8a8e99', stripe: '#5d6069' });
+    const enclosed = !!rig.def?.enclosed || rig.def?.art?.type === 'cube';
+    cat.scale.setScalar(Math.max(0.55, (rig.footprint * (enclosed ? 0.8 : 0.95)) / 0.45));
+    if (enclosed) {
+      // Arriba de la carcasa calentita
+      rig.root.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(rig.root);
+      const top = new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
+      rig.root.worldToLocal(top);
+      cat.position.copy(top);
+    } else {
+      cat.position.copy(at); cat.position.y += 0.003;
+    }
+    cat.rotation.y = -0.6;
     rig.extra.add(cat);
     rig.fx = { cat };
   } else if (id === 'llama') {

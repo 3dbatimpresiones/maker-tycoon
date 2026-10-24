@@ -211,6 +211,7 @@ export function buildRoom(space, n) {
   const rightX = Math.min(W / 2 - 0.7, L.cols * SX / 2 + 0.75);
   packing.position.set(rightX, 0, D / 2 - 1.05);
   g.add(packing);
+  room.packing = packing;
   if (space >= 2) {
     const top = std('#ffffff', 0.7, 0, { map: TEX.wood([1, 1], '#9a7650') });
     box(1.1, 0.04, 0.6, top, 0, 0.82, 0, packing);

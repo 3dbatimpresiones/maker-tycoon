@@ -175,7 +175,7 @@ export const MASTERY_BONUS = 1.12;
 export const UPGRADES = {
   slicer: { name: 'Perfiles en Orca Slicer', cat: 'Velocidad', cost: 12000, growth: 3.2, desc: '+5 % de velocidad en impresión 3D por nivel.', tip: 'El slicer corta el modelo en capas y decide cómo se imprime.' },
   pei: { name: 'Cama PEI texturada', cat: 'Confiabilidad', cost: 35000, max: 1, desc: 'Las piezas pegan mejor: la mitad de spaghetti, warping y primeras capas fallidas.' },
-  sobrino: { name: 'Sobrino ayudante', cat: 'Automatización', cost: 60000, max: 1, desc: 'Retira una pieza terminada cada 8 s.', flavor: 'Sabe de compus. Más o menos.' },
+  sobrino: { name: 'Sobrino ayudante', cat: 'Automatización', cost: 60000, max: 1, desc: 'Retira una pieza terminada cada 8 s. Con la Expulsión automática asciende a logística.', flavor: 'Sabe de compus. Más o menos.' },
   termo: { name: 'Termo Stanley', cat: 'Mate', cost: 80000, max: 1, desc: 'El mate dura 90 s en vez de 60 s.' },
   calibracion: { name: 'Calibración de flujo', cat: 'Calidad', cost: 40000, rep: 2, max: 1, desc: '+1★ en las impresoras de ★1 y ★2.' },
   bulk: { name: 'Compra por mayor', cat: 'Materiales', cost: 150000, rep: 2, max: 1, desc: '−20 % en el precio de todos los materiales.' },
@@ -195,7 +195,7 @@ export const UPGRADES = {
   input: { name: 'Input shaping y Klipper', cat: 'Velocidad', cost: 300000, rep: 5, max: 1, desc: '+20 % de velocidad en las impresoras CoreXY cerradas.', tip: 'El firmware compensa las vibraciones para imprimir rápido sin "fantasmas".' },
   remota: { name: 'Cámara remota', cat: 'Automatización', cost: 400000, rep: 6, max: 1, desc: 'Mientras no estás: hasta 6 h y 80 % de rendimiento.' },
   ams: { name: 'Sistema multicolor (AMS lite / ACE / MMU)', cat: 'Tecnología', cost: 900000, rep: 5, max: 1, desc: 'Las impresoras compatibles imprimen piezas multicolor.' },
-  expulsion: { name: 'Expulsión automática', cat: 'Automatización', cost: 1500000, rep: 6, max: 1, desc: 'Las piezas se retiran solas al instante.' },
+  expulsion: { name: 'Expulsión automática', cat: 'Automatización', cost: 1500000, rep: 6, max: 1, desc: 'Las piezas se retiran solas al instante. Si tenés al sobrino, asciende: ordena las bobinas y despacha los pedidos (+5 % en pedidos).' },
   resina: { name: 'Rincón de resina', cat: 'Tecnología', cost: 900000, rep: 6, space: 3, max: 1, desc: 'Estación de lavado y curado, guantes y ventilación: desbloquea la resina.' },
   ups: { name: 'UPS: recuperación ante cortes', cat: 'Confiabilidad', cost: 800000, rep: 6, max: 1, desc: 'Un corte de luz ya no reinicia las piezas.' },
   gestor: { name: 'Gestor de pedidos', cat: 'Automatización', cost: 2000000, rep: 7, max: 1, desc: 'Acepta los pedidos que podés cumplir y les asigna máquinas.' },

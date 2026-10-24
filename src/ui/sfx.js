@@ -101,7 +101,8 @@ const chord = (notes, opts = {}) => notes.forEach((f, i) => tone(f, opts.dur || 
 export const sfx = {
   configure(on, vol, v) { enabled = !!on; if (vol != null) master = vol; if (v) vols = { ...vols, ...v }; applyVolumes(); if (enabled) music.maybeStart(); else music.stop(); },
   unlock() { if (ensure()) { music.maybeStart(); ambient.start(); } },
-  click() { if (throttle('click', 50)) return; tone(vary(1800, 80), 0.035, { type: 'triangle', gain: 0.04, wet: 0.1 }); },
+  // Sin «clic»: molestaba a cada rato (pedido del usuario). Se deja la función para no romper llamadas.
+  click() {},
   sale() {
     if (throttle('sale', 260)) return;
     const b = vary(1046, 120);

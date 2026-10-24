@@ -320,8 +320,12 @@ export const upgradeMaxed = (s, id) => UPGRADES[id].max != null && lvlOf(s, id) 
 export function boardSize(s) { return (has(s, 'tablero') ? 5 : 3) + (perk(s, 'contactos') ? 1 : 0); }
 export function offlineEff(s) { return Math.min(1, (has(s, 'remota') ? 0.8 : 0.5) + (perk(s, 'duermo') ? 0.2 : 0)); }
 export function offlineCapH(s) { return (has(s, 'remota') ? 6 : 2) + (perk(s, 'duermo') ? 3 : 0); }
+// Sobrino ayudante: 1 = retira piezas · 2 = con la expulsión automática pasa a logística
+// (ordena las bobinas y despacha los pedidos: +5 % de paga en pedidos).
+export const sobrinoLevel = (s) => (has(s, 'sobrino') ? (has(s, 'expulsion') ? 2 : 1) : 0);
 export function orderMult(s) {
-  return Math.pow(1.1, lvlOf(s, 'instagram')) * (perk(s, 'contactos') ? 1.2 : 1) * (mastered(s, 'exigente') ? 1.25 : 1);
+  return Math.pow(1.1, lvlOf(s, 'instagram')) * (perk(s, 'contactos') ? 1.2 : 1) * (mastered(s, 'exigente') ? 1.25 : 1)
+    * (sobrinoLevel(s) >= 2 ? 1.05 : 1);
 }
 
 function addMoney(s, x) {

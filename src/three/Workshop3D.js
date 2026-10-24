@@ -10,9 +10,10 @@ import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 import { buildMachine } from './machines.js';
-import { buildRoom, buildBench, BENCH_H } from './rooms.js';
+import { buildRoom, buildBench, BENCH_H, SX } from './rooms.js';
+import { makeCat, animateCat, makeSobrino, SobrinoBrain } from './crew.js';
 import { MACHINES, SPACES, LED_COLORS } from '../game/data.js';
-import { isMulti } from '../game/engine.js';
+import { isMulti, has } from '../game/engine.js';
 
 // alta = "Calidad" (PC) · media = "Equilibrado" · baja = "Rendimiento" (celulares humildes)
 export function resolveQuality(q) {
@@ -208,6 +209,7 @@ export class Workshop3D {
     this.room = buildRoom(space, n);
     this.scene.add(this.room.group);
     this.space = space;
+    this.buildCrew();
     const style = space === 0 ? 'desk' : space >= 4 ? 'steel' : 'wood';
     this.room.layout.pos.forEach((p, i) => {
       const b = buildBench(style);
@@ -277,6 +279,15 @@ export class Workshop3D {
     this.room.setVitrina(s.prestige.vitrina || []);
     this.room.setZones?.(s);
     this.room.setDecor?.(s.cosmetics?.decor || []);
+    // Sobrino: nivel 1 retira piezas; con la expulsión automática pasa a logística (nivel 2).
+    const lvl = has(s, 'sobrino') ? (has(s, 'expulsion') ? 2 : 1) : 0;
+    if (lvl && !this.sobrino) {
+      const g = makeSobrino();
+      g.position.set(this.world.rest.x, 0, this.world.rest.z);
+      this.scene.add(g);
+      this.sobrino = { g, brain: new SobrinoBrain(g) };
+    } else if (!lvl && this.sobrino) { this.scene.remove(this.sobrino.g); this.sobrino = null; }
+    if (this.world) this.world.level = lvl;
     this.effect = s.cosmetics?.effect || null;
     // Cajas de pedidos despachados en la zona de packing
     const orders = s.stats.orders || 0;
@@ -324,6 +335,12 @@ export class Workshop3D {
     this.chips.step(dt, 1.6, 0.97);
     for (const mk of this.emptyMarks) if (mk.visible) mk.material.opacity = 0.3 + Math.sin(t * 2.5) * 0.15;
     for (const u of this.room.updaters) u(anim === 'min' ? 0 : t, dt);
+    // El gato del taller respira y mueve la cola; el del evento también.
+    if (this.pet && anim !== 'min') animateCat(this.pet, t);
+    if (anim !== 'min') for (const [, e] of this.machines) if (e.rig.fx?.cat) animateCat(e.rig.fx.cat, t * 1.3);
+    if (this.sobrino && this.world) {
+      this.sobrino.brain.update(dt, t, this.world, anim === 'min');
+    }
     this.hemi.intensity = blackout ? 0.18 : 0.55;
     this.sun.intensity = blackout ? 0.5 : 1.8;
     this.ceiling.intensity = blackout ? 0 : 1.6;
@@ -341,6 +358,44 @@ export class Workshop3D {
     }
     this.controls.update();
     if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera);
+  }
+
+  // Puntos del taller por donde camina el sobrino y el rincón del gato.
+  buildCrew() {
+    const { W, D, layout } = this.room;
+    const maxZ = Math.max(...layout.pos.map((p) => p.z));
+    const half = (layout.cols * SX) / 2;
+    const pk = this.room.packing?.position;
+    const shelf = this.room.shelf?.position;
+    const V = (x, z) => new THREE.Vector3(x, 0, z);
+    this.world = {
+      level: this.world?.level || 0,
+      aisleZ: maxZ + 0.78,
+      frontZ: maxZ + 0.58,
+      sideX: half + 0.32,
+      packing: pk ? V(pk.x - 0.75, pk.z) : V(half + 0.6, maxZ + 1.2),
+      shelf: shelf ? V(shelf.x + 0.5, shelf.z) : V(-half - 0.6, maxZ - 0.5),
+      door: V(0, Math.min(D / 2 - 0.35, maxZ + 1.7)),
+      rest: pk ? V(pk.x - 0.75, pk.z - 0.2) : V(half + 0.5, maxZ + 1.0),
+      doneTargets: () => {
+        const out = [];
+        for (const [, e] of this.machines) if (e.status === 'done') { const p = e.station.position; out.push(V(p.x, p.z + 0.58)); }
+        return out;
+      },
+    };
+    if (this.sobrino) { this.sobrino.g.position.set(this.world.rest.x, 0, this.world.rest.z); this.sobrino.brain.queue = []; }
+    // Gato del taller (desde el cuarto): duerme en su almohadón en el rincón de adelante.
+    if (this.pet) { this.scene.remove(this.petBase); this.pet = null; }
+    if (this.space >= 1) {
+      const base = new THREE.Group();
+      const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.33, 0.08, 28), new THREE.MeshStandardMaterial({ color: '#3437A2', roughness: 0.95 }));
+      cushion.position.y = 0.04; cushion.receiveShadow = true; cushion.castShadow = true; base.add(cushion);
+      const cat = makeCat({ lying: true });
+      cat.position.y = 0.075; cat.rotation.y = -0.6; cat.scale.setScalar(1.3); base.add(cat);
+      base.position.set(-W / 2 + 0.6, 0, D / 2 - 0.65);
+      this.scene.add(base);
+      this.pet = cat; this.petBase = base;
+    }
   }
 
   burst(e, pa, pb, n) {
