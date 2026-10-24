@@ -12,7 +12,11 @@ export function num(n) {
   if (a < 1e9) return nf2.format(n / 1e6) + ' M';
   if (a < 1e12) return nf2.format(n / 1e9) + ' mil M';
   if (a < 1e15) return nf2.format(n / 1e12) + ' B';
-  return nf2.format(n / 1e15) + ' mil B';
+  if (a < 1e18) return nf2.format(n / 1e15) + ' mil B';
+  if (a < 1e21) return nf2.format(n / 1e18) + ' Tr';
+  if (a < 1e24) return nf2.format(n / 1e21) + ' mil Tr';
+  const e = Math.floor(Math.log10(a));
+  return nf2.format(n / Math.pow(10, e)) + 'e' + e;
 }
 export const money = (n) => '$' + num(n);
 export const full = (n) => '$' + nf0.format(Math.round(n));

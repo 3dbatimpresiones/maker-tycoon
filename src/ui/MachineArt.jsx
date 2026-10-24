@@ -1,7 +1,7 @@
 // Ilustraciones SVG de las 5 impresoras. La pieza crece capa por capa según el progreso
 // (eso es estado, no animación: se ve igual con las animaciones apagadas).
 import { PieceShape } from './Pieces.jsx';
-import { PRODUCTS } from '../game/data.js';
+import { PRODUCTS, MACHINES } from '../game/data.js';
 
 const C = {
   frame: '#2a3480', frame2: '#4a52c8', dark: '#0d1433', plate: '#151d4f', brass: '#d8b25a',
@@ -138,7 +138,7 @@ function Enclosure({ children }) {
 
 // ---------- Gran Formato ----------
 function BigFormat({ p, pid, cid, printing, ev }) {
-  const xl = pid && PRODUCTS[pid].xl;
+  const xl = pid && (PRODUCTS[pid].size === 'XL' || PRODUCTS[pid].size === 'L');
   const k = xl ? 2.05 : 1.05, bedTop = 128;
   const nozzleY = bedTop - 40 * k * p - 1;
   return (
@@ -168,10 +168,11 @@ export default function MachineArt({ m, run, ev }) {
   const printing = m.state === 'printing';
   const cid = `mtclip-${m.id}`;
   const cls = 'mt-svg' + (run ? ' run' : '') + (m.state === 'done' ? ' done' : '');
+  const type = MACHINES[m.model]?.art?.type || 'bed';
   let body;
-  if (m.model === 'kit' || m.model === 'cartesiana') body = <BedSlinger m={m} p={p} pid={pid} cid={cid} kit={m.model === 'kit'} printing={printing} ev={ev} />;
-  else if (m.model === 'rayo') body = <CoreXY p={p} pid={pid} cid={cid} printing={printing} ev={ev} />;
-  else if (m.model === 'bunker') body = <Enclosure><CoreXY p={p} pid={pid} cid={cid} printing={printing} ev={ev} enclosed /></Enclosure>;
+  if (type === 'bed' || type === 'mini') body = <BedSlinger m={m} p={p} pid={pid} cid={cid} kit={m.model === 'ender3'} printing={printing} ev={ev} />;
+  else if (type === 'laser' || type === 'cnc') body = <CoreXY p={p} pid={pid} cid={cid} printing={printing} ev={ev} />;
+  else if (type === 'cube' || type === 'rack' || type === 'resin' || type === 'laserbox' || type === 'cncbox') body = <Enclosure><CoreXY p={p} pid={pid} cid={cid} printing={printing} ev={ev} enclosed /></Enclosure>;
   else body = <BigFormat p={p} pid={pid} cid={cid} printing={printing} ev={ev} />;
   return (
     <svg className={cls} viewBox="0 0 160 156" aria-hidden="true">

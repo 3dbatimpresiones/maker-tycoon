@@ -1,8 +1,10 @@
 import Icon from './Icon.jsx';
 import * as E from '../game/engine.js';
-import { MATERIALS } from '../game/data.js';
-import { money, rate, kg } from '../game/format.js';
+import { MATERIALS, MATERIAL_ORDER, MACHINES } from '../game/data.js';
+import { money, rate, kg, num } from '../game/format.js';
 import { VERSION, LINKS } from '../config.js';
+
+export const readyClaims = (s) => [s.daily, s.weekly].filter(Boolean).reduce((a, set) => a + set.list.filter((c) => !c.claimed && c.prog >= c.target).length, 0);
 
 export function Header({ s, actions, open }) {
   return (
@@ -26,6 +28,7 @@ export function Header({ s, actions, open }) {
         <a className="icon-btn hide-sm" href={LINKS.instagram} target="_blank" rel="noopener noreferrer" title="Instagram de 3DBAT"><Icon name="instagram" /></a>
         <a className="icon-btn hide-sm" href={LINKS.batbox} target="_blank" rel="noopener noreferrer" title="BATBOX: herramientas y tutoriales gratis"><Icon name="box" /></a>
         <button className="icon-btn hide-sm" onClick={() => open('logros')} title="Logros"><Icon name="trophy" /></button>
+        <button className={'icon-btn hide-sm' + (readyClaims(s) ? ' attn' : '')} onClick={() => open('desafios')} title="Desafíos"><Icon name="target" /></button>
         <button className={'icon-btn hide-sm' + (E.canMove(s) ? ' attn' : '')} onClick={() => open('oficio')} title="Oficio y Mudanza"><Icon name="award" /></button>
         <button className="icon-btn" onClick={() => actions.setting('sound', !s.settings.sound)} title={s.settings.sound ? 'Silenciar' : 'Activar sonido'}>
           <Icon name={s.settings.sound ? 'volume' : 'mute'} />
@@ -36,10 +39,12 @@ export function Header({ s, actions, open }) {
   );
 }
 
-export function Hud({ s, onFilament }) {
+const SHORT = { PACF: 'PA-CF', ACRILICO: 'Acrílico', MADERA: 'Madera', RESINA: 'Resina', ALU: 'Alu', ASA: 'ASA' };
+
+export function Hud({ s, onFilament, onTokens }) {
   const rp = E.repProgress(s);
   const r = E.incomeRate(s);
-  const mats = Object.keys(MATERIALS).filter((m) => E.materialUnlocked(s, m) || s.fil[m] > 0);
+  const mats = MATERIAL_ORDER.filter((m) => s.mat[m] > 0 || (E.materialUnlocked(s, m) && E.techUnlocked(s, MATERIALS[m].tech) && s.machines.some((x) => MACHINES[x.model].tech === MATERIALS[m].tech)));
   return (
     <div className="hud" role="region" aria-label="Recursos">
       <div className="hud-money">
@@ -53,20 +58,25 @@ export function Hud({ s, onFilament }) {
         <div className="mini-bar"><i style={{ width: `${Math.round(rp.frac * 100)}%` }} /></div>
       </div>
       <button className="hud-fil" onClick={onFilament} title="Comprar filamento">
-        <span className="hud-label">FILAMENTO</span>
+        <span className="hud-label">MATERIALES</span>
         <div className="fil-chips">
           {mats.map((m) => (
-            <span key={m} className={'fil-chip' + (s.fil[m] < 100 ? ' low' : '')}>
-              <i style={{ background: MATERIALS[m].color }} />{m} <b>{kg(s.fil[m])}</b>
+            <span key={m} className={'fil-chip' + (s.mat[m] < 100 ? ' low' : '')}>
+              <i style={{ background: MATERIALS[m].color }} />{SHORT[m] || m} <b>{MATERIALS[m].unitName === 'bobina' || MATERIALS[m].unitName === 'litro' ? kg(s.mat[m]) : `${(s.mat[m] / 1000).toLocaleString('es-AR', { maximumFractionDigits: 1 })} u`}</b>
             </span>
           ))}
         </div>
+      </button>
+      <button className="hud-tokens" onClick={onTokens} title="Desafíos y fichas">
+        <span className="hud-label">FICHAS</span>
+        <b>🎟️ {num(s.tokens)}</b>
+        {readyClaims(s) > 0 && <small className="c-pink">¡{readyClaims(s)} para cobrar!</small>}
       </button>
       {s.prestige.total > 0 && (
         <div className="hud-maker">
           <span className="hud-label">NIVEL MAKER</span>
           <b>{E.makerTitle(s.prestige.total)}</b>
-          <small>+{Math.round(s.prestige.total * 3)} % ingresos</small>
+          <small>+{num(s.prestige.total * 3)} % ingresos</small>
         </div>
       )}
     </div>

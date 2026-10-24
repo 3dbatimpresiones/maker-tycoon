@@ -2,8 +2,8 @@
 // del motor a cosas visibles (números flotantes, toasts, mensajes de BATI, sonidos).
 import { useEffect, useReducer, useRef, useState, useCallback } from 'react';
 import * as E from '../game/engine.js';
-import { step, startMissionHooks, currentMission, skipTutorial } from '../game/progress.js';
-import { PRODUCTS, MACHINES, UPGRADES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, REP_LEVELS } from '../game/data.js';
+import { step, startMissionHooks, currentMission, skipTutorial, claimChallenge } from '../game/progress.js';
+import { PRODUCTS, MACHINES, UPGRADES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, TOKEN_SHOP, MASTERY_CHALLENGES, fullName } from '../game/data.js';
 import { SAVE_KEY, BACKUP_KEY } from '../config.js';
 import { money, num } from '../game/format.js';
 import { sfx } from './sfx.js';
@@ -17,7 +17,13 @@ let uid = 1;
 function load() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
-    if (raw) { const s = E.migrate(JSON.parse(raw)); if (s) return s; }
+    if (raw) {
+      const obj = JSON.parse(raw);
+      // Antes de convertir una partida vieja, se guarda una copia intacta (por las dudas).
+      if ((obj.v || 1) < E.SAVE_VERSION && !localStorage.getItem(SAVE_KEY + '.v' + (obj.v || 1))) localStorage.setItem(SAVE_KEY + '.v' + (obj.v || 1), raw);
+      const s = E.migrate(obj);
+      if (s) return s;
+    }
     const bak = localStorage.getItem(BACKUP_KEY);
     if (bak) { const s = E.migrate(JSON.parse(bak)); if (s) return s; }
   } catch { /* partida dañada o sin acceso: arranca una nueva */ }
@@ -36,8 +42,8 @@ function save(s, backup = false) {
 // Qué se desbloquea al llegar a un nivel de reputación (para que BATI lo cuente).
 function unlocksAt(level) {
   const list = [];
-  for (const p of Object.values(PRODUCTS)) if ((p.rep || 1) === level && !p.space && !MATERIALS[p.mat].upgrade) list.push(p.name);
-  for (const m of Object.values(MACHINES)) if (m.rep === level) list.push(m.name);
+  for (const p of Object.values(PRODUCTS)) if ((p.rep || 1) === level && !p.space && !MATERIALS[p.mat].upgrade && p.tech === 'fdm') list.push(p.name);
+  for (const m of Object.values(MACHINES)) if (m.rep === level) list.push(fullName(m));
   for (const u of Object.values(UPGRADES)) if ((u.rep || 1) === level) list.push(u.name);
   return list;
 }
@@ -103,6 +109,7 @@ export function useGame() {
         case 'orderDone':
           sfx.order();
           toast(`✔ Pedido entregado: ${e.reward ? '+' + money(e.reward) + ' · ' : ''}+${e.rep} ⭐`);
+          if (e.tokens) toast(`🎟️ +${e.tokens} fichas por el contrato`, 'info');
           if (e.tpl === 'exposicion') say('Te pagaron con exposición… y la verdad, la reputación sirve. Pero las bobinas no se pagan con likes 😅', { mood: 'happy' });
           break;
         case 'orderFail':
@@ -142,8 +149,20 @@ export function useGame() {
           say('¡Listo, ya sos maker! Te dejo misiones para seguir creciendo. Si me necesitás, tocame. Y ojo: cuando no estás, yo cuido el taller.', { mood: 'happy' });
           break;
         case 'achievement': sfx.achievement(); toast(`🏆 Logro: ${e.name}`, 'info', 4000); break;
+        case 'mastery':
+          if (e.level >= 2) toast(`⭐ Experiencia en «${PRODUCTS[e.pid].name}»: nivel ${e.level} (+20 % de precio)`, 'info', 3500);
+          sayOnce('mastery', 'Cada producto tiene su experiencia: cuanto más lo fabricás, mejor te sale y más lo cobrás. Y eso no se pierde nunca, ni con la Mudanza.', { mood: 'happy' });
+          break;
+        case 'contract':
+          sfx.alert(); toast('🏢 ¡Llegó un contrato de empresa! Paga ×4 y da fichas.', 'warn', 4500);
+          sayOnce('contract1', 'Los contratos de empresa son pedidos grandes: llevan más tiempo pero pagan ×4, suman mucha reputación y dan fichas para la tienda de fichas.', { mood: 'happy' });
+          break;
+        case 'challengeDone': sfx.achievement(); say(`¡Superaste el desafío «${e.name}»! Premio para siempre: ${e.reward} (+3 fichas).`, { mood: 'happy' }); break;
+        case 'newChallenges':
+          if (!st.seen.daily1) { st.seen.daily1 = 1; say('Hay desafíos nuevos todos los días (y uno semanal). Dan fichas para canjear por turbos, saltos de tiempo y más. Están en el botón 🎯 Desafíos.'); }
+          break;
         case 'nofil':
-          sayOnce('nofil_' + e.mat, `Se terminó el ${e.mat}. Comprá bobinas en Tienda → Filamento (o contratá al proveedor y olvidate).`, { mood: 'worried' });
+          sayOnce('nofil_' + e.mat, `Se terminó: ${MATERIALS[e.mat].name}. Comprá más en Tienda → Materiales (o contratá al proveedor y olvidate).`, { mood: 'worried' });
           break;
         case 'mate': sfx.mate(); break;
         case 'gestor': break;
@@ -183,7 +202,7 @@ export function useGame() {
       if (ms <= 60000) ms *= SPEED;
       const st2 = ref.current;
       if (ms > 60000) { catchUp(ms); force(); return; }
-      const ctx = { out: [], idle: now - lastInput.current > IDLE_MS };
+      const ctx = { out: [], idle: now - lastInput.current > IDLE_MS, now };
       let left = ms / 1000;
       while (left > 0) { const d = Math.min(0.25, left); step(st2, d, ctx); left -= d; }
       if (import.meta.env.DEV) window.__mt = st2;
@@ -224,11 +243,25 @@ export function useGame() {
     start: (mid) => act((st, ctx) => { sfx.click(); E.startMachine(st, mid, ctx); }),
     retrieve: (mid) => act((st, ctx) => E.retrieve(st, mid, ctx, 'hand')),
     resolve: (mid, opt) => act((st, ctx) => E.resolveEvent(st, mid, opt, ctx)),
-    buyMachine: (model) => act((st) => { const m = E.buyMachine(st, model); if (m) { sfx.buy(); toast(`Nueva: ${MACHINES[model].name} ${MACHINES[model].nick}`); } return m; }),
+    buyMachine: (model) => act((st) => { const m = E.buyMachine(st, model); if (m) { sfx.buy(); toast(`Nueva: ${fullName(MACHINES[model])}`); } return m; }),
     sellMachine: (mid) => act((st) => { const ok = E.sellMachine(st, mid); if (ok) sfx.click(); return ok; }),
     buyUpgrade: (id) => act((st) => { const ok = E.buyUpgrade(st, id); if (ok) { sfx.buy(); toast(`Mejora: ${UPGRADES[id].name}`); } return ok; }),
     buySpace: () => act((st) => { const ok = E.buySpace(st); if (ok) { sfx.buy(); } return ok; }),
-    buySpool: (mat, n) => act((st) => { const ok = E.buySpool(st, mat, n); if (ok) sfx.click(); return ok; }),
+    buyMat: (mat, n) => act((st) => { const ok = E.buyMat(st, mat, n); if (ok) sfx.click(); return ok; }),
+    claim: (which, i) => act((st) => { const r = claimChallenge(st, which, i); if (r) { sfx.order(); toast(`🎟️ +${r} ficha${r > 1 ? 's' : ''}`); } return r; }),
+    buyToken: (id) => act((st) => {
+      const r = E.buyTokenItem(st, id, TOKEN_SHOP);
+      if (!r) { toast('No se pudo usar ahora.', 'err'); return false; }
+      sfx.buy();
+      toast(id === 'salto' ? `⏩ Salto temporal: +${money(r.earned)}` : `🎟️ ${TOKEN_SHOP[id].name}: ¡listo!`);
+      return true;
+    }),
+    startChallenge: (id) => {
+      const next = E.startChallenge(ref.current, id, null);
+      if (next) { sfx.achievement(); replace(next); say(`Arrancó el desafío «${MASTERY_CHALLENGES[id].name}». Regla: ${MASTERY_CHALLENGES[id].rule} Meta: ${MASTERY_CHALLENGES[id].goalText}`, { mood: 'wink' }); }
+      return !!next;
+    },
+    abandonChallenge: () => act((st) => { E.abandonChallenge(st); toast('Desafío abandonado: seguís jugando sin las reglas.', 'info'); }),
     setProduct: (mid, pid) => act((st) => E.setProduct(st, mid, pid)),
     mate: () => act((st, ctx) => E.useMate(st, ctx)),
     accept: (oid) => act((st) => { const ok = E.acceptOrder(st, oid); if (ok) sfx.click(); return ok; }),
@@ -261,4 +294,4 @@ export function useGame() {
   return { s, actions, floats, toasts, bati, offline };
 }
 
-export { REP_LEVELS, num };
+export { num };

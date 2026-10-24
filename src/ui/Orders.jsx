@@ -1,6 +1,6 @@
 // Tablero de pedidos: ofertas para aceptar y pedidos en curso.
 import Icon from './Icon.jsx';
-import { PieceIcon } from './Pieces.jsx';
+import { ProductThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
 import { PRODUCTS } from '../game/data.js';
 import { money, clock, dur } from '../game/format.js';
@@ -12,7 +12,7 @@ function Items({ o }) {
         const P = PRODUCTS[it.p];
         return (
           <span key={it.p} className="o-item" title={P.name}>
-            <PieceIcon shape={P.shape} color={P.color} size={20} />
+            <ProductThumb pid={it.p} size={22} />
             <b>{it.done ? `${it.done}/${it.qty}` : `${it.qty}×`}</b> {P.name}
           </span>
         );
@@ -28,10 +28,11 @@ function Offer({ s, o, actions, glow }) {
   let reason = '';
   if (!canDo) {
     const anyCompat = E.orderCompatibleMachines(s, o).length > 0;
-    reason = anyCompat ? 'Todas tus impresoras compatibles están ocupadas en otros pedidos' : o.minStars > 1 ? `Necesitás una impresora con calidad ★${o.minStars}` : 'Ninguna impresora puede hacerlo';
+    reason = anyCompat ? 'Todas tus máquinas compatibles están ocupadas en otros pedidos' : o.minStars > 1 ? `Necesitás una máquina con calidad ★${o.minStars}` : 'Ninguna de tus máquinas puede hacerlo';
   }
   return (
-    <div className={'order offer' + (o.urgent ? ' urgent' : '') + (glow ? ' tut-glow' : '')}>
+    <div className={'order offer' + (o.urgent ? ' urgent' : '') + (o.contract ? ' contract' : '') + (glow ? ' tut-glow' : '')}>
+      {o.contract && <span className="o-badge">CONTRATO DE EMPRESA</span>}
       <div className="o-head">
         <div className="o-title"><b>{o.title}</b><small>{o.client}{o.frequent ? ' · Cliente frecuente' : ''}</small></div>
         <button className="o-x" onClick={() => actions.decline(o.id)} aria-label="Rechazar pedido" title="Rechazar"><Icon name="x" size={16} /></button>
@@ -41,7 +42,7 @@ function Offer({ s, o, actions, glow }) {
       <div className="o-meta">
         <span title="Plazo una vez aceptado"><Icon name="clock" size={14} /> {dur(o.time)}</span>
         {o.minStars > 1 && <span>Calidad ★{o.minStars}</span>}
-        <span className="o-reward">{o.reward ? money(o.reward) : '$0'} · +{o.rep} ⭐</span>
+        <span className="o-reward">{o.reward ? money(o.reward) : '$0'} · +{o.rep} ⭐{o.tokens ? ` · +${o.tokens} 🎟️` : ''}</span>
       </div>
       {canDo ? (
         <button className="btn-center" onClick={() => actions.accept(o.id)}>
@@ -61,7 +62,7 @@ function Active({ s, o, actions }) {
   const sug = E.suggestAssign(s, o, left);
   const late = !sug.enough && left < o.time * 0.6;
   return (
-    <div className={'order active' + (o.urgent ? ' urgent' : '')}>
+    <div className={'order active' + (o.urgent ? ' urgent' : '') + (o.contract ? ' contract' : '')}>
       <div className="o-head">
         <div className="o-title"><b>{o.title}</b><small>{o.client}</small></div>
         <span className={'o-clock' + (left < 60 ? ' hot' : '')}><Icon name="clock" size={14} /> {clock(left)}</span>
@@ -72,7 +73,7 @@ function Active({ s, o, actions }) {
         <span>Impresoras: <b>{mine}</b></span>
         <button className="mini-btn" disabled={mine <= 0} onClick={() => actions.assign(o.id, -1)} aria-label="Sacar una impresora"><Icon name="minus" size={14} /></button>
         <button className="mini-btn" disabled={freeCompat <= 0} onClick={() => actions.assign(o.id, 1)} aria-label="Sumar una impresora"><Icon name="plus" size={14} /></button>
-        <span className="o-reward">{o.reward ? money(o.reward) : '$0'} · +{o.rep} ⭐</span>
+        <span className="o-reward">{o.reward ? money(o.reward) : '$0'} · +{o.rep} ⭐{o.tokens ? ` · +${o.tokens} 🎟️` : ''}</span>
       </div>
       {mine === 0 && <p className="o-warn">Sin impresoras asignadas: tocá + para sumar una.</p>}
       {mine > 0 && late && <p className="o-warn soft">Viene justo: sumá otra impresora o cebá un mate.</p>}
@@ -82,7 +83,7 @@ function Active({ s, o, actions }) {
 
 export default function Orders({ s, actions, glow }) {
   const size = E.boardSize(s);
-  const used = s.orders.offers.length + s.orders.active.length;
+  const used = s.orders.offers.filter((o) => !o.contract).length + s.orders.active.filter((o) => !o.contract).length;
   return (
     <section className="card orders-card">
       <div className="card-head">
@@ -98,13 +99,13 @@ export default function Orders({ s, actions, glow }) {
       <div className="order-list">
         {s.orders.offers.map((o, i) => <Offer key={o.id} s={s} o={o} actions={actions} glow={glow === 'orders' && i === 0} />)}
       </div>
-      {used === 0 && (
+      {used === 0 && s.orders.offers.length + s.orders.active.length === 0 && (
         <div className="list-empty">
           {s.tutorial.active && !s.tutorial.orders ? 'Los pedidos llegan en un ratito.' : 'Esperando clientes… llegan solos cada tanto.'}
         </div>
       )}
       {used >= size && s.orders.offers.length === 0 && <p className="hint">El tablero está lleno: terminá un pedido para recibir más.</p>}
-      <p className="hint">Los pedidos pagan <b>x1,5 a x5</b> y suman reputación. Mientras no estás, se pausan.</p>
+      <p className="hint">Los pedidos pagan <b>×1,5 a ×5</b> y suman reputación. Desde Reputación 5 llegan <b>contratos de empresa</b> que además dan fichas. Mientras no estás, se pausan.</p>
     </section>
   );
 }

@@ -1,9 +1,10 @@
-// El taller: escena que cambia con cada espacio + impresoras + barra de ingreso.
+// El taller: vista 3D (o lista) + eventos globales + barra de ingreso.
+import { useState } from 'react';
 import Icon from './Icon.jsx';
-import MachineArt from './MachineArt.jsx';
-import { PieceIcon } from './Pieces.jsx';
+import Scene3D from './Scene3D.jsx';
+import { MachineThumb, ProductThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
-import { MACHINES, PRODUCTS, SPACES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, LED_COLORS } from '../game/data.js';
+import { MACHINES, PRODUCTS, SPACES, MACHINE_EVENTS, GLOBAL_EVENTS } from '../game/data.js';
 import { money, rate, dur, clock } from '../game/format.js';
 import { currentMission } from '../game/progress.js';
 
@@ -12,102 +13,37 @@ function Stars({ n }) {
 }
 
 function bayStatus(s, m) {
-  const blackout = s.global?.id === 'corte';
   if (m.waitStart) return { k: 'start', t: '▶ Imprimir' };
   if (m.event) return { k: 'event', t: `${MACHINE_EVENTS[m.event.id].icon} ${MACHINE_EVENTS[m.event.id].name}` };
   if (m.state === 'done') return { k: 'done', t: '¡Lista! Tocá para retirar' };
-  if (m.state === 'nofil') return { k: 'nofil', t: `Sin ${PRODUCTS[m.product]?.mat || 'filamento'}` };
-  if (blackout && m.state === 'printing') return { k: 'event', t: '🔌 Sin luz' };
-  if (m.pauseUntil > s.time) return { k: 'pause', t: `Secando bobina · ${Math.ceil(m.pauseUntil - s.time)} s` };
-  if (m.state === 'printing') {
-    const left = (m.need - m.progress) / E.machineSpeed(s, m);
-    return { k: 'print', t: `Imprimiendo · ${dur(left)}` };
-  }
+  if (m.state === 'nofil') return { k: 'nofil', t: `Sin ${PRODUCTS[m.product]?.mat || 'material'}` };
+  if (s.global?.id === 'corte' && m.state === 'printing') return { k: 'event', t: '🔌 Sin luz' };
+  if (m.pauseUntil > s.time) return { k: 'pause', t: `En pausa · ${Math.ceil(m.pauseUntil - s.time)} s` };
+  if (m.state === 'printing') return { k: 'print', t: `Trabajando · ${dur((m.need - m.progress) / E.machineSpeed(s, m))}` };
   return { k: 'idle', t: 'Sin trabajo' };
 }
 
 function Bay({ s, m, floats, onTap, onGear, glow }) {
   const M = MACHINES[m.model];
   const st = bayStatus(s, m);
-  const run = st.k === 'print' && s.settings.anim !== 'min';
   const pid = m.cur || m.product;
-  const P = PRODUCTS[pid];
   const p = m.state === 'done' ? 1 : m.need ? m.progress / m.need : 0;
-  const order = m.orderId && s.orders.active.find((o) => o.id === m.orderId);
   return (
     <div className={`bay st-${st.k}` + (glow ? ' tut-glow' : '')}>
-      <button className="bay-hit" onClick={() => onTap(m, st.k)} aria-label={`${M.name}: ${st.t}`}>
-        <MachineArt m={m} run={run} ev={m.event?.id} />
+      <button className="bay-hit" onClick={() => onTap(m)} aria-label={`${M.brand} ${M.name}: ${st.t}`}>
+        <MachineThumb model={m.model} />
         {st.k === 'start' && <span className="bay-start">▶ Imprimir</span>}
         {st.k === 'event' && m.event && <span className="bay-alert">!</span>}
       </button>
-      <button className="bay-gear" onClick={() => onGear(m)} aria-label="Configurar impresora" title="Configurar"><Icon name="settings" size={16} /></button>
-      {order && <span className="bay-order" title={order.title}>📋 Pedido</span>}
+      <button className="bay-gear" onClick={() => onGear(m)} aria-label="Configurar máquina" title="Configurar"><Icon name="settings" size={16} /></button>
+      {m.orderId && <span className="bay-order">📋 Pedido</span>}
       <div className="bay-info">
-        <div className="bay-name"><b>{M.name}</b><Stars n={E.machineStars(s, m)} /></div>
-        <div className="bay-prod">{P && <PieceIcon shape={P.shape} color={P.color} size={18} />}<span>{P?.name || '—'}</span></div>
+        <div className="bay-name"><b>{M.brand} {M.name}</b><Stars n={E.machineStars(s, m)} /></div>
+        <div className="bay-prod"><ProductThumb pid={pid} size={20} /><span>{PRODUCTS[pid]?.name || '—'}</span></div>
         <div className="bay-bar"><i style={{ width: `${Math.round(p * 100)}%` }} /></div>
         <div className={'bay-status s-' + st.k}>{st.t}</div>
       </div>
       {floats.map((f) => <span key={f.id} className={'float float-' + f.kind}>{f.text}</span>)}
-    </div>
-  );
-}
-
-// Decoración del espacio (cambia con cada mudanza).
-function Deco({ space }) {
-  return (
-    <svg className="scene-deco" viewBox="0 0 800 200" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
-      {space === 0 && <>
-        <rect x="200" y="8" width="64" height="30" rx="5" fill="rgba(247,142,182,.12)" stroke="rgba(247,142,182,.35)" />
-        <text x="232" y="28" textAnchor="middle" fontSize="13" fontWeight="800" fill="rgba(247,142,182,.7)">MAKE</text>
-        <circle cx="300" cy="22" r="4" fill="rgba(93,218,219,.4)" /><circle cx="316" cy="26" r="3" fill="rgba(247,142,182,.4)" />
-        <path d="M60 30 L100 70 L80 74 Z" fill="rgba(255,214,140,.35)" />
-        <line x1="80" y1="0" x2="80" y2="30" stroke="rgba(255,255,255,.25)" strokeWidth="3" />
-        <path d="M40 74 L120 74 L160 190 L0 190 Z" fill="rgba(255,214,140,.05)" />
-      </>}
-      {space === 1 && <>
-        <rect className="led-strip" x="0" y="6" width="800" height="4" />
-        <rect x="560" y="40" width="200" height="12" rx="3" fill="rgba(52,55,162,.5)" />
-        <rect x="560" y="100" width="200" height="12" rx="3" fill="rgba(52,55,162,.5)" />
-      </>}
-      {space === 2 && <>
-        <rect className="led-strip" x="0" y="6" width="800" height="4" />
-        <rect x="40" y="30" width="260" height="130" rx="8" fill="rgba(52,55,162,.22)" stroke="rgba(255,255,255,.08)" />
-        {Array.from({ length: 6 }).map((_, r) => Array.from({ length: 12 }).map((__, c) => <circle key={r + '-' + c} cx={60 + c * 20} cy={48 + r * 20} r="2" fill="rgba(255,255,255,.12)" />))}
-        <path d="M80 70 l30 0 l0 8 l-30 0 z M150 60 l6 50 l-12 0 z M200 64 a14 14 0 1 0 1 0 z" fill="rgba(93,218,219,.35)" />
-        <circle cx="700" cy="70" r="40" fill="rgba(19,29,71,.7)" stroke="rgba(255,255,255,.15)" strokeWidth="3" />
-        <g className="deco-fan" style={{ transformOrigin: '700px 70px' }}><path d="M700 34 L708 70 L692 70 Z M700 106 L692 70 L708 70 Z M664 70 L700 62 L700 78 Z M736 70 L700 78 L700 62 Z" fill="rgba(93,218,219,.4)" /></g>
-      </>}
-      {space === 3 && <>
-        <rect className="led-strip" x="0" y="6" width="800" height="4" />
-        <rect x="30" y="24" width="300" height="150" rx="10" fill="rgba(93,218,219,.05)" stroke="rgba(93,218,219,.3)" strokeWidth="2" />
-        <line x1="180" y1="24" x2="180" y2="174" stroke="rgba(93,218,219,.2)" strokeWidth="2" />
-        <text className="neon" x="600" y="100" textAnchor="middle" fontSize="54" fontWeight="800">3DBAT</text>
-        <text x="600" y="130" textAnchor="middle" fontSize="13" fontWeight="700" fill="rgba(93,218,219,.75)" letterSpacing="4">IMPRESIONES</text>
-      </>}
-    </svg>
-  );
-}
-
-function SpoolShelf({ s }) {
-  const mats = Object.keys(MATERIALS).filter((m) => E.materialUnlocked(s, m) || s.fil[m] > 0);
-  return (
-    <div className="shelf" aria-hidden="true">
-      {mats.map((mat) => {
-        const n = Math.min(6, Math.ceil(s.fil[mat] / 1000));
-        const lastFrac = s.fil[mat] <= 0 ? 0 : ((s.fil[mat] - 1) % 1000 + 1) / 1000;
-        return Array.from({ length: Math.max(n, 0) }).map((_, i) => {
-          const f = i === n - 1 ? lastFrac : 1;
-          return (
-            <svg key={mat + i} className="spool" viewBox="0 0 24 24" width="22" height="22">
-              <circle cx="12" cy="12" r="11" fill="#1a2560" stroke="rgba(255,255,255,.25)" />
-              <circle cx="12" cy="12" r={4 + 6 * f} fill={MATERIALS[mat].color} opacity=".9" />
-              <circle cx="12" cy="12" r="3" fill="#0d1433" />
-            </svg>
-          );
-        });
-      })}
     </div>
   );
 }
@@ -120,16 +56,18 @@ function GlobalBanner({ s, actions }) {
   let buttons = null;
   if (g.id === 'corte') {
     const wait = Math.max(0, g.since + 8 - s.time);
-    buttons = <button className="btn-apply" disabled={wait > 0} onClick={() => actions.resolveGlobal(0)}>{wait > 0 ? `Esperando la luz… ${Math.ceil(wait)} s` : (E.has(s, 'ups') ? 'Reanudar (sin perder nada)' : 'Reanudar (las piezas se reinician)')}</button>;
+    buttons = <button className="btn-apply" disabled={wait > 0} onClick={() => actions.resolveGlobal(0)}>{wait > 0 ? `Esperando la luz… ${Math.ceil(wait)} s` : (E.upsActive(s) ? 'Reanudar (sin perder nada)' : 'Reanudar (las piezas se reinician)')}</button>;
   } else if (g.id === 'cambio') {
     const o = s.orders.active.find((x) => x.id === g.oid);
     buttons = <><button className="btn-apply" onClick={() => actions.resolveGlobal(0)}>Aceptar: +30 % piezas, +40 % pago</button><button className="btn-export" onClick={() => actions.resolveGlobal(1)}>Rechazar</button>{o && <small className="g-note">Pedido: {o.title}</small>}</>;
   } else if (g.id === 'favor') {
     buttons = <><button className="btn-apply" onClick={() => actions.resolveGlobal(0)}>Hacerlo (+1 ⭐)</button><button className="btn-export" onClick={() => actions.resolveGlobal(1)}>«Estoy a full»</button></>;
   } else if (g.id === 'viral') {
-    buttons = <button className="btn-apply" onClick={() => actions.resolveGlobal(0)}>¡Aprovechar! Precios x2 por 3 min</button>;
+    buttons = <button className="btn-apply" onClick={() => actions.resolveGlobal(0)}>¡Aprovechar! Precios ×2 por 3 min</button>;
   } else if (g.id === 'misteriosa') {
     buttons = <><button className="btn-apply" disabled={s.money < g.price} onClick={() => actions.resolveGlobal(0)}>Comprar 2 bobinas por {money(g.price)}</button><button className="btn-export" onClick={() => actions.resolveGlobal(1)}>Paso</button><small className="g-note">Ojo: 10 min con el doble de problemas.</small></>;
+  } else if (g.id === 'feria') {
+    buttons = <><button className="btn-apply" disabled={s.money < g.price} onClick={() => actions.resolveGlobal(0)}>Armar el stand ({money(g.price)})</button><button className="btn-export" onClick={() => actions.resolveGlobal(1)}>Este finde no</button></>;
   }
   return (
     <div className={'g-banner g-' + g.id} role="alert">
@@ -141,19 +79,33 @@ function GlobalBanner({ s, actions }) {
   );
 }
 
-export default function Workshop({ s, actions, floats, onMachine, onEvent, goShop, glow }) {
+function ChallengeStrip({ s, open }) {
+  const cp = E.challengeProgress(s);
+  if (!cp) return null;
+  return (
+    <button className="challenge-strip" onClick={() => open('desafios')}>
+      <span className="cs-tag">DESAFÍO</span>
+      <b>{cp.def.name}</b>
+      <span className="cs-rule">{cp.def.rule}</span>
+      <span className="cs-goal">Meta: {cp.def.goalText}{cp.parts.map((p) => (p.frac != null && !p.done ? ` (${Math.floor(p.frac * 100)} %)` : '')).join('')}</span>
+    </button>
+  );
+}
+
+export default function Workshop({ s, actions, floats, onMachine, onEvent, goShop, glow, open }) {
   const sp = SPACES[s.space];
   const free = sp.slots - s.machines.length;
   const mission = currentMission(s);
-  const led = LED_COLORS[s.settings.led]?.color || LED_COLORS.cyan.color;
-  const mateReady = s.time >= s.mate.ready;
+  const [fail3d, setFail3d] = useState(false);
+  const view = fail3d ? 'lista' : s.settings.view === 'lista' ? 'lista' : '3d';
+  const mateReady = s.time >= s.mate.ready && !E.rule(s, 'sinmate');
   const mateOn = E.mateActive(s);
   const trendOn = s.trend.p && s.time < s.trend.until;
   const r = E.incomeRate(s);
-  const onTap = (m, k) => {
-    if (k === 'start') actions.start(m.id);
-    else if (k === 'done') actions.retrieve(m.id);
-    else if (k === 'event') onEvent(m);
+  const onTap = (m) => {
+    if (m.waitStart) actions.start(m.id);
+    else if (m.state === 'done') actions.retrieve(m.id);
+    else if (m.event) onEvent(m);
     else onMachine(m);
   };
   return (
@@ -161,30 +113,50 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
       <div className="card-head">
         <div className="card-icon"><Icon name="factory" /></div>
         <div className="head-txt"><h2>{sp.name}</h2><small>{sp.blurb}</small></div>
-        <span className="slots-chip">{s.machines.length}/{sp.slots} lugares</span>
+        <div className="view-toggle mini-toggle">
+          <button className={'seg' + (view === '3d' ? ' active' : '')} disabled={fail3d} onClick={() => actions.setting('view', '3d')}>3D</button>
+          <button className={'seg' + (view === 'lista' ? ' active' : '')} onClick={() => actions.setting('view', 'lista')}>Lista</button>
+        </div>
+        <span className="slots-chip">{s.machines.length}/{sp.slots}</span>
       </div>
+      <ChallengeStrip s={s} open={open} />
       {mission.id !== 'libre' && (
         <div className={'mission-strip' + (s.tutorial.active ? ' tut' : '')}>
           <Icon name="target" size={16} /><span><b>{s.tutorial.active ? 'TUTORIAL' : 'MISIÓN'}</b> {mission.text}</span>
-          {mission.reward && <em>{mission.reward.money ? '+' + money(mission.reward.money) : '+1 bobina'}</em>}
+          {mission.reward && <em>{mission.reward.money ? '+' + money(mission.reward.money) : mission.reward.tokens ? `+${mission.reward.tokens} 🎟️` : '+1 ' + (mission.reward.spool === 'PLA' || mission.reward.spool === 'PETG' ? 'bobina' : 'unidad')}</em>}
         </div>
       )}
-      <div className={`scene sp-${sp.id} anim-${s.settings.anim}`} style={{ '--led': led }}>
-        <Deco space={s.space} />
-        <SpoolShelf s={s} />
+      <div className="scene-wrap">
         <GlobalBanner s={s} actions={actions} />
-        <div className={`bays cols-${sp.slots}`}>
-          {s.machines.map((m) => (
-            <Bay key={m.id} s={s} m={m} floats={floats.filter((f) => f.mid === m.id)} onTap={onTap} onGear={onMachine}
-              glow={glow === 'machine' && (m.waitStart || m.state === 'done' || m.event)} />
-          ))}
-          {Array.from({ length: Math.max(0, free) }).map((_, i) => (
-            <button key={'free' + i} className={'bay bay-empty' + (glow === 'shop-machines' && i === 0 ? ' tut-glow' : '')} onClick={() => goShop('machines')}>
-              <Icon name="plus" size={26} /><span>Lugar libre</span><small>Comprar impresora</small>
-            </button>
-          ))}
-        </div>
+        {view === '3d' ? (
+          <Scene3D s={s} floats={floats} onTap={onTap} onEmpty={() => goShop('machines')} onFail={() => setFail3d(true)} glow={glow} />
+        ) : (
+          <div className="bays">
+            {s.machines.map((m) => (
+              <Bay key={m.id} s={s} m={m} floats={floats.filter((f) => f.mid === m.id)} onTap={onTap} onGear={onMachine}
+                glow={glow === 'machine' && (m.waitStart || m.state === 'done' || m.event)} />
+            ))}
+            {Array.from({ length: Math.max(0, free) }).map((_, i) => (
+              <button key={'free' + i} className={'bay bay-empty' + (glow === 'shop-machines' && i === 0 ? ' tut-glow' : '')} onClick={() => goShop('machines')}>
+                <Icon name="plus" size={26} /><span>Lugar libre</span><small>Comprar máquina</small>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+      {view === '3d' && s.machines.length > 0 && (
+        <div className="machine-strip">
+          {s.machines.map((m) => {
+            const st = bayStatus(s, m);
+            const M = MACHINES[m.model];
+            return (
+              <button key={m.id} className={'chip-m st-' + st.k} onClick={() => onMachine(m)} title="Configurar">
+                <i />{M.brand === 'Bambu Lab' ? 'Bambu' : M.brand} {M.name}<Icon name="settings" size={12} />
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="result-bar">
         <div className="rb-status">
           <span className="result-label">INGRESO</span>
@@ -192,14 +164,15 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
         </div>
         <div className="rb-stats">
           <div><span>Piezas</span><b>{s.run.pieces.toLocaleString('es-AR')}</b></div>
-          <div><span>Velocidad</span><b>×{E.speedMult(s, 'kit').toLocaleString('es-AR', { maximumFractionDigits: 2 })}</b></div>
           {trendOn && <div className="trend"><span>Tendencia ×2</span><b>{PRODUCTS[s.trend.p].name} · {clock(s.trend.until - s.time)}</b></div>}
           {s.time < s.boost.viral && <div className="trend"><span>Viral ×2</span><b>{clock(s.boost.viral - s.time)}</b></div>}
+          {s.time < s.boost.turbo && <div className="trend"><span>Turbo ×2</span><b>{clock(s.boost.turbo - s.time)}</b></div>}
+          {s.time < s.boost.feria && <div className="trend"><span>Feria ×1,5</span><b>{clock(s.boost.feria - s.time)}</b></div>}
         </div>
         <div className="rb-actions">
           <button className={'btn-apply mate-btn' + (mateOn ? ' on' : '') + (glow === 'mate' && mateReady ? ' tut-glow' : '')}
             disabled={!mateReady} onClick={actions.mate} title="Atajo: M">
-            🧉 {mateOn ? `Mate activo · ${Math.ceil(s.mate.until - s.time)} s` : mateReady ? 'Cebar mate (+50 %)' : `Mate en ${clock(s.mate.ready - s.time)}`}
+            🧉 {E.rule(s, 'sinmate') ? 'Sin mate (desafío)' : mateOn ? `Mate activo · ${Math.ceil(s.mate.until - s.time)} s` : mateReady ? `Cebar mate (+${Math.round((E.mateBoost(s) - 1) * 100)} %)` : `Mate en ${clock(s.mate.ready - s.time)}`}
           </button>
         </div>
       </div>

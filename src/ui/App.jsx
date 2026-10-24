@@ -6,12 +6,14 @@ import Orders from './Orders.jsx';
 import Shop from './Shop.jsx';
 import { BatiGuide } from './Bati.jsx';
 import Icon from './Icon.jsx';
-import { MachinePanel, EventModal, OfflineModal, AchievementsModal, OficioModal, CommunityModal, SettingsModal, MorePanel } from './Panels.jsx';
+import { MachinePanel, EventModal, OfflineModal, AchievementsModal, OficioModal, CommunityModal, SettingsModal, MorePanel, ChallengesModal } from './Panels.jsx';
+import { readyClaims } from './Header.jsx';
 import { currentMission } from '../game/progress.js';
 import { TAGLINE } from '../config.js';
+import { BRAND_DISCLAIMER } from '../game/data.js';
 
-const TAB_OF = { machine: 'taller', mate: 'taller', orders: 'pedidos', 'shop-machines': 'tienda', 'shop-upgrades': 'tienda', 'shop-space': 'tienda', oficio: 'mas' };
-const NAV = [['taller', 'Taller', 'factory'], ['pedidos', 'Pedidos', 'clipboard'], ['tienda', 'Tienda', 'cart'], ['mas', 'Más', 'more']];
+const TAB_OF = { machine: 'taller', mate: 'taller', orders: 'pedidos', 'shop-machines': 'tienda', 'shop-upgrades': 'tienda', 'shop-space': 'tienda', oficio: 'mas', desafios: 'desafios' };
+const NAV = [['taller', 'Taller', 'factory'], ['pedidos', 'Pedidos', 'clipboard'], ['tienda', 'Tienda', 'cart'], ['desafios', 'Desafíos', 'target'], ['mas', 'Más', 'more']];
 
 export default function App() {
   const { s, actions, floats, toasts, bati, offline } = useGame();
@@ -50,13 +52,13 @@ export default function App() {
   return (
     <div className={`app anim-${s.settings.anim}`}>
       <Header s={s} actions={actions} open={open} />
-      <Hud s={s} onFilament={() => goShop('filament')} />
+      <Hud s={s} onFilament={() => goShop('filament')} onTokens={() => open('desafios')} />
       <main className={`layout tab-${tab}`}>
         <div className="col col-orders" data-tab="pedidos">
           <Orders s={s} actions={actions} glow={glow} />
         </div>
         <Workshop s={s} actions={actions} floats={floats} glow={glow}
-          onMachine={(mm) => open('machine', mm.id)} onEvent={(mm) => open('event', mm.id)} goShop={goShop} />
+          onMachine={(mm) => open('machine', mm.id)} onEvent={(mm) => open('event', mm.id)} goShop={goShop} open={open} />
         <div className="col col-shop" data-tab="tienda">
           <Shop s={s} actions={actions} tab={shopTab} setTab={setShopTab} glow={glow} />
         </div>
@@ -66,14 +68,16 @@ export default function App() {
       </main>
       <footer className="foot">
         3DBAT IMPRESIONES · {TAGLINE}
+        <span className="foot-disc">{BRAND_DISCLAIMER}</span>
         <span className="foot-links"> · <button className="link-btn" onClick={() => open('comunidad')}>Comunidad</button></span>
       </footer>
 
       <nav className="bottom-nav" aria-label="Secciones">
         {NAV.map(([k, label, icon]) => (
-          <button key={k} className={'bn' + (tab === k ? ' active' : '')} onClick={() => setTab(k)}>
+          <button key={k} className={'bn' + (tab === k ? ' active' : '')} onClick={() => (k === 'desafios' ? open('desafios') : setTab(k))}>
             <Icon name={icon} size={20} /><span>{label}</span>
             {k === 'pedidos' && offersCount > 0 && <em className="badge">{offersCount}</em>}
+            {k === 'desafios' && readyClaims(s) > 0 && <em className="badge">{readyClaims(s)}</em>}
             {glowTab === k && tab !== k && <em className="dot-attn" />}
           </button>
         ))}
@@ -91,9 +95,10 @@ export default function App() {
       {modal?.kind === 'event' && m && <EventModal s={s} m={m} actions={actions} onClose={close} />}
       {modal?.kind === 'logros' && <AchievementsModal s={s} onClose={close} />}
       {modal?.kind === 'oficio' && <OficioModal s={s} actions={actions} onClose={close} />}
-      {modal?.kind === 'comunidad' && <CommunityModal s={s} actions={actions} onClose={close} />}
+      {modal?.kind === 'comunidad' && <CommunityModal s={s} onClose={close} />}
+      {modal?.kind === 'desafios' && <ChallengesModal s={s} actions={actions} onClose={close} />}
       {modal?.kind === 'ajustes' && <SettingsModal s={s} actions={actions} onClose={close} />}
-      {offline && !modal && <OfflineModal s={s} r={offline} onClose={actions.closeOffline} />}
+      {offline && !modal && <OfflineModal r={offline} onClose={actions.closeOffline} />}
     </div>
   );
 }
