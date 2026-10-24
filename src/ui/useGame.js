@@ -1,0 +1,264 @@
+// Hook principal: carga/guarda la partida, corre el bucle y traduce los avisos
+// del motor a cosas visibles (números flotantes, toasts, mensajes de BATI, sonidos).
+import { useEffect, useReducer, useRef, useState, useCallback } from 'react';
+import * as E from '../game/engine.js';
+import { step, startMissionHooks, currentMission, skipTutorial } from '../game/progress.js';
+import { PRODUCTS, MACHINES, UPGRADES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, REP_LEVELS } from '../game/data.js';
+import { SAVE_KEY, BACKUP_KEY } from '../config.js';
+import { money, num } from '../game/format.js';
+import { sfx } from './sfx.js';
+import { demoState } from '../game/demo.js';
+
+const IDLE_MS = 180000;
+// SOLO DESARROLLO: ?speed=10 acelera el tiempo para probar.
+const SPEED = import.meta.env.DEV ? Number(new URLSearchParams(window.location.search).get('speed')) || 1 : 1;
+let uid = 1;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) { const s = E.migrate(JSON.parse(raw)); if (s) return s; }
+    const bak = localStorage.getItem(BACKUP_KEY);
+    if (bak) { const s = E.migrate(JSON.parse(bak)); if (s) return s; }
+  } catch { /* partida dañada o sin acceso: arranca una nueva */ }
+  return null;
+}
+function save(s, backup = false) {
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('demo')) return false;
+  try {
+    const json = E.serialize(s);
+    if (backup) { const prev = localStorage.getItem(SAVE_KEY); if (prev) localStorage.setItem(BACKUP_KEY, prev); }
+    localStorage.setItem(SAVE_KEY, json);
+    return true;
+  } catch { return false; }
+}
+
+// Qué se desbloquea al llegar a un nivel de reputación (para que BATI lo cuente).
+function unlocksAt(level) {
+  const list = [];
+  for (const p of Object.values(PRODUCTS)) if ((p.rep || 1) === level && !p.space && !MATERIALS[p.mat].upgrade) list.push(p.name);
+  for (const m of Object.values(MACHINES)) if (m.rep === level) list.push(m.name);
+  for (const u of Object.values(UPGRADES)) if ((u.rep || 1) === level) list.push(u.name);
+  return list;
+}
+
+export function useGame() {
+  const ref = useRef(null);
+  if (!ref.current && import.meta.env.DEV) {
+    const demo = new URLSearchParams(window.location.search).get('demo');
+    if (demo) ref.current = demoState(demo);
+  }
+  if (!ref.current) {
+    const loaded = load();
+    ref.current = loaded || E.newGame();
+    if (!loaded) startMissionHooks(ref.current);
+  }
+  const [, force] = useReducer((x) => x + 1, 0);
+  const [floats, setFloats] = useState([]);
+  const [toasts, setToasts] = useState([]);
+  const [bati, setBati] = useState([]);
+  const [offline, setOffline] = useState(null);
+  const lastInput = useRef(Date.now());
+  const lastTick = useRef(Date.now());
+
+  const s = ref.current;
+
+  const toast = useCallback((text, kind = 'ok', ms = 3200) => {
+    const id = uid++;
+    setToasts((t) => [...t.slice(-2), { id, text, kind }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), ms);
+  }, []);
+  const say = useCallback((text, opts = {}) => {
+    setBati((q) => (q.some((x) => x.text === text) ? q : [...q.slice(-4), { id: uid++, text, mood: opts.mood || 'normal', ctas: opts.ctas || null }]));
+  }, []);
+  const sayOnce = useCallback((key, text, opts) => {
+    const st = ref.current;
+    if (st.seen[key]) return;
+    st.seen[key] = 1;
+    say(text, opts);
+  }, [say]);
+  const floatAt = useCallback((mid, text, kind = 'money') => {
+    const id = uid++;
+    setFloats((f) => [...f.slice(-24), { id, mid, text, kind }]);
+    setTimeout(() => setFloats((f) => f.filter((x) => x.id !== id)), 1300);
+  }, []);
+
+  const handle = useCallback((out) => {
+    const st = ref.current;
+    for (const e of out) {
+      switch (e.type) {
+        case 'sale':
+          floatAt(e.mid, '+' + money(e.amount));
+          if (e.by === 'hand') sfx.sale();
+          break;
+        case 'orderPiece': floatAt(e.mid, '📋 +1', 'order'); if (!E.has(st, 'expulsion')) sfx.click(); break;
+        case 'done': if (!E.has(st, 'expulsion') && !E.has(st, 'sobrino')) sfx.done(); break;
+        case 'mevent': {
+          const ev = MACHINE_EVENTS[e.id];
+          if (e.id === 'spaghetti') sfx.boing(); else sfx.alert();
+          if (!st.tutorial.active) sayOnce('ev_' + e.id, `${ev.icon} ${ev.name}: ${ev.text} Tocá la impresora para resolverlo.`, { mood: 'worried' });
+          break;
+        }
+        case 'resolved': sfx.click(); break;
+        case 'orderDone':
+          sfx.order();
+          toast(`✔ Pedido entregado: ${e.reward ? '+' + money(e.reward) + ' · ' : ''}+${e.rep} ⭐`);
+          if (e.tpl === 'exposicion') say('Te pagaron con exposición… y la verdad, la reputación sirve. Pero las bobinas no se pagan con likes 😅', { mood: 'happy' });
+          break;
+        case 'orderFail':
+          sfx.fail();
+          toast(`⏰ Venció «${e.title}». Cobraste lo entregado (${money(e.pay)}).`, 'err', 5000);
+          sayOnce('orderfail', 'Un pedido venció. No pasa nada: cobrás lo que entregaste y perdés un poquito de reputación, nunca un nivel. Asignale más impresoras la próxima.', { mood: 'worried' });
+          break;
+        case 'offer':
+          if (!st.tutorial.active) sayOnce('offer1', 'Los pedidos aparecen en el tablero. Al aceptar uno, le asigno las impresoras que hacen falta (podés sumar o sacar con − y +).');
+          break;
+        case 'urgent': sfx.alert(); toast('⚡ ¡Pedido urgente en el tablero! Paga x5.', 'warn'); break;
+        case 'repUp': {
+          sfx.achievement();
+          const un = unlocksAt(e.level);
+          say(`¡Subiste a Reputación ${e.level}! Tus piezas valen un 5 % más.${un.length ? ' Nuevo: ' + un.join(', ') + '.' : ''}`, { mood: 'happy' });
+          break;
+        }
+        case 'trend': toast(`📈 Tendencia: «${PRODUCTS[e.pid].name}» paga el doble por 8 min`, 'info', 4500); break;
+        case 'global': {
+          const g = GLOBAL_EVENTS[e.id];
+          if (e.id === 'corte') sfx.power(); else sfx.alert();
+          sayOnce('g_' + e.id, `${g.icon} ${g.name}. ${g.text}`, { mood: g.pos ? 'happy' : 'worried' });
+          break;
+        }
+        case 'mission':
+          if (!st.tutorial.active && e.id !== 'nivelar') toast(`🎯 Misión cumplida: ${e.text}${e.reward?.money ? ' · +' + money(e.reward.money) : e.reward?.spool ? ' · +1 bobina de ' + e.reward.spool : ''}`);
+          if (!st.tutorial.active && e.id !== 'nivelar') {
+            const next = currentMission(st);
+            if (e.cta === 'instagram') say('¡Ya tenés un cuarto maker! Si te gusta el juego, seguinos en Instagram: ahí mostramos impresiones reales del taller 3DBAT.', { mood: 'happy', ctas: ['instagram'] });
+            else if (e.cta === 'batbox') say('¡Garage propio! En la vida real también podés crecer: en BATBOX tenés el Cotizador gratis, tutoriales y la WikiBAT.', { mood: 'happy', ctas: ['batbox'] });
+            else if (e.cta === 'comunidad') say('¡Local con vidriera! Ya sos un referente. Sumate a la Comunidad Makers 3DBAT y contanos hasta dónde llegaste.', { mood: 'happy', ctas: ['comunidad', 'instagram'] });
+            else if (next && next.id !== 'libre') say('Próxima misión: ' + next.text + '.');
+          }
+          break;
+        case 'tutorialDone':
+          sfx.achievement();
+          say('¡Listo, ya sos maker! Te dejo misiones para seguir creciendo. Si me necesitás, tocame. Y ojo: cuando no estás, yo cuido el taller.', { mood: 'happy' });
+          break;
+        case 'achievement': sfx.achievement(); toast(`🏆 Logro: ${e.name}`, 'info', 4000); break;
+        case 'nofil':
+          sayOnce('nofil_' + e.mat, `Se terminó el ${e.mat}. Comprá bobinas en Tienda → Filamento (o contratá al proveedor y olvidate).`, { mood: 'worried' });
+          break;
+        case 'mate': sfx.mate(); break;
+        case 'gestor': break;
+        default: break;
+      }
+    }
+  }, [floatAt, say, sayOnce, toast]);
+
+  // Aplica tiempo ausente (pestaña cerrada o en segundo plano).
+  const catchUp = useCallback((ms) => {
+    const st = ref.current;
+    if (ms < 60000 || st.tutorial.active) return;
+    const r = E.applyOffline(st, ms / 1000);
+    handle(r.out);
+    setOffline(r);
+    save(st);
+  }, [handle]);
+
+  // Arranque: tiempo offline desde la última vez.
+  useEffect(() => {
+    const st = ref.current;
+    sfx.configure(st.settings.sound, st.settings.volume);
+    const gap = Date.now() - (st.lastSeen || Date.now());
+    if (gap > 60000) catchUp(gap);
+    st.lastSeen = Date.now();
+    lastTick.current = Date.now();
+    const onInput = () => { lastInput.current = Date.now(); sfx.unlock(); };
+    window.addEventListener('pointerdown', onInput, { passive: true });
+    window.addEventListener('keydown', onInput);
+    const onHide = () => { if (document.visibilityState === 'hidden') save(ref.current); };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onHide);
+    const loop = setInterval(() => {
+      const now = Date.now();
+      let ms = now - lastTick.current;
+      lastTick.current = now;
+      if (ms <= 60000) ms *= SPEED;
+      const st2 = ref.current;
+      if (ms > 60000) { catchUp(ms); force(); return; }
+      const ctx = { out: [], idle: now - lastInput.current > IDLE_MS };
+      let left = ms / 1000;
+      while (left > 0) { const d = Math.min(0.25, left); step(st2, d, ctx); left -= d; }
+      if (import.meta.env.DEV) window.__mt = st2;
+      st2.lastSeen = now;
+      if (ctx.out.length) handle(ctx.out);
+      force();
+    }, 100);
+    let n = 0;
+    const saver = setInterval(() => { n++; save(ref.current, n % 30 === 0); }, 10000);
+    return () => {
+      clearInterval(loop); clearInterval(saver);
+      window.removeEventListener('pointerdown', onInput);
+      window.removeEventListener('keydown', onInput);
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onHide);
+      save(ref.current);
+    };
+  }, [catchUp, handle]);
+
+  // Ejecuta una acción del jugador sobre el estado.
+  const act = useCallback((fn) => {
+    const ctx = { out: [] };
+    const r = fn(ref.current, ctx);
+    if (ctx.out.length) handle(ctx.out);
+    lastInput.current = Date.now();
+    force();
+    return r;
+  }, [handle]);
+
+  const replace = useCallback((next) => {
+    ref.current = next;
+    startMissionHooks(next);
+    save(next, true);
+    force();
+  }, []);
+
+  const actions = {
+    start: (mid) => act((st, ctx) => { sfx.click(); E.startMachine(st, mid, ctx); }),
+    retrieve: (mid) => act((st, ctx) => E.retrieve(st, mid, ctx, 'hand')),
+    resolve: (mid, opt) => act((st, ctx) => E.resolveEvent(st, mid, opt, ctx)),
+    buyMachine: (model) => act((st) => { const m = E.buyMachine(st, model); if (m) { sfx.buy(); toast(`Nueva: ${MACHINES[model].name} ${MACHINES[model].nick}`); } return m; }),
+    sellMachine: (mid) => act((st) => { const ok = E.sellMachine(st, mid); if (ok) sfx.click(); return ok; }),
+    buyUpgrade: (id) => act((st) => { const ok = E.buyUpgrade(st, id); if (ok) { sfx.buy(); toast(`Mejora: ${UPGRADES[id].name}`); } return ok; }),
+    buySpace: () => act((st) => { const ok = E.buySpace(st); if (ok) { sfx.buy(); } return ok; }),
+    buySpool: (mat, n) => act((st) => { const ok = E.buySpool(st, mat, n); if (ok) sfx.click(); return ok; }),
+    setProduct: (mid, pid) => act((st) => E.setProduct(st, mid, pid)),
+    mate: () => act((st, ctx) => E.useMate(st, ctx)),
+    accept: (oid) => act((st) => { const ok = E.acceptOrder(st, oid); if (ok) sfx.click(); return ok; }),
+    decline: (oid) => act((st) => E.declineOrder(st, oid)),
+    assign: (oid, d) => act((st) => E.assignMore(st, oid, d)),
+    resolveGlobal: (opt) => act((st, ctx) => E.resolveGlobal(st, opt, ctx)),
+    skipTutorial: () => act((st) => { skipTutorial(st); say('¡Dale! Te dejo las misiones arriba a la izquierda. Si me necesitás, tocame.', { mood: 'happy' }); }),
+    setName: (name) => act((st) => { st.name = name.slice(0, 28); }),
+    setting: (k, v) => act((st) => { st.settings[k] = v; sfx.configure(st.settings.sound, st.settings.volume); }),
+    buyPerk: (id, PERKS) => act((st) => { const ok = E.buyPerk(st, id, PERKS); if (ok) sfx.buy(); return ok; }),
+    move: (pid) => { const next = E.doMove(ref.current, pid); if (next) { sfx.achievement(); replace(next); say('¡Nueva sede! Arrancás de nuevo, pero con todo el oficio encima: tus piezas valen más para siempre.', { mood: 'happy' }); } return !!next; },
+    reset: () => { const next = E.newGame(); try { localStorage.removeItem(BACKUP_KEY); } catch { /* sin acceso */ } replace(next); setBati([]); },
+    exportCode: () => { const json = E.serialize(ref.current); return btoa(unescape(encodeURIComponent(json))); },
+    importCode: (code) => {
+      try {
+        const obj = E.migrate(JSON.parse(decodeURIComponent(escape(atob(code.trim())))));
+        if (!obj) return false;
+        obj.lastSeen = Date.now();
+        replace(obj);
+        return true;
+      } catch { return false; }
+    },
+    dismissBati: (id) => setBati((q) => q.filter((x) => x.id !== id)),
+    say,
+    toast,
+    closeOffline: () => setOffline(null),
+    seen: (key) => { const st = ref.current; if (st.seen[key]) return true; st.seen[key] = 1; return false; },
+  };
+
+  return { s, actions, floats, toasts, bati, offline };
+}
+
+export { REP_LEVELS, num };

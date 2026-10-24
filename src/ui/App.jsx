@@ -1,0 +1,99 @@
+import { useEffect, useRef, useState } from 'react';
+import { useGame } from './useGame.js';
+import { Header, Hud } from './Header.jsx';
+import Workshop from './Workshop.jsx';
+import Orders from './Orders.jsx';
+import Shop from './Shop.jsx';
+import { BatiGuide } from './Bati.jsx';
+import Icon from './Icon.jsx';
+import { MachinePanel, EventModal, OfflineModal, AchievementsModal, OficioModal, CommunityModal, SettingsModal, MorePanel } from './Panels.jsx';
+import { currentMission } from '../game/progress.js';
+import { TAGLINE } from '../config.js';
+
+const TAB_OF = { machine: 'taller', mate: 'taller', orders: 'pedidos', 'shop-machines': 'tienda', 'shop-upgrades': 'tienda', 'shop-space': 'tienda', oficio: 'mas' };
+const NAV = [['taller', 'Taller', 'factory'], ['pedidos', 'Pedidos', 'clipboard'], ['tienda', 'Tienda', 'cart'], ['mas', 'Más', 'more']];
+
+export default function App() {
+  const { s, actions, floats, toasts, bati, offline } = useGame();
+  const [tab, setTab] = useState('taller');
+  const [shopTab, setShopTab] = useState('machines');
+  const [modal, setModal] = useState(null); // { kind, mid }
+  const mission = currentMission(s);
+  const glow = mission.target;
+  const glowTab = TAB_OF[glow];
+
+  const actRef = useRef(actions);
+  actRef.current = actions;
+  const open = (kind, mid) => setModal({ kind, mid });
+  const close = () => setModal(null);
+  const goShop = (t) => { setShopTab(t); setTab('tienda'); };
+  const m = modal?.mid != null ? s.machines.find((x) => x.id === modal.mid) : null;
+
+  useEffect(() => {
+    const onKey = (e) => {
+      const tag = (e.target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey) actRef.current.mate();
+    };
+    // Sin menú de clic derecho fuera de los campos de texto (como en las demás apps 3DBAT).
+    const onCtx = (e) => { const tag = (e.target?.tagName || '').toLowerCase(); if (tag !== 'input' && tag !== 'textarea') e.preventDefault(); };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('contextmenu', onCtx);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('contextmenu', onCtx); };
+  }, []);
+
+  // Si el problema se resolvió solo, se cierra su ventana.
+  useEffect(() => { if (modal?.kind === 'event' && (!m || !m.event)) setModal(null); }, [modal, m, m?.event]);
+
+  const offersCount = s.orders.offers.length;
+
+  return (
+    <div className={`app anim-${s.settings.anim}`}>
+      <Header s={s} actions={actions} open={open} />
+      <Hud s={s} onFilament={() => goShop('filament')} />
+      <main className={`layout tab-${tab}`}>
+        <div className="col col-orders" data-tab="pedidos">
+          <Orders s={s} actions={actions} glow={glow} />
+        </div>
+        <Workshop s={s} actions={actions} floats={floats} glow={glow}
+          onMachine={(mm) => open('machine', mm.id)} onEvent={(mm) => open('event', mm.id)} goShop={goShop} />
+        <div className="col col-shop" data-tab="tienda">
+          <Shop s={s} actions={actions} tab={shopTab} setTab={setShopTab} glow={glow} />
+        </div>
+        <div className="col col-more" data-tab="mas">
+          <MorePanel s={s} open={open} />
+        </div>
+      </main>
+      <footer className="foot">
+        3DBAT IMPRESIONES · {TAGLINE}
+        <span className="foot-links"> · <button className="link-btn" onClick={() => open('comunidad')}>Comunidad</button></span>
+      </footer>
+
+      <nav className="bottom-nav" aria-label="Secciones">
+        {NAV.map(([k, label, icon]) => (
+          <button key={k} className={'bn' + (tab === k ? ' active' : '')} onClick={() => setTab(k)}>
+            <Icon name={icon} size={20} /><span>{label}</span>
+            {k === 'pedidos' && offersCount > 0 && <em className="badge">{offersCount}</em>}
+            {glowTab === k && tab !== k && <em className="dot-attn" />}
+          </button>
+        ))}
+      </nav>
+
+      <BatiGuide tutorial={s.tutorial.active} mission={mission} queue={bati}
+        onDismiss={actions.dismissBati} onSkip={actions.skipTutorial}
+        onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('comunidad'); }} />
+
+      <div className="toasts" aria-live="polite">
+        {toasts.map((t) => <div key={t.id} className={'toast t-' + t.kind}>{t.text}</div>)}
+      </div>
+
+      {modal?.kind === 'machine' && m && <MachinePanel s={s} m={m} actions={actions} onClose={close} />}
+      {modal?.kind === 'event' && m && <EventModal s={s} m={m} actions={actions} onClose={close} />}
+      {modal?.kind === 'logros' && <AchievementsModal s={s} onClose={close} />}
+      {modal?.kind === 'oficio' && <OficioModal s={s} actions={actions} onClose={close} />}
+      {modal?.kind === 'comunidad' && <CommunityModal s={s} actions={actions} onClose={close} />}
+      {modal?.kind === 'ajustes' && <SettingsModal s={s} actions={actions} onClose={close} />}
+      {offline && !modal && <OfflineModal s={s} r={offline} onClose={actions.closeOffline} />}
+    </div>
+  );
+}
