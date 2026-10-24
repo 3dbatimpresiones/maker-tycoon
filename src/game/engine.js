@@ -82,6 +82,8 @@ export function newGame(keep = null, seed = (Date.now() ^ 0x5bd1e995) >>> 0, cha
     tutorial: { active: !keep },
     seen: keep?.seen || {},
     settings: keep?.settings || defaultSettings(),
+    // Premios del juego online (solo estéticos): qué se ganó y qué se está usando.
+    cosmetics: keep?.cosmetics || { unlocked: [], decor: [], skin: null, effect: null },
     rng: seed >>> 0,
     lastSeen: Date.now(),
   };
@@ -202,7 +204,8 @@ export function techUnlocked(s, tech) {
 export function productUnlocked(s, pid) {
   const p = PRODUCTS[pid];
   return repLevel(s) >= (p.rep || 1) && s.space >= (p.space || 0) && materialUnlocked(s, p.mat) && techUnlocked(s, p.tech)
-    && (!p.multi || has(s, 'ams') || s.machines.some((m) => MACHINES[m.model].multi));
+    && (!p.multi || has(s, 'ams') || s.machines.some((m) => MACHINES[m.model].multi))
+    && (!p.reward || (s.cosmetics?.unlocked || []).includes(p.reward));
 }
 export function productLockReason(s, pid) {
   const p = PRODUCTS[pid];
@@ -211,6 +214,7 @@ export function productLockReason(s, pid) {
   if (s.space < (p.space || 0)) return SPACES[p.space].name;
   if (!materialUnlocked(s, p.mat)) return UPGRADES[MATERIALS[p.mat].upgrade].name;
   if (p.multi && !has(s, 'ams') && !s.machines.some((m) => MACHINES[m.model].multi)) return 'Sistema multicolor';
+  if (p.reward && !(s.cosmetics?.unlocked || []).includes(p.reward)) return 'Plano exclusivo (juego online)';
   return null;
 }
 export const isMulti = (s, M) => !!(M.multi || (M.amsable && has(s, 'ams')));
@@ -989,7 +993,7 @@ function keepForMove(s, prestige) {
   return {
     keptRep: Math.floor(s.rep * keepFrac),
     name: s.name, totalEarned: s.totalEarned, stats: s.stats, achievements: s.achievements, mastery: s.mastery,
-    tokens: s.tokens, daily: s.daily, weekly: s.weekly, prestige, settings: s.settings, seen: s.seen,
+    tokens: s.tokens, daily: s.daily, weekly: s.weekly, prestige, settings: s.settings, seen: s.seen, cosmetics: s.cosmetics,
     orders: { fidelity: s.orders.fidelity },
   };
 }
@@ -1124,6 +1128,8 @@ export function migrate(obj) {
   obj.orders = { ...base.orders, ...obj.orders };
   obj.settings = { ...defaultSettings(), ...obj.settings };
   obj.prestige = { ...base.prestige, ...obj.prestige };
+  obj.cosmetics = { ...base.cosmetics, ...obj.cosmetics };
+  for (const k of ['unlocked', 'decor']) if (!Array.isArray(obj.cosmetics[k])) obj.cosmetics[k] = [];
   if (!obj.prestige.mastery) obj.prestige.mastery = {};
   if (obj.space >= SPACES.length) obj.space = SPACES.length - 1;
   if (toV3) {

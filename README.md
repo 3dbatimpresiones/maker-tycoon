@@ -3,11 +3,28 @@
 Juego idle/tycoon de **3DBAT IMPRESIONES**. Arrancás con una Creality Ender-3 en el escritorio y la hacés
 crecer hasta una planta de producción con impresoras 3D, resina, láser y CNC. BATI, la mascota de 3DBAT, guía al jugador.
 
-- **Jugar:** https://3dbatimpresiones.github.io/maker-tycoon/
+- **Jugar:** https://3dbat.com.ar/batbox/juego/ (dentro de BATBOX) · también https://3dbatimpresiones.github.io/maker-tycoon/
 - Sin login: la partida se guarda en el navegador (`localStorage`, clave `mt3dbat.save.v1`, con respaldo en `mt3dbat.save.bak`).
+- Con la cuenta de Google de BATBOX (cualquier cuenta, no hace falta el Makers Club): partida en la nube, ranking, granjas y retos.
   Al abrir una partida de una versión anterior se guarda una copia intacta en `mt3dbat.save.v1.v<versión>` antes de convertirla.
 - Se puede pasar la partida a otro dispositivo con un código (Ajustes → Tu partida).
 - Las marcas y modelos mencionados pertenecen a sus dueños; el juego no está afiliado ni patrocinado (solo nombres, sin logos).
+
+## Novedades v0.4 (juego online)
+
+- **Cuenta de Google** (la misma de BATBOX y el Cotizador) y **partida en la nube**: se sube sola cada minuto y al cerrar.
+  Nunca se pisa una partida: si la del navegador y la de la nube tienen progreso distinto, el jugador elige y la otra
+  queda como copia (`mt3dbat.save.v1.antes-nube` en el navegador o `prev_data` en la nube). Lógica en `src/online/api.js` (`decideSync`).
+- **Perfil** (apodo, privacidad pública / solo granja / oculto, título y marco), **Puntos Maker** calculados por el servidor con topes
+  diarios y de ritmo (ver `batbox/supabase/026_batbox_maker_tycoon.sql`), **rankings** de temporada, semanal, granjas y comunidad, y Hall de la Fama.
+- **Granjas Maker** (hasta 6, roles fundador/encargado/miembro, código de invitación, nave de producción que sube de nivel y contratos cooperativos).
+- **Retos** diarios, semanales, técnicos, de comunidad y de granja con **premios estéticos** (títulos, marcos, decoración del taller 3D,
+  bases para las máquinas, efectos, banners y el plano «Llavero BATI», que paga igual que el común). Nada es pago para ganar.
+- **Presencia en vivo** («N fabricando ahora»), sin datos personales.
+- **Filacolor, proveedor oficial**: pestaña propia (comparador de materiales, servicio técnico, destacados que carga el equipo desde BATBOX),
+  «En Filacolor» en las máquinas que venden, el proveedor automático del juego y avisos de falla con enlace al servicio técnico. Sin precios ni stock.
+- Una sola pestaña juega a la vez (la otra se pausa y guarda) para que no se pisen.
+- Requiere la migración `026` en Supabase; sin ella, el juego funciona igual que antes y lo online muestra «muy pronto».
 
 ## Novedades v0.3
 
@@ -54,7 +71,8 @@ Parámetros **solo de desarrollo** (no existen en la versión publicada):
 | `src/game/engine.js` | Motor puro (sin React): simulación, compras, pedidos, contratos, eventos, offline, Mudanza, desafíos, migración de partidas. |
 | `src/game/progress.js` | Misiones (las 5 primeras son el tutorial), logros, desafíos diarios/semanales y el paso completo `step()`. |
 | `src/three/` | Gráficos 3D: `Workshop3D.js` (escena), `machines.js`, `rooms.js`, `pieces.js`, `materials.js` (texturas por código), `thumbs.js` (renders para menús). |
-| `src/ui/` | Pantallas en React. `Scene3D.jsx` monta el 3D con los carteles de cada máquina; `Bati.jsx` es la mascota en SVG. |
+| `src/ui/` | Pantallas en React. `Scene3D.jsx` monta el 3D con los carteles de cada máquina; `Bati.jsx` es la mascota en SVG; `Online.jsx` cuenta, ranking, retos, granjas y Filacolor. |
+| `src/online/` | Juego online: `api.js` (Supabase, guardado de salida, decisión de qué partida usar), `useOnline.js` (sesión, nube, presencia), `rewards.js` (premios, emblemas, niveles de granja) y `filacolor.js` (datos del proveedor oficial). |
 | `src/styles/base.css` | CSS base del **Design System 3DBAT** (copiado tal cual). |
 | `scripts/` | `test.mjs` (pruebas), `sim.mjs` (balance largo con Mudanzas) y `early.mjs` (primeras horas con un jugador normal). |
 
@@ -68,11 +86,14 @@ infinitas, la experiencia por producto, la reputación y las Mudanzas.
 ## Publicación
 
 Cada push a `main` corre las pruebas, compila y publica en GitHub Pages (`.github/workflows/deploy.yml`).
+BATBOX compila este repo en `/batbox/juego/` en su propio deploy (GitHub Pages) y en `web-3dbat` (`npm run build:full`, dominio):
+después de un cambio en el juego hay que volver a publicar BATBOX (`gh workflow run deploy.yml -R 3dbatimpresiones/batbox`).
 El build usa rutas relativas, así que también funciona dentro de una subcarpeta (por ejemplo en BATBOX).
 El código 3D se carga aparte, después de que aparece la pantalla.
 
 ## Próximo
 
-- Guardado en la nube con la cuenta de BATBOX (Supabase) y ranking de los desafíos semanales.
+- Amigos y perfil público de cada maker.
+- Cosméticos del Makers Club (sin ventajas de juego).
 - Terminaciones (lijado, pintura) y diseños propios.
 - App instalable (PWA).

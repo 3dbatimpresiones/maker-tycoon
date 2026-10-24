@@ -291,5 +291,69 @@ export function buildRoom(space, n) {
       const hose = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.03, 8, 24, Math.PI), std('#2b2f38', 0.7, 0)); hose.position.set(-0.2, 0.75, 0); vac.add(hose);
     }
   };
+
+  // ---------- Decoración ganada en el juego online (solo estética) ----------
+  const decor = new THREE.Group(); g.add(decor);
+  room.setDecor = (list = []) => {
+    const key = [...list].sort().join(',');
+    if (room.decorKey === key) return;
+    room.decorKey = key;
+    while (decor.children.length) decor.remove(decor.children[0]);
+    room.lights = room.lights.filter((l) => !l.userData.decor);
+    const has = (id) => list.includes(id);
+    const backZ = -D / 2 + 0.02;
+    if (has('d_cartel3dbat')) {
+      // Cartel de neón 3DBAT en la pared del fondo
+      const w = Math.min(1.6, W * 0.32);
+      box(w + 0.12, w * 0.3 + 0.08, 0.02, std('#0b0f24', 0.6, 0.2), W * 0.18, wallH * 0.74, backZ, decor, false);
+      const sign = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.25), new THREE.MeshBasicMaterial({ map: TEX.label('3DBAT', '#F78EB6'), transparent: true, toneMapped: false }));
+      sign.position.set(W * 0.18, wallH * 0.74, backZ + 0.015); decor.add(sign);
+      const glow = new THREE.PointLight('#F78EB6', 0.6, 2.4); glow.position.set(W * 0.18, wallH * 0.74, backZ + 0.3); glow.userData.decor = true; decor.add(glow);
+      room.lights.push(glow);
+    }
+    if (has('d_bandera')) {
+      const c = document.createElement('canvas'); c.width = 180; c.height = 120;
+      const x = c.getContext('2d');
+      x.fillStyle = '#74ACDF'; x.fillRect(0, 0, 180, 120); x.fillStyle = '#ffffff'; x.fillRect(0, 40, 180, 40);
+      x.fillStyle = '#F6B40E'; x.beginPath(); x.arc(90, 60, 13, 0, Math.PI * 2); x.fill();
+      const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+      const flag = plane(0.9, 0.6, std('#ffffff', 0.85, 0, { map: tex }), decor);
+      flag.position.set(-W / 2 + 0.02, wallH * 0.66, D * 0.18); flag.rotation.y = Math.PI / 2;
+    }
+    if (has('d_trofeo')) {
+      // Repisa con copa dorada
+      const tr = new THREE.Group(); tr.position.set(-W * 0.22, wallH * 0.58, backZ + 0.13); decor.add(tr);
+      box(0.5, 0.03, 0.22, std('#3a2b20', 0.6, 0), 0, 0, 0, tr);
+      const gold = std('#e8b33c', 0.25, 1);
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.04, 0.14, 24, 1, true), gold); cup.position.y = 0.17; cup.castShadow = true; tr.add(cup);
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.06, 12), gold); stem.position.y = 0.075; tr.add(stem);
+      box(0.12, 0.03, 0.1, std('#1d1f24', 0.5, 0.3), 0, 0.03, 0, tr);
+      for (const sx of [-1, 1]) { const h = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.008, 8, 16, Math.PI), gold); h.position.set(sx * 0.09, 0.18, 0); h.rotation.z = sx * Math.PI / 2; tr.add(h); }
+    }
+    if (has('d_planta')) {
+      const pl = new THREE.Group(); pl.position.set(W / 2 - 0.35, 0, D / 2 - 0.45); decor.add(pl);
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.3, 20), std('#c4693d', 0.8, 0)); pot.position.y = 0.15; pot.castShadow = true; pl.add(pot);
+      const leaf = std('#2f8f4e', 0.7, 0);
+      for (let i = 0; i < 7; i++) {
+        const l = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5 + (i % 3) * 0.12, 6), leaf);
+        const a = (i / 7) * Math.PI * 2;
+        l.position.set(Math.cos(a) * 0.05, 0.5 + (i % 3) * 0.05, Math.sin(a) * 0.05); l.rotation.set(Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35); l.castShadow = true;
+        pl.add(l);
+      }
+    }
+    if (has('d_bati')) {
+      // BATI de colección sobre una repisa, en la pared del fondo
+      const bt = new THREE.Group(); bt.position.set(W * 0.38, wallH * 0.5, backZ + 0.13); decor.add(bt);
+      box(0.34, 0.03, 0.2, std('#1d1f24', 0.5, 0.3), 0, 0, 0, bt);
+      const head = box(0.2, 0.17, 0.12, std('#3d4ed8', 0.45, 0.1), 0, 0.13, 0, bt);
+      head.castShadow = true;
+      const face = plane(0.16, 0.12, new THREE.MeshBasicMaterial({ color: '#0c1131' }), bt); face.position.set(0, 0.13, 0.061);
+      for (const sx of [-1, 1]) {
+        const eye = plane(0.03, 0.035, new THREE.MeshBasicMaterial({ color: '#5DDADB', toneMapped: false }), bt); eye.position.set(sx * 0.035, 0.14, 0.062);
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.1, 4), std('#F78EB6', 0.5, 0)); ear.position.set(sx * 0.07, 0.26, 0); bt.add(ear);
+        const wing = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 3), std('#3ec9c9', 0.5, 0)); wing.position.set(sx * 0.15, 0.12, 0); wing.rotation.z = sx * Math.PI / 2.2; bt.add(wing);
+      }
+    }
+  };
   return room;
 }

@@ -10,23 +10,26 @@ import { MachinePanel, EventModal, OfflineModal, AchievementsModal, OficioModal,
 import { readyClaims } from './Header.jsx';
 import { currentMission } from '../game/progress.js';
 import { TAGLINE } from '../config.js';
+import { useOnline } from '../online/useOnline.js';
+import { OnlineModal, ConflictModal, LockedOverlay } from './Online.jsx';
 import { BRAND_DISCLAIMER } from '../game/data.js';
 
 const TAB_OF = { machine: 'taller', mate: 'taller', orders: 'pedidos', 'shop-machines': 'tienda', 'shop-upgrades': 'tienda', 'shop-space': 'tienda', oficio: 'mas', desafios: 'desafios' };
 const NAV = [['taller', 'Taller', 'factory'], ['pedidos', 'Pedidos', 'clipboard'], ['tienda', 'Tienda', 'cart'], ['desafios', 'Desafíos', 'target'], ['mas', 'Más', 'more']];
 
 export default function App() {
-  const { s, actions, floats, toasts, bati, offline } = useGame();
+  const { s, actions, floats, toasts, bati, offline, locked, getState } = useGame();
+  const online = useOnline({ getState, adoptSave: actions.adoptSave, toast: actions.toast, say: actions.say, isLocked: () => locked });
   const [tab, setTab] = useState('taller');
   const [shopTab, setShopTab] = useState('machines');
-  const [modal, setModal] = useState(null); // { kind, mid }
+  const [modal, setModal] = useState(null); // { kind, mid, tab }
   const mission = currentMission(s);
   const glow = mission.target;
   const glowTab = TAB_OF[glow];
 
   const actRef = useRef(actions);
   actRef.current = actions;
-  const open = (kind, mid) => setModal({ kind, mid });
+  const open = (kind, mid, tab) => setModal({ kind, mid, tab });
   const close = () => setModal(null);
   const goShop = (t) => { setShopTab(t); setTab('tienda'); };
   const m = modal?.mid != null ? s.machines.find((x) => x.id === modal.mid) : null;
@@ -51,7 +54,7 @@ export default function App() {
 
   return (
     <div className={`app anim-${s.settings.anim}`}>
-      <Header s={s} actions={actions} open={open} />
+      <Header s={s} actions={actions} open={open} online={online} />
       <Hud s={s} onFilament={() => goShop('filament')} onTokens={() => open('desafios')} />
       <main className={`layout tab-${tab}`}>
         <div className="col col-orders" data-tab="pedidos">
@@ -63,7 +66,7 @@ export default function App() {
           <Shop s={s} actions={actions} tab={shopTab} setTab={setShopTab} glow={glow} />
         </div>
         <div className="col col-more" data-tab="mas">
-          <MorePanel s={s} open={open} />
+          <MorePanel s={s} open={open} online={online} />
         </div>
       </main>
       <footer className="foot">
@@ -85,7 +88,7 @@ export default function App() {
 
       <BatiGuide tutorial={s.tutorial.active} mission={mission} queue={bati}
         onDismiss={actions.dismissBati} onSkip={actions.skipTutorial}
-        onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('comunidad'); }} />
+        onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('comunidad'); }} onCta={(k) => k === 'online' && open('online', null, 'perfil')} />
 
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => <div key={t.id} className={'toast t-' + t.kind}>{t.text}</div>)}
@@ -97,8 +100,11 @@ export default function App() {
       {modal?.kind === 'oficio' && <OficioModal s={s} actions={actions} onClose={close} />}
       {modal?.kind === 'comunidad' && <CommunityModal s={s} onClose={close} />}
       {modal?.kind === 'desafios' && <ChallengesModal s={s} actions={actions} onClose={close} />}
-      {modal?.kind === 'ajustes' && <SettingsModal s={s} actions={actions} onClose={close} />}
-      {offline && !modal && <OfflineModal r={offline} onClose={actions.closeOffline} />}
+      {modal?.kind === 'ajustes' && <SettingsModal s={s} actions={actions} onClose={close} online={online} open={open} />}
+      {modal?.kind === 'online' && <OnlineModal s={s} actions={actions} online={online} tab={modal.tab} onClose={close} open={open} />}
+      {online.conflict && !locked && <ConflictModal conflict={online.conflict} onChoose={online.resolveConflict} />}
+      {locked && <LockedOverlay onTakeOver={actions.takeOver} />}
+      {offline && !modal && !online.conflict && !locked && <OfflineModal r={offline} onClose={actions.closeOffline} />}
     </div>
   );
 }

@@ -29,7 +29,9 @@ function load() {
   } catch { /* partida dañada o sin acceso: arranca una nueva */ }
   return null;
 }
+let saveBlocked = false; // pestaña pausada porque el juego está abierto en otra
 function save(s, backup = false) {
+  if (saveBlocked) return false;
   if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('demo')) return false;
   try {
     const json = E.serialize(s);
@@ -66,6 +68,9 @@ export function useGame() {
   const [offline, setOffline] = useState(null);
   const lastInput = useRef(Date.now());
   const lastTick = useRef(Date.now());
+  // Otra pestaña con el juego abierto: esta se pausa para que no se pisen la partida.
+  const [locked, setLocked] = useState(false);
+  const lockedRef = useRef(false);
 
   const s = ref.current;
 
@@ -147,6 +152,7 @@ export function useGame() {
         case 'tutorialDone':
           sfx.achievement();
           say('¡Listo, ya sos maker! Te dejo misiones para seguir creciendo. Si me necesitás, tocame. Y ojo: cuando no estás, yo cuido el taller.', { mood: 'happy' });
+          say('Tip: si entrás con Google, tu taller queda guardado en la nube y podés jugar el ranking, los retos de la comunidad y armar una granja con otros makers.', { mood: 'wink', ctas: ['online'] });
           break;
         case 'achievement': sfx.achievement(); toast(`🏆 Logro: ${e.name}`, 'info', 4000); break;
         case 'mastery':
@@ -163,7 +169,7 @@ export function useGame() {
           break;
         case 'nofil':
           sfx.nofil();
-          sayOnce('nofil_' + e.mat, `Se terminó: ${MATERIALS[e.mat].name}. Comprá más en Tienda → Materiales (o contratá al proveedor y olvidate).`, { mood: 'worried' });
+          sayOnce('nofil_' + e.mat, `Se terminó: ${MATERIALS[e.mat].name}. Comprá más en Tienda → Materiales (o contratá a Filacolor, el proveedor oficial, y olvidate). ¿Y en tu taller real? También está Filacolor.`, { mood: 'worried', ctas: ['filacolor'] });
           break;
         case 'mate': sfx.mate(); break;
         case 'gestor': break;
@@ -199,6 +205,7 @@ export function useGame() {
     window.addEventListener('pagehide', onHide);
     const loop = setInterval(() => {
       const now = Date.now();
+      if (lockedRef.current) { lastTick.current = now; return; }
       let ms = now - lastTick.current;
       lastTick.current = now;
       if (ms <= 60000) ms *= SPEED;
@@ -223,6 +230,37 @@ export function useGame() {
       save(ref.current);
     };
   }, [catchUp, handle]);
+
+  // Una sola pestaña juega a la vez (la más vieja sigue; la nueva pregunta).
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined' || (import.meta.env.DEV && new URLSearchParams(window.location.search).get('demo'))) return undefined;
+    const ch = new BroadcastChannel('mt3dbat-tabs');
+    const me = { id: Math.random().toString(36).slice(2), at: Date.now() };
+    const lock = (v) => { lockedRef.current = v; saveBlocked = v; setLocked(v); };
+    ch.onmessage = (ev) => {
+      const m = ev.data || {};
+      if (m.id === me.id) return;
+      if (m.t === 'hello' && !lockedRef.current) ch.postMessage({ t: 'here', id: me.id, at: me.at, to: m.id });
+      if (m.t === 'here' && m.to === me.id && m.at < me.at) lock(true);
+      if (m.t === 'takeover') { if (!lockedRef.current) save(ref.current); lock(true); }
+    };
+    ch.postMessage({ t: 'hello', id: me.id, at: me.at });
+    takeOverRef.current = () => {
+      ch.postMessage({ t: 'takeover', id: me.id });
+      // La otra pestaña pudo haber avanzado: se recarga la partida guardada.
+      setTimeout(() => {
+        const fresh = load();
+        if (fresh) { ref.current = fresh; startMissionHooks(fresh); }
+        lock(false);
+        lastTick.current = Date.now();
+        const gap = Date.now() - (ref.current.lastSeen || Date.now());
+        if (gap > 60000) catchUp(gap);
+        force();
+      }, 250);
+    };
+    return () => { ch.close(); };
+  }, [catchUp]);
+  const takeOverRef = useRef(null);
 
   // Ejecuta una acción del jugador sobre el estado.
   const act = useCallback((fn) => {
@@ -287,6 +325,26 @@ export function useGame() {
         return true;
       } catch { return false; }
     },
+    // Usa una partida que viene de otro lado (la nube): se convierte, se aplica el tiempo
+    // ausente y se guarda. La partida anterior ya la respaldó quien llama.
+    adoptSave: (obj) => {
+      const next = E.migrate(obj);
+      if (!next) return false;
+      const gap = Date.now() - (next.lastSeen || Date.now());
+      replace(next);
+      lastTick.current = Date.now();
+      if (gap > 60000) catchUp(gap);
+      return true;
+    },
+    setCosmetic: (k, v) => act((st) => {
+      st.cosmetics = st.cosmetics || { unlocked: [], decor: [], skin: null, effect: null };
+      if (k === 'decor') {
+        const set = new Set(st.cosmetics.decor || []);
+        if (set.has(v)) set.delete(v); else set.add(v);
+        st.cosmetics.decor = [...set];
+      } else st.cosmetics[k] = st.cosmetics[k] === v ? null : v;
+    }),
+    takeOver: () => takeOverRef.current?.(),
     dismissBati: (id) => setBati((q) => q.filter((x) => x.id !== id)),
     say,
     toast,
@@ -294,7 +352,8 @@ export function useGame() {
     seen: (key) => { const st = ref.current; if (st.seen[key]) return true; st.seen[key] = 1; return false; },
   };
 
-  return { s, actions, floats, toasts, bati, offline };
+  const getState = useCallback(() => ref.current, []);
+  return { s, actions, floats, toasts, bati, offline, locked, getState };
 }
 
 export { num };

@@ -10,10 +10,10 @@ export const SPOOL_GRAMS = UNIT;
 
 // tech: con qué tecnología se trabaja · unitName: cómo se compra
 export const MATERIALS = {
-  PLA: { id: 'PLA', name: 'PLA', tech: 'fdm', price: 22000, unitName: 'bobina', color: '#5DDADB', brand: 'Grilon3 / Printalot', desc: 'El de todos los días. Fácil de imprimir.' },
-  PETG: { id: 'PETG', name: 'PETG', tech: 'fdm', price: 26000, unitName: 'bobina', color: '#7c83ff', brand: 'Printalot / 3N3', desc: 'Más resistente y aguanta el sol.', upgrade: 'petg' },
-  TPU: { id: 'TPU', name: 'TPU', tech: 'fdm', price: 38000, unitName: 'bobina', color: '#F78EB6', brand: 'Grilon3 Flex', desc: 'Flexible como goma. Pide extrusor directo.', upgrade: 'directo' },
-  ASA: { id: 'ASA', name: 'ABS / ASA', tech: 'fdm', price: 34000, unitName: 'bobina', color: '#f2f2f2', brand: 'Polymaker', desc: 'Técnico y resistente al calor. Solo en impresoras cerradas.', upgrade: 'abs', enclosed: true },
+  PLA: { id: 'PLA', name: 'PLA', tech: 'fdm', price: 22000, unitName: 'bobina', color: '#5DDADB', brand: 'Grilon3 · Bambu Lab · Elegoo', desc: 'El de todos los días. Fácil de imprimir.' },
+  PETG: { id: 'PETG', name: 'PETG', tech: 'fdm', price: 26000, unitName: 'bobina', color: '#7c83ff', brand: 'Grilon3 · Bambu Lab · Elegoo', desc: 'Más resistente y aguanta el sol.', upgrade: 'petg' },
+  TPU: { id: 'TPU', name: 'TPU', tech: 'fdm', price: 38000, unitName: 'bobina', color: '#F78EB6', brand: 'Elegoo TPU 95A', desc: 'Flexible como goma. Pide extrusor directo.', upgrade: 'directo' },
+  ASA: { id: 'ASA', name: 'ABS / ASA', tech: 'fdm', price: 34000, unitName: 'bobina', color: '#f2f2f2', brand: 'Grilon3 ABS', desc: 'Técnico y resistente al calor. Solo en impresoras cerradas.', upgrade: 'abs', enclosed: true },
   PACF: { id: 'PACF', name: 'Nylon + fibra de carbono', tech: 'fdm', price: 120000, unitName: 'bobina', color: '#3b3f4a', brand: 'Bambu Lab PAHT-CF', desc: 'Durísimo. Necesita impresora cerrada y boquilla de acero.', upgrade: 'nylon', enclosed: true },
   RESINA: { id: 'RESINA', name: 'Resina', tech: 'resin', price: 45000, unitName: 'litro', color: '#9be7c4', brand: 'Elegoo / Anycubic', desc: 'Detalle extremo. Con guantes y ventilación.', upgrade: 'resina' },
   MDF: { id: 'MDF', name: 'MDF 3 mm', tech: 'laser', price: 9000, unitName: 'plancha', color: '#b98a5a', brand: 'Corralón del barrio', desc: 'Se corta y se graba con láser.', upgrade: 'laser' },
@@ -124,6 +124,9 @@ export const fullName = (M) => `${M.brand} ${M.name}`;
 export const PRODUCTS = {
   // FDM
   llavero: { name: 'Llavero con nombre', tech: 'fdm', mat: 'PLA', size: 'S', time: 12, price: 3500, use: 8, rep: 1, shape: 'llavero', color: '#F78EB6' },
+  // Plano exclusivo del juego online: se ve distinto pero paga IGUAL que el llavero común.
+  llaverobati: { name: 'Llavero BATI', tech: 'fdm', mat: 'PLA', size: 'S', time: 12, price: 3500, use: 8, rep: 1, shape: 'llavero', color: '#5b6cf0', reward: 'p_bati',
+    tip: 'Plano exclusivo: la mascota de 3DBAT en tu llavero.' },
   benchy: { name: 'Benchy de exhibición', tech: 'fdm', mat: 'PLA', size: 'S', time: 25, price: 8000, use: 15, rep: 2, shape: 'benchy', color: '#ff7f50', tip: 'El barquito de prueba más famoso del mundo maker.' },
   soporte: { name: 'Soporte de celular', tech: 'fdm', mat: 'PLA', size: 'M', time: 28, price: 9500, use: 40, rep: 3, shape: 'soporte', color: '#5DDADB' },
   maceta: { name: 'Maceta geométrica', tech: 'fdm', mat: 'PLA', size: 'M', time: 42, price: 15000, use: 90, rep: 1, space: 1, shape: 'maceta', color: '#9ae6b4' },
@@ -177,7 +180,7 @@ export const UPGRADES = {
   calibracion: { name: 'Calibración de flujo', cat: 'Calidad', cost: 40000, rep: 2, max: 1, desc: '+1★ en las impresoras de ★1 y ★2.' },
   bulk: { name: 'Compra por mayor', cat: 'Materiales', cost: 150000, rep: 2, max: 1, desc: '−20 % en el precio de todos los materiales.' },
   petg: { name: 'Kit PETG', cat: 'Tecnología', cost: 120000, rep: 3, max: 1, desc: 'Cama a 80 °C y hotend all-metal: desbloquea el PETG.' },
-  proveedor: { name: 'Proveedor de materiales', cat: 'Automatización', cost: 300000, rep: 3, max: 1, desc: 'Compra solo cuando se acaba un material (con 10 % de recargo).' },
+  proveedor: { name: 'Proveedor oficial: Filacolor', cat: 'Automatización', cost: 300000, rep: 3, max: 1, desc: 'Te repone solo el material cuando se acaba (con 10 % de recargo por el envío).', flavor: 'Filacolor es el proveedor oficial de la Comunidad Makers 3DBAT.' },
   retraccion: { name: 'Ajuste de retracción', cat: 'Calidad', cost: 50000, rep: 3, max: 1, desc: 'Chau hilos: elimina el stringing.', tip: 'La retracción tira el filamento para atrás para que no gotee.' },
   yerba: { name: 'Yerba de la buena', cat: 'Mate', cost: 15000, rep: 3, max: 1, desc: 'El mate se recarga en 3 min en vez de 5.', flavor: 'Con palo, obvio.' },
   instagram: { name: 'Ventas por Instagram', cat: 'Marca', cost: 200000, growth: 4, rep: 4, desc: '+10 % a la paga de los pedidos por nivel.', flavor: 'Fotos lindas, historias y respuestas rápidas.' },
@@ -282,7 +285,7 @@ export const MACHINE_EVENTS = {
   fria: { tech: ['resin'], name: 'Resina fría', icon: '🥶', weight: 2, text: 'Es invierno y la resina está espesa. Las capas no curan bien.',
     options: [{ label: 'Calentar la resina (pausa 30 s)', effect: 'pause' }, { label: 'Seguir igual (−1★)', effect: 'penalty' }], prevent: 'Resinas con calefacción (Photon M7 Pro en adelante)' },
   ipa: { tech: ['resin'], name: 'Sin alcohol isopropílico', icon: '🧴', weight: 1, text: 'Te quedaste sin IPA para lavar las piezas.',
-    options: [{ label: 'Ir a la farmacia (pausa 30 s)', effect: 'pause' }], prevent: 'Proveedor de materiales' },
+    options: [{ label: 'Ir a la farmacia (pausa 30 s)', effect: 'pause' }], prevent: 'Proveedor oficial: Filacolor' },
   foco: { tech: ['laser'], name: 'Láser mal enfocado', icon: '🎯', weight: 3, text: 'El corte no atraviesa el material: quedó todo a medias.',
     options: [{ label: 'Enfocar de nuevo', act: 'taps', n: 2, effect: 'resume' }, { label: 'Entregarlo así (−1★)', effect: 'penalty' }], prevent: 'Láseres cerrados con autofoco' },
   llama: { tech: ['laser'], name: 'Llama en el corte', icon: '🔥', weight: 2, text: '¡Se prendió fuego el MDF! Tranquilo: es chiquita.',

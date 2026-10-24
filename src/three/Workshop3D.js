@@ -97,6 +97,10 @@ export class Workshop3D {
     this.scene.add(this.fill);
     this.smoke = new Particles(this.scene, 500, { color: '#b9c0cc', size: 0.035, opacity: 0.35 });
     this.chips = new Particles(this.scene, 500, { color: '#c49a6c', size: 0.012, opacity: 0.95 });
+    // Efectos ganados en el juego online (solo estética)
+    this.confA = new Particles(this.scene, 300, { color: '#F78EB6', size: 0.03, opacity: 0.95 });
+    this.confB = new Particles(this.scene, 300, { color: '#5DDADB', size: 0.03, opacity: 0.95 });
+    this.sparks = new Particles(this.scene, 300, { color: '#9ff7ff', size: 0.022, blending: THREE.AdditiveBlending, opacity: 0.9 });
     this.machines = new Map();
     this.benches = [];
     this.emptyMarks = [];
@@ -261,6 +265,7 @@ export class Workshop3D {
         e.scale = k;
       }
       e.rig.setMulti(isMulti(s, MACHINES[m.model]));
+      this.setPlinth(e, s.cosmetics?.skin || null);
     });
     for (const [id, e] of this.machines) if (!seen.has(id)) { this.scene.remove(e.station); this.machines.delete(id); }
     const occupied = new Map();
@@ -271,6 +276,8 @@ export class Workshop3D {
     this.room.setLed(LED_COLORS[s.settings.led]?.color || '#5DDADB');
     this.room.setVitrina(s.prestige.vitrina || []);
     this.room.setZones?.(s);
+    this.room.setDecor?.(s.cosmetics?.decor || []);
+    this.effect = s.cosmetics?.effect || null;
     // Cajas de pedidos despachados en la zona de packing
     const orders = s.stats.orders || 0;
     if (this.ordersSeen == null) { this.ordersSeen = orders; this.room.setBoxes?.(Math.min(6, orders), false); }
@@ -293,6 +300,11 @@ export class Workshop3D {
       else if (m.state === 'nofil') status = 'nofil';
       else if (paused) status = 'pause';
       else if (m.state === 'printing') status = 'print';
+      // Efectos ganados: chispas al terminar una pieza, confeti al retirarla.
+      if (this.effect && e.status && e.status !== status && anim !== 'min') {
+        if (this.effect === 'e_chispas' && status === 'done') this.burst(e, this.sparks, null, 26);
+        if (this.effect === 'e_confeti' && e.status === 'done' && status !== 'done') this.burst(e, this.confA, this.confB, 40);
+      }
       e.status = status;
       e.rig.setPiece(m.cur || null);
       e.rig.setEvent(m.event?.id || null);
@@ -307,6 +319,7 @@ export class Workshop3D {
         }
       }
     }
+    this.confA.step(dt, 1.4, 0.97); this.confB.step(dt, 1.4, 0.97); this.sparks.step(dt, 0.6, 0.94);
     this.smoke.step(dt, -0.02, 0.985);
     this.chips.step(dt, 1.6, 0.97);
     for (const mk of this.emptyMarks) if (mk.visible) mk.material.opacity = 0.3 + Math.sin(t * 2.5) * 0.15;
@@ -328,6 +341,32 @@ export class Workshop3D {
     }
     this.controls.update();
     if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera);
+  }
+
+  burst(e, pa, pb, n) {
+    e.station.getWorldPosition(this.tmp);
+    this.tmp.y += 0.45 * e.scale;
+    for (let i = 0; i < n; i++) {
+      const sys = pb && i % 2 ? pb : pa;
+      sys.emit(this.tmp, this.tmp2.set((Math.random() - 0.5) * 1.1, 0.6 + Math.random() * 0.9, (Math.random() - 0.5) * 1.1), 1.1 + Math.random() * 0.5);
+    }
+  }
+
+  // Base debajo de cada máquina (premio de "bases"): no cambia los colores reales de los equipos.
+  setPlinth(e, skin) {
+    if (e.plinthSkin === skin) return;
+    e.plinthSkin = skin;
+    if (e.plinth) { e.station.remove(e.plinth); e.plinth = null; }
+    const color = { s_rosa: '#F78EB6', s_cian: '#5DDADB', s_negro: '#16181d', s_blanco: '#e9ebf0' }[skin];
+    if (!color) return;
+    const neon = skin === 's_rosa' || skin === 's_cian';
+    const w = Math.max(0.3, e.rig.footprint * 1.08) * e.scale;
+    const mat = neon ? new THREE.MeshStandardMaterial({ color: '#0d1024', emissive: color, emissiveIntensity: 1.4, roughness: 0.4 })
+      : new THREE.MeshStandardMaterial({ color, roughness: skin === 's_negro' ? 0.9 : 0.35, metalness: 0 });
+    const p = new THREE.Mesh(new THREE.BoxGeometry(w, 0.012, w * 0.9), mat);
+    p.position.y = 0.004; p.receiveShadow = true;
+    e.station.add(p);
+    e.plinth = p;
   }
 
   // Posición de cada máquina relativa a la cámara (para el sonido espacial)

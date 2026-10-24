@@ -11,6 +11,7 @@ import {
 import { ACHIEVEMENTS } from '../game/progress.js';
 import { money, rate, dur, num, fmtText, SEASON } from '../game/format.js';
 import { LINKS, IG_HANDLE, VERSION } from '../config.js';
+import { FILACOLOR, fcUrl } from '../online/filacolor.js';
 
 const FlagAR = () => (
   <svg className="flag" viewBox="0 0 18 12" width="18" height="12" aria-hidden="true">
@@ -180,6 +181,7 @@ export function EventModal({ s, m, actions, onClose }) {
         })}
       </div>
       <p className="hint">Cómo evitarlo: <b>{ev.prevent}</b></p>
+      {!ev.cute && <p className="hint fc-hint">¿Te pasa con tu impresora de verdad? <a href={fcUrl(FILACOLOR.links.servicio)} target="_blank" rel="noopener noreferrer">Servicio técnico de Filacolor ↗</a>, el proveedor oficial de la comunidad.</p>}
     </Modal>
   );
 }
@@ -201,7 +203,7 @@ export function OfflineModal({ r, onClose }) {
         {r.repGain > 0 && <div><span>Reputación (gestor)</span><b>+{num(r.repGain)}</b></div>}
       </div>
       {r.capped && <p className="o-warn soft">Conté solo {dur(r.counted)}: es el máximo que puedo cuidar solo. La <b>Cámara remota</b> lo amplía.</p>}
-      {r.stopped.length > 0 && <p className="o-warn">Se terminó {r.stopped.map((k) => MATERIALS[k].name).join(' y ')} y algunas máquinas pararon. Dejá stock de más o contratá al proveedor.</p>}
+      {r.stopped.length > 0 && <p className="o-warn">Se terminó {r.stopped.map((k) => MATERIALS[k].name).join(' y ')} y algunas máquinas pararon. Dejá stock de más o contratá a Filacolor, el proveedor oficial (Mejoras).</p>}
       <p className="hint">Los pedidos se pausan mientras no estás: no se vence nada.</p>
       <button className="btn-center" onClick={onClose}>¡Cobrar y seguir!</button>
     </Modal>
@@ -401,7 +403,7 @@ export function CommunityModal({ s, onClose }) {
 }
 
 // ---------- Ajustes ----------
-export function SettingsModal({ s, actions, onClose }) {
+export function SettingsModal({ s, actions, onClose, online, open }) {
   const [code, setCode] = useState('');
   const [imp, setImp] = useState('');
   const [msg, setMsg] = useState('');
@@ -456,7 +458,9 @@ export function SettingsModal({ s, actions, onClose }) {
       </div>
 
       <div className="section-label">TU PARTIDA</div>
-      <p className="hint">Se guarda sola en este navegador. Para pasarla a otro dispositivo, copiá el código y pegalo allá.</p>
+      <p className="hint">{online?.user
+        ? <>Se guarda en este navegador y en la nube ({online.user.email}). Desde otro dispositivo, entrá con la misma cuenta de Google.</>
+        : <>Se guarda sola en este navegador. <button className="link-btn" onClick={() => open?.('online', null, 'perfil')}>Ingresá con Google</button> para tenerla en la nube, o pasala con un código:</>}</p>
       <div className="two-col">
         <button className="chip-btn wide" onClick={() => { setCode(actions.exportCode()); setMsg(''); }}><Icon name="download" size={14} /> Generar código</button>
         <button className="chip-btn wide" disabled={!code} onClick={async () => { try { await navigator.clipboard.writeText(code); setMsg('Código copiado.'); } catch { setMsg('Seleccioná el código y copialo a mano.'); } }}>Copiar</button>
@@ -478,12 +482,14 @@ export function SettingsModal({ s, actions, onClose }) {
 }
 
 // ---------- Pestaña "Más" (celular) ----------
-export function MorePanel({ s, open }) {
+export function MorePanel({ s, open, online }) {
   const got = ACHIEVEMENTS.filter((a) => s.achievements[a.id]).length;
   return (
     <section className="card more-card">
       <div className="card-head"><div className="card-icon"><Icon name="more" /></div><h2>Más</h2></div>
       <div className="more-list">
+        <button className="item-card" onClick={() => open('online', null, 'perfil')}><span className="item-ico">🌐</span><span className="item-txt"><strong>Online: ranking, retos y granjas</strong><small>{online?.user ? (online.me?.player ? `${online.me.player.nick} · ${online.me.points ?? 0} pts` : 'Creá tu perfil') : 'Guardá tu partida en la nube con Google'}</small></span></button>
+        <button className="item-card fc-item" onClick={() => open('online', null, 'filacolor')}><span className="item-ico">🧵</span><span className="item-txt"><strong>Filacolor · Proveedor oficial</strong><small>Filamentos, impresoras y servicio técnico</small></span></button>
         <button className="item-card" onClick={() => open('oficio')}><span className="item-ico">🏅</span><span className="item-txt"><strong>Oficio y Mudanza</strong><small>{E.canMove(s) ? '¡Ya podés mudarte!' : `Nivel Maker: ${E.makerTitle(s.prestige.total)}`}</small></span></button>
         <button className="item-card" onClick={() => open('logros')}><span className="item-ico">🏆</span><span className="item-txt"><strong>Logros</strong><small>{got}/{ACHIEVEMENTS.length}</small></span></button>
         <button className="item-card" onClick={() => open('comunidad')}><span className="item-ico">🦇</span><span className="item-txt"><strong>Comunidad 3DBAT</strong><small>Instagram, BATBOX y la Comunidad Makers</small></span></button>

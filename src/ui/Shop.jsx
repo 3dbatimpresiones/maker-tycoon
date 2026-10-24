@@ -5,6 +5,8 @@ import { MachineThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
 import { MACHINES, MACHINE_ORDER, UPGRADES, UPGRADE_ORDER, SPACES, MATERIALS, MATERIAL_ORDER, PRODUCTS, TECHS, SIZE_NAME, UNIT } from '../game/data.js';
 import { money, dur, kg } from '../game/format.js';
+import { FILACOLOR, fcUrl } from '../online/filacolor.js';
+import fcLogo from '../assets/filacolor-logo.png';
 
 function eta(s, cost) {
   const r = Math.max(E.incomeRate(s), E.potentialRate(s) * 0.7);
@@ -48,6 +50,7 @@ function Machines({ s, actions, glow }) {
             <div className="shop-art"><MachineThumb model={id} /></div>
             <div className="shop-txt">
               <span className="brand-tag">{M.brand}</span>
+              {FILACOLOR.machines[id] && <a className="fc-tag" href={fcUrl(FILACOLOR.machines[id])} target="_blank" rel="noopener noreferrer" title="La versión real, en el proveedor oficial de la comunidad">En Filacolor ↗</a>}
               <b>{M.name}</b>
               <small>{M.flavor}</small>
               <div className="shop-stats">
@@ -141,6 +144,9 @@ function Materials({ s, actions }) {
   const locked = MATERIAL_ORDER.filter((k) => !shown.includes(k));
   return (
     <div className="shop-list">
+      <a className="fc-strip" href={fcUrl(FILACOLOR.links.filamentos)} target="_blank" rel="noopener noreferrer">
+        <img src={fcLogo} alt="Filacolor" /><span><b>Proveedor oficial</b><small>Filamentos reales para tu taller real ↗</small></span>
+      </a>
       {shown.map((k) => {
         const M = MATERIALS[k];
         const unlocked = E.materialUnlocked(s, k);
@@ -156,7 +162,7 @@ function Materials({ s, actions }) {
             <div className="fil-spool" style={{ background: M.color }} />
             <div className="shop-txt">
               <b>{M.name}</b>
-              <small>{M.desc} <em className="muted">({M.brand})</em></small>
+              <small>{M.desc} <em className="muted">({M.brand})</em>{FILACOLOR.gameMaterials[k] && <> · <a className="fc-mini" href={fcUrl(FILACOLOR.gameMaterials[k])} target="_blank" rel="noopener noreferrer">Ver en Filacolor ↗</a></>}</small>
               <div className="shop-stats">
                 <span>Stock: {M.unitName === 'bobina' || M.unitName === 'litro' ? kg(s.mat[k]).replace('kg', M.unitName === 'litro' ? 'L' : 'kg') : `${units.toLocaleString('es-AR', { maximumFractionDigits: 1 })} ${M.unitName}s`}</span>
                 {upm > 0 && <span>Alcanza: {dur((s.mat[k] / upm) * 60)}</span>}
@@ -173,7 +179,7 @@ function Materials({ s, actions }) {
         );
       })}
       {locked.length > 0 && <p className="hint">Más adelante: {locked.map((k) => MATERIALS[k].name).join(', ')}.</p>}
-      <p className="hint">{E.hasProveedor(s) ? <>El <b>proveedor</b> compra solo cuando se acaba (10 % más caro).</> : <>¿Cansado de comprar? Contratá al <b>Proveedor de materiales</b> en Mejoras.</>}</p>
+      <p className="hint">{E.hasProveedor(s) ? <><b>Filacolor</b> te repone solo cuando se acaba (10 % más caro por el envío).</> : <>¿Cansado de comprar? Contratá a <b>Filacolor</b>, el proveedor oficial, en Mejoras.</>}</p>
     </div>
   );
 }

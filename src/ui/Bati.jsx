@@ -2,6 +2,7 @@
 // mood: normal (ceja levantada) · happy · worried · wink
 import { LINKS, IG_HANDLE } from '../config.js';
 import Icon from './Icon.jsx';
+import { FILACOLOR, fcUrl } from '../online/filacolor.js';
 import { fmtText } from '../game/format.js';
 
 const BLUE = '#2f3ec4', BLUE_L = '#4859e2', BLUE_D = '#2433a6', INK = '#0b1030', SCREEN = '#0c1131';
@@ -102,31 +103,36 @@ export function BatiArt({ mood = 'normal', size = 80, className = '' }) {
 
 const CTA = {
   instagram: { label: `Seguir ${IG_HANDLE}`, href: LINKS.instagram, icon: 'instagram' },
+  filacolor: { label: 'Filamentos en Filacolor', href: fcUrl(FILACOLOR.links.filamentos), icon: 'spool' },
+  servicio: { label: 'Servicio técnico Filacolor', href: fcUrl(FILACOLOR.links.servicio), icon: 'wrench' },
+  online: { label: 'Jugar online', icon: 'users', internal: true },
   batbox: { label: 'Abrir BATBOX', href: LINKS.batbox, icon: 'box' },
   comunidad: { label: 'Comunidad Makers 3DBAT', href: LINKS.comunidad, icon: 'users' },
 };
 
-export function CtaButtons({ list }) {
+export function CtaButtons({ list, onCta }) {
   return (
     <div className="cta-row">
-      {list.map((k) => (
+      {list.filter((k) => CTA[k] && (!CTA[k].internal || onCta)).map((k) => (CTA[k].internal ? (
+        <button key={k} className={'cta-btn cta-' + k} onClick={() => onCta(k)}><Icon name={CTA[k].icon} size={16} /> {CTA[k].label}</button>
+      ) : (
         <a key={k} className={'cta-btn cta-' + k} href={CTA[k].href} target="_blank" rel="noopener noreferrer">
           <Icon name={CTA[k].icon} size={16} /> {CTA[k].label}
         </a>
-      ))}
+      )))}
     </div>
   );
 }
 
 // Guía flotante: en el tutorial muestra el paso actual; después, la cola de mensajes.
-export function BatiGuide({ tutorial, mission, queue, onDismiss, onSkip, onPoke }) {
+export function BatiGuide({ tutorial, mission, queue, onDismiss, onSkip, onPoke, onCta }) {
   const msg = tutorial ? { id: 'tut', text: fmtText(mission.bati), mood: 'normal' } : queue[0];
   return (
     <div className={'bati-guide' + (msg ? ' open' : '')}>
       {msg && (
         <div className="bati-bubble" role="status" aria-live="polite">
           <p>{msg.text}</p>
-          {msg.ctas && <CtaButtons list={msg.ctas} />}
+          {msg.ctas && <CtaButtons list={msg.ctas} onCta={onCta} />}
           <div className="bati-actions">
             {tutorial
               ? <button className="link-btn" onClick={onSkip}>Saltear tutorial</button>

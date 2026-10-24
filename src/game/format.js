@@ -24,6 +24,12 @@ export const CURRENCIES = {
   USD: { id: 'USD', prefix: 'US$ ', flag: '🌎', label: 'USD' },
 };
 export const SEASON = { name: 'Temporada 1', usdRate: 1600 }; // US$ 1 = AR$ 1.600
+// La temporada activa (nombre y cotización) la define el equipo desde BATBOX.
+export function setSeason(name, usdRate) {
+  if (typeof name === 'string' && name.trim()) SEASON.name = name.trim().slice(0, 40);
+  const r = Number(usdRate);
+  if (isFinite(r) && r > 0) SEASON.usdRate = r;
+}
 let currency = 'ARS';
 export function setCurrency(c) { currency = CURRENCIES[c] ? c : 'ARS'; }
 export const getCurrency = () => currency;

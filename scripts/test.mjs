@@ -4,6 +4,7 @@ import * as E from '../src/game/engine.js';
 import { step, skipTutorial, MISSIONS, ensureChallenges, claimChallenge } from '../src/game/progress.js';
 import { PERKS, TOKEN_SHOP, PRODUCTS } from '../src/game/data.js';
 import { money, dur, num, setCurrency } from '../src/game/format.js';
+import { decideSync, summaryOf, isFreshSave } from '../src/online/api.js';
 
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('  ✔', name); };
@@ -258,6 +259,62 @@ t('formato argentino', () => {
   assert.equal(dur(4800), '1 h 20 min');
   assert.equal(num(4.5), '4,5');
   assert.equal(money(2.5e18), 'AR$ 2,5 Tr');
+});
+
+t('nube: cuenta sin partida guardada → se sube la de este navegador', () => {
+  const s = E.newGame(null, 5); skipTutorial(s);
+  assert.equal(decideSync({ uid: 'u1', cloud: null, meta: null, local: s }).action, 'upload');
+});
+
+t('nube: partida recién empezada → se usa la de la nube sin preguntar', () => {
+  const fresh = E.newGame(null, 6);
+  const cloud = { rev: 4, summary: { pieces: 900, totalEarned: 5e6, machines: 4 } };
+  assert.equal(decideSync({ uid: 'u1', cloud, meta: null, local: fresh }).action, 'useCloud');
+  assert.ok(isFreshSave(fresh));
+});
+
+t('nube: dos partidas con progreso distinto → SIEMPRE se pregunta (nunca se pisa)', () => {
+  const s = E.newGame(null, 7); skipTutorial(s);
+  s.stats.pieces = 500; s.totalEarned = 4e6;
+  const cloud = { rev: 2, summary: { pieces: 9000, totalEarned: 8e7, machines: 9 } };
+  assert.equal(decideSync({ uid: 'u1', cloud, meta: null, local: s }).action, 'ask');
+  assert.equal(decideSync({ uid: 'u1', cloud, meta: { uid: 'u1', rev: 1 }, local: s }).reason, 'cloudNewer');
+  assert.equal(decideSync({ uid: 'u2', cloud, meta: { uid: 'u1', rev: 2 }, local: s }).action, 'ask', 'otra cuenta en el mismo navegador');
+});
+
+t('nube: misma versión → sigue guardando; misma partida → se adopta sin preguntar', () => {
+  const s = E.newGame(null, 8); skipTutorial(s);
+  s.stats.pieces = 300; s.totalEarned = 2e6;
+  const cloud = { rev: 5, summary: summaryOf(s) };
+  assert.equal(decideSync({ uid: 'u1', cloud, meta: { uid: 'u1', rev: 5 }, local: s }).action, 'inSync');
+  assert.equal(decideSync({ uid: 'u1', cloud, meta: null, local: s }).action, 'adopt');
+  // Guardado de salida que no llegó: la local es la más nueva, no se molesta al jugador.
+  const d = decideSync({ uid: 'u1', cloud, meta: { uid: 'u1', rev: 6, pending: true }, local: { ...s, stats: { ...s.stats, pieces: 320 } } });
+  assert.equal(d.action, 'inSync'); assert.equal(d.fixRev, 5);
+});
+
+t('premios online: sobreviven a la Mudanza y el Llavero BATI pide su plano', () => {
+  const s = E.newGame(null, 9); skipTutorial(s);
+  assert.equal(E.productUnlocked(s, 'llaverobati'), false);
+  assert.ok(/Plano/.test(E.productLockReason(s, 'llaverobati')));
+  s.cosmetics.unlocked = ['p_bati', 'd_planta']; s.cosmetics.decor = ['d_planta'];
+  assert.equal(E.productUnlocked(s, 'llaverobati'), true);
+  assert.equal(PRODUCTS.llaverobati.price, PRODUCTS.llavero.price, 'paga igual que el llavero común');
+  assert.equal(PRODUCTS.llaverobati.time, PRODUCTS.llavero.time);
+  s.runEarned = E.OFICIO_SCALE * 4;
+  const next = E.doMove(s, null);
+  assert.deepEqual(next.cosmetics.unlocked, ['p_bati', 'd_planta']);
+  assert.deepEqual(next.cosmetics.decor, ['d_planta']);
+  const old = JSON.parse(E.serialize(E.newGame(null, 10))); delete old.cosmetics;
+  assert.deepEqual(E.migrate(old).cosmetics.unlocked, [], 'partidas viejas reciben la estructura vacía');
+});
+
+t('desafío semanal cobrado suma al contador (para los puntos online)', () => {
+  const s = E.newGame(null, 11); skipTutorial(s);
+  ensureChallenges(s, Date.now());
+  const c = s.weekly.list[0]; c.prog = c.target;
+  claimChallenge(s, 'weekly', 0);
+  assert.equal(s.stats.weeklyDone, 1);
 });
 
 console.log(`\n${n} pruebas OK`);

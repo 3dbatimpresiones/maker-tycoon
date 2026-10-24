@@ -40,7 +40,7 @@ export const MISSIONS = [
   { id: 'petg', text: 'Desbloqueá el PETG', reward: { spool: 'PETG' }, target: 'shop-upgrades', check: (s) => has(s, 'petg') },
   { id: 'cuatro', text: 'Tené 4 impresoras', reward: { money: 300000 }, target: 'shop-machines', check: (s) => s.machines.length >= 4 },
   { id: 'pedidos10', text: 'Completá 10 pedidos', reward: { money: 500000 }, target: 'orders', check: (s) => s.run.orders >= 10 || E.rule(s, 'mostrador') },
-  { id: 'proveedor', text: 'Contratá al Proveedor de materiales', reward: { money: 600000 }, target: 'shop-upgrades', check: (s) => has(s, 'proveedor') || E.rule(s, 'amano') },
+  { id: 'proveedor', text: 'Contratá al proveedor oficial (Filacolor)', reward: { money: 600000 }, target: 'shop-upgrades', check: (s) => has(s, 'proveedor') || E.rule(s, 'amano') },
   { id: 'garage', text: 'Pasate al Garage taller', reward: { money: 1500000 }, target: 'shop-space', cta: 'batbox', check: (s) => s.space >= 2 },
   { id: 'p1s', text: 'Comprá una Bambu Lab P1S Combo (con AMS)', reward: { money: 1000000 }, target: 'shop-machines', check: (s) => owns(s, 'p1s') || E.rule(s, 'soloender') },
   { id: 'expulsion', text: 'Instalá la Expulsión automática', reward: { money: 1500000 }, target: 'shop-upgrades', check: (s) => has(s, 'expulsion') || E.rule(s, 'amano') },
@@ -215,6 +215,7 @@ export function claimChallenge(s, which, i) {
   c.claimed = true;
   s.tokens += c.reward;
   if (which === 'daily') s.stats.dailyDone = (s.stats.dailyDone || 0) + 1;
+  else s.stats.weeklyDone = (s.stats.weeklyDone || 0) + 1;
   return c.reward;
 }
 
