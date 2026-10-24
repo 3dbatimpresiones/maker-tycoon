@@ -151,11 +151,62 @@ export function buildRoom(space, n) {
     box(0.6, 0.9, 0.45, std('#c62828', 0.4, 0.5), W / 2 - 0.5, 0.45, -D / 2 + 0.35, g);
     for (let i = 0; i < 3; i++) { const tube = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 1.4).rotateX(Math.PI / 2), emissive('#e8f4ff', 2.2)); tube.position.set((i - 1) * 2.2, wallH - 0.05, 0); g.add(tube); }
   }
+  // Carteles del taller: muestran el cartel personalizado de cada jugador (nombre del taller,
+  // texto propio o una imagen). room.setSign() los vuelve a dibujar.
+  room.signHolders = [];
+  room.sign = null;
+  const drawSign = (holder) => {
+    const { group, w } = holder;
+    while (group.children.length) group.remove(group.children[0]);
+    const sg = room.sign || {};
+    if (sg.img) {
+      const h = w * 0.34;
+      const frame = box(w + 0.1, h + 0.1, 0.03, std('#0b0f24', 0.6, 0.2), 0, 0, -0.012, group, false);
+      frame.castShadow = false;
+      const tex = new THREE.TextureLoader().load(sg.img);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const pic = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+      pic.position.z = 0.006; group.add(pic);
+      // Contorno de neón alrededor de la imagen (cartel corpóreo iluminado)
+      const glowM = new THREE.MeshBasicMaterial({ color: sg.color || '#F78EB6', toneMapped: false });
+      for (const [x, y, ww, hh] of [[0, h / 2 + 0.035, w + 0.07, 0.014], [0, -h / 2 - 0.035, w + 0.07, 0.014], [w / 2 + 0.035, 0, 0.014, h + 0.07], [-w / 2 - 0.035, 0, 0.014, h + 0.07]]) {
+        const b = new THREE.Mesh(new THREE.PlaneGeometry(ww, hh), glowM); b.position.set(x, y, 0.008); group.add(b);
+      }
+      return;
+    }
+    const color = sg.color || '#F78EB6';
+    const text = (sg.text || sg.fallback || 'MI TALLER').toUpperCase().slice(0, 18);
+    // Texto de neón que se achica solo para entrar entero en el cartel.
+    const neonMat = (t, c) => {
+      const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 256;
+      const x = cv.getContext('2d');
+      let size = 160;
+      x.font = `800 ${size}px Outfit, Arial, sans-serif`;
+      while (x.measureText(t).width > 940 && size > 40) { size -= 6; x.font = `800 ${size}px Outfit, Arial, sans-serif`; }
+      x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.shadowColor = c; x.shadowBlur = 26; x.fillStyle = c; x.fillText(t, 512, 132);
+      x.shadowBlur = 0; x.globalAlpha = 0.55; x.fillStyle = '#ffffff'; x.fillText(t, 512, 132);
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+      return new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false });
+    };
+    const main = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.25), neonMat(text, color)); group.add(main);
+    if (sg.sub) {
+      const sub = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.125), neonMat(String(sg.sub).toUpperCase().slice(0, 24), '#5DDADB'));
+      sub.position.y = -w * 0.17; group.add(sub);
+    }
+  };
+  room.addSignHolder = (group, w) => { const hld = { group, w }; room.signHolders.push(hld); drawSign(hld); return hld; };
+  room.setSign = (sg) => {
+    const key = JSON.stringify(sg || {});
+    if (key === room.signKey) return;
+    room.signKey = key; room.sign = sg;
+    room.signHolders = room.signHolders.filter((hld) => hld.group.parent);
+    room.signHolders.forEach(drawSign);
+  };
+
   if (space === 3) {
-    const neon = plane(2.4, 0.6, new THREE.MeshStandardMaterial({ map: TEX.label('3DBAT', '#F78EB6'), emissive: '#ffffff', emissiveMap: TEX.label('3DBAT', '#F78EB6'), emissiveIntensity: 1.6, transparent: true }), g);
-    neon.position.set(0.4, 2.3, -D / 2 + 0.02);
-    const sub = plane(2.4, 0.3, new THREE.MeshStandardMaterial({ map: TEX.label('IMPRESIONES', '#5DDADB'), emissive: '#ffffff', emissiveMap: TEX.label('IMPRESIONES', '#5DDADB'), emissiveIntensity: 1.2, transparent: true }), g);
-    sub.position.set(0.4, 1.95, -D / 2 + 0.02);
+    const storeSign = new THREE.Group(); storeSign.position.set(0.4, 2.2, -D / 2 + 0.03); g.add(storeSign);
+    room.addSignHolder(storeSign, 2.4);
     const win = plane(D * 0.7, 2.2, M.glass('#9fd4ff', 0.25), g); win.position.set(-W / 2 + 0.02, 1.3, 0.3); win.rotation.y = Math.PI / 2;
     const street = plane(D * 0.7, 2.2, std('#0b1438', 1, 0, { emissive: '#22306e', emissiveIntensity: 0.7 }), g); street.position.set(-W / 2 + 0.005, 1.3, 0.3); street.rotation.y = Math.PI / 2;
     box(1.8, 0.95, 0.6, std('#ffffff', 0.6, 0, { map: TEX.wood([2, 1], '#3b2a1c') }), W / 2 - 1.2, 0.475, -D / 2 + 0.6, g);
@@ -353,8 +404,8 @@ export function buildRoom(space, n) {
       // Cartel de neón 3DBAT en la pared del fondo
       const w = Math.min(1.6, W * 0.32);
       box(w + 0.12, w * 0.3 + 0.08, 0.02, std('#0b0f24', 0.6, 0.2), W * 0.18, wallH * 0.74, backZ, decor, false);
-      const sign = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.25), new THREE.MeshBasicMaterial({ map: TEX.label('3DBAT', '#F78EB6'), transparent: true, toneMapped: false }));
-      sign.position.set(W * 0.18, wallH * 0.74, backZ + 0.015); decor.add(sign);
+      const sg = new THREE.Group(); sg.position.set(W * 0.18, wallH * 0.74, backZ + 0.015); decor.add(sg);
+      room.addSignHolder(sg, w);
       const glow = new THREE.PointLight('#F78EB6', 0.6, 2.4); glow.position.set(W * 0.18, wallH * 0.74, backZ + 0.3); glow.userData.decor = true; decor.add(glow);
       room.lights.push(glow);
     }

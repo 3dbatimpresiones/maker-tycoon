@@ -282,6 +282,8 @@ export class Workshop3D {
     this.room.setVitrina(s.prestige.vitrina || []);
     this.room.setZones?.(s);
     this.room.setDecor?.(s.cosmetics?.decor || []);
+    // Cartel personalizado (si no eligió nada, dice el nombre del taller).
+    this.room.setSign?.({ ...(s.cosmetics?.sign || {}), fallback: s.name || '' });
     // Sobrino: nivel 1 retira piezas; con la expulsión automática pasa a logística (nivel 2).
     const lvl = has(s, 'sobrino') ? (has(s, 'expulsion') ? 2 : 1) : 0;
     if (lvl && !this.sobrino) {

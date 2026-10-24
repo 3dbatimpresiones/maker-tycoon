@@ -19,7 +19,8 @@ function visitState(t, quality) {
     })),
     mat: t.mat || {}, upgrades: t.upgrades || {},
     settings: { led: t.led || 'cyan', anim: 'full', quality: quality || 'auto' },
-    prestige: { vitrina: t.vitrina || [] }, cosmetics: { decor: t.cosmetics?.decor || [], skin: t.cosmetics?.skin || null },
+    name: t.name || '',
+    prestige: { vitrina: t.vitrina || [] }, cosmetics: { decor: t.cosmetics?.decor || [], skin: t.cosmetics?.skin || null, sign: t.cosmetics?.sign || null },
     stats: { orders: 0, spools: 0 },
   };
 }
@@ -86,7 +87,7 @@ export function VisitModal({ nick, s, online, onClose }) {
       {data && (
         <>
           <div className="visit-head">
-            <Avatar name={data.nick} frame={data.frame} size={44} />
+            <Avatar name={data.nick} frame={data.frame} src={data.avatar} size={44} />
             <div className="visit-txt">
               <b>{data.taller.name || 'Taller sin nombre'}</b>
               <small>{data.nick}{titleName(data.title) ? ` · ${titleName(data.title)}` : ''} · {sp?.name} · {data.taller.machines.length} máquinas</small>

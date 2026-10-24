@@ -4,6 +4,7 @@ import Icon from './Icon.jsx';
 import { Modal } from './Panels.jsx';
 import { BatiArt } from './Bati.jsx';
 import { rpc, getSetting } from '../online/api.js';
+import { imageToDataUrl } from '../online/image.js';
 import { REWARDS, EMBLEMS, FARM_COLORS, FARM_SECTORS, farmLevel, metricLabel, rewardName, titleName, frameClass } from '../online/rewards.js';
 import { FILACOLOR, SCORE_LABELS, fcUrl } from '../online/filacolor.js';
 import { SPACES } from '../game/data.js';
@@ -22,9 +23,54 @@ export const GoogleG = ({ size = 18 }) => (
   </svg>
 );
 
-export function Avatar({ name, frame, size = 40 }) {
+export function Avatar({ name, frame, size = 40, src }) {
   const ch = (name || '?').trim().charAt(0).toUpperCase() || '?';
-  return <span className={'av ' + frameClass(frame)} style={{ width: size, height: size, fontSize: size * 0.42 }} aria-hidden="true">{ch}</span>;
+  const img = src && /^data:image\//.test(src) ? src : null;
+  return (
+    <span className={'av ' + frameClass(frame) + (img ? ' has-img' : '')} style={{ width: size, height: size, fontSize: size * 0.42 }} aria-hidden="true">
+      {img ? <img src={img} alt="" /> : ch}
+    </span>
+  );
+}
+
+// Editor del cartel de neón del taller (texto, color o imagen). Se guarda en la partida.
+const SIGN_COLORS = ['#F78EB6', '#5DDADB', '#8b8ff0', '#34D399', '#FBBF24', '#ffffff'];
+export function SignEditor({ s, actions }) {
+  const cur = s.cosmetics?.sign || {};
+  const [text, setText] = useState(cur.text || '');
+  const [sub, setSub] = useState(cur.sub || '');
+  const [color, setColor] = useState(cur.color || SIGN_COLORS[0]);
+  const [img, setImg] = useState(cur.img || null);
+  const [err, setErr] = useState('');
+  const [saved, setSaved] = useState(false);
+  const pick = async (e) => {
+    const f = e.target.files?.[0]; e.target.value = '';
+    if (!f) return;
+    setErr('');
+    try { setImg(await imageToDataUrl(f, { w: 420, h: 150, mode: 'contain', maxBytes: 36000 })); } catch (x) { setErr(x.message); }
+  };
+  const save = () => { actions.setSign({ text: text.trim().slice(0, 18), sub: sub.trim().slice(0, 24), color, img }); setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const shown = (text.trim() || s.name || 'MI TALLER').toUpperCase();
+  return (
+    <div className="sign-ed">
+      <div className="sign-prev">
+        {img ? <img src={img} alt="Vista previa del cartel" style={{ boxShadow: `0 0 0 3px ${color}, 0 0 18px ${color}` }} />
+          : <><b style={{ color, textShadow: `0 0 12px ${color}` }}>{shown}</b>{sub.trim() && <small>{sub.trim().toUpperCase()}</small>}</>}
+      </div>
+      <div className="sign-row">
+        <label className="ol-field">Texto del cartel<div className="pink-input"><input value={text} maxLength={18} onChange={(e) => setText(e.target.value)} placeholder={s.name || 'Nombre de tu taller'} /></div></label>
+        <label className="ol-field">Segunda línea (opcional)<div className="pink-input"><input value={sub} maxLength={24} onChange={(e) => setSub(e.target.value)} placeholder="Ej.: Impresiones 3D" /></div></label>
+      </div>
+      <div className="cos-row"><span>Color</span>{SIGN_COLORS.map((c) => <button key={c} className={'col-opt' + (color === c ? ' active' : '')} style={{ background: c }} onClick={() => setColor(c)} aria-label={'Color ' + c} />)}</div>
+      <div className="cos-row"><span>Imagen</span>
+        <label className="chip-btn file-btn">{img ? 'Cambiar imagen' : 'Subir imagen (logo o banner)'}<input type="file" accept="image/*" onChange={pick} /></label>
+        {img && <button className="chip-btn danger" onClick={() => setImg(null)}>Usar texto</button>}
+      </div>
+      <Err e={err} />
+      <button className="btn-center" onClick={save}>{saved ? '✔ Cartel guardado' : 'Guardar cartel'}</button>
+      <p className="hint">Si no escribís nada, el cartel dice el nombre de tu taller. Se ve en tu taller y cuando otros makers te visitan.</p>
+    </div>
+  );
 }
 export function Emblem({ emblem = 'nozzle', color = '#5DDADB', size = 40 }) {
   const E = EMBLEMS[emblem] || EMBLEMS.nozzle;
@@ -78,7 +124,7 @@ export function AccountChip({ online, open }) {
   const name = p?.nick || online.user.user_metadata?.full_name?.split(' ')[0] || 'Mi cuenta';
   return (
     <button className="acct-chip in" onClick={() => open('online', null, 'perfil')} title="Tu perfil online">
-      <Avatar name={name} frame={p?.frame} size={26} />
+      <Avatar name={name} frame={p?.frame} src={p?.avatar} size={26} />
       <span className="acct-txt"><b>{name}</b>{online.me?.points != null && p && <small>{num(online.me.points)} pts</small>}</span>
     </button>
   );
@@ -285,7 +331,7 @@ function ProfileView({ s, actions, online }) {
     <div>
       {p.banned && <p className="ol-err">Tu cuenta está bloqueada en el juego online{p.ban_reason ? ` (${p.ban_reason})` : ''}. Podés seguir jugando y tu partida se sigue guardando, pero no sumás puntos. Si creés que es un error, escribinos en la Comunidad.</p>}
       <div className="prof-card">
-        <Avatar name={p.nick} frame={p.frame} size={64} />
+        <span className="av-edit"><Avatar name={p.nick} frame={p.frame} src={p.avatar} size={64} /><PhotoButton online={online} has={!!p.avatar} /></span>
         <div className="prof-txt">
           <b>{p.nick}</b>
           {titleName(p.title) && <span className="prof-title">{titleName(p.title)}</span>}
@@ -325,6 +371,9 @@ function ProfileView({ s, actions, online }) {
       </div>
       <p className="hint">Cada cosa tiene un tope por día: así el ranking premia jugar bien y seguido, no solo jugar más horas. Los logros y cada máquina nueva suman una sola vez. Los puntos los calcula el servidor con tu partida de la nube.</p>
 
+      <div className="section-label">TU CARTEL DE NEÓN</div>
+      <SignEditor s={s} actions={actions} />
+
       <div className="section-label">TUS PREMIOS PARA EL TALLER</div>
       {['decor', 'skin', 'effect'].every((k) => mine(k).length === 0) && <p className="hint">Todavía no ganaste decoraciones. Se ganan en los retos.</p>}
       {mine('decor').length > 0 && (
@@ -355,6 +404,28 @@ function ProfileView({ s, actions, online }) {
       <p className="hint">Cuenta: {online.user.email}</p>
       <button className="btn-alt" onClick={online.signOut}>Cerrar sesión en este navegador</button>
     </div>
+  );
+}
+
+// Subir o sacar la foto de perfil (se achica a 96×96 antes de subirla).
+function PhotoButton({ online, has }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const pick = async (e) => {
+    const f = e.target.files?.[0]; e.target.value = '';
+    if (!f) return;
+    setBusy(true); setErr('');
+    try { const url = await imageToDataUrl(f, { w: 96, h: 96, mode: 'cover', maxBytes: 22000 }); await rpc('bb_mt_avatar_set', { p_avatar: url }); await online.refreshMe(); }
+    catch (x) { setErr(x.missing ? 'Las fotos todavía no están activadas.' : x.message); }
+    setBusy(false);
+  };
+  const remove = async () => { setBusy(true); try { await rpc('bb_mt_avatar_set', { p_avatar: null }); await online.refreshMe(); } catch (x) { setErr(x.message); } setBusy(false); };
+  return (
+    <span className="photo-btns">
+      <label className={'chip-btn file-btn' + (busy ? ' busy' : '')} title="Subir tu foto de perfil">{busy ? '…' : has ? 'Cambiar foto' : '📷 Foto'}<input type="file" accept="image/*" onChange={pick} disabled={busy} /></label>
+      {has && !busy && <button className="link-btn" onClick={remove}>Sacar</button>}
+      {err && <small className="photo-err">{err}</small>}
+    </span>
   );
 }
 
@@ -405,7 +476,7 @@ function RankingTab({ online, onVisit }) {
               </div>
             ) : (
               <div key={r.rank + r.name} className={'rank-row' + (r.me ? ' me' : '')}>
-                <span className="rk">{medal(r.rank)}</span><Avatar name={r.name} frame={r.frame} size={30} />
+                <span className="rk">{medal(r.rank)}</span><Avatar name={r.name} frame={r.frame} src={r.avatar} size={30} />
                 <span className="rn">{r.name}{titleName(r.title) && <em className="rt">{titleName(r.title)}</em>}
                   {r.farm && <small className="rf"><Emblem emblem={r.farm.emblem} color={r.farm.color} size={14} /> {r.farm.name}</small>}</span>
                 <b>{num(r.points)}</b>
@@ -629,7 +700,7 @@ function FarmView({ id, online, onVisit }) {
       <div className="farm-members">
         {f.members.map((m, i) => (
           <div key={i} className={'fm-row' + (m.me ? ' me' : '')}>
-            <Avatar name={m.name} frame={m.frame} size={32} />
+            <Avatar name={m.name} frame={m.frame} src={m.avatar} size={32} />
             <span className="fm-txt"><b>{m.name}{m.playing && <i className="live-dot" title="Jugando ahora" />}</b><small>{ROLE[m.role]}{titleName(m.title) ? ` · ${titleName(m.title)}` : ''} · aportó {num(m.contributed)} pts</small></span>
             {visitable(m) && !m.me && <button className="chip-btn visit-btn" onClick={() => onVisit(m.name)}>Ver taller</button>}
             {can(m) && (

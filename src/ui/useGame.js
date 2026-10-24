@@ -344,6 +344,10 @@ export function useGame() {
         st.cosmetics.decor = [...set];
       } else st.cosmetics[k] = st.cosmetics[k] === v ? null : v;
     }),
+    setSign: (sign) => act((st) => {
+      st.cosmetics = st.cosmetics || { unlocked: [], decor: [], skin: null, effect: null };
+      st.cosmetics.sign = sign;
+    }),
     takeOver: () => takeOverRef.current?.(),
     dismissBati: (id) => setBati((q) => q.filter((x) => x.id !== id)),
     say,

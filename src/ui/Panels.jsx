@@ -12,6 +12,7 @@ import { ACHIEVEMENTS } from '../game/progress.js';
 import { money, rate, dur, num, fmtText, SEASON } from '../game/format.js';
 import { LINKS, IG_HANDLE, VERSION } from '../config.js';
 import { FILACOLOR, fcUrl } from '../online/filacolor.js';
+import { SignEditor } from './Online.jsx';
 
 const FlagAR = () => (
   <svg className="flag" viewBox="0 0 18 12" width="18" height="12" aria-hidden="true">
@@ -456,6 +457,9 @@ export function SettingsModal({ s, actions, onClose, online, open }) {
           );
         })}
       </div>
+
+      <div className="section-label">TU CARTEL DE NEÓN</div>
+      <SignEditor s={s} actions={actions} />
 
       <div className="section-label">TU PARTIDA</div>
       <p className="hint">{online?.available !== true ? <>Se guarda sola en este navegador. Para pasarla a otro dispositivo, copiá el código y pegalo allá.</> : online?.user
