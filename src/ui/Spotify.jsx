@@ -96,7 +96,11 @@ export function SpotifyDock({ s, actions }) {
 
   if (!st.open) return null;
   return (
-    <div className={'spotify-dock' + (st.min ? ' min' : '')} role="region" aria-label="Tu música de Spotify">
+    <div className={'spotify-dock' + (st.min ? ' min' : '') + (st.playing ? ' playing' : '')} role="region" aria-label="Tu música de Spotify">
+      {/* Achicado: solo el logo (la música sigue sonando) */}
+      <button className="sd-mini" onClick={() => set({ min: false })} title={st.playing ? 'Sonando · tocá para ver el reproductor' : 'Mostrar el reproductor de Spotify'}>
+        <Icon name="spotify" size={30} />
+      </button>
       <div className="sd-head">
         <span className="sd-title"><Icon name="spotify" size={18} /> {st.playing ? 'Sonando tu música' : 'Tu música'}</span>
         {st.playing && <span className="sd-duck" title="La música y el ambiente del juego se apagan mientras suena Spotify">Juego en silencio</span>}
@@ -105,6 +109,11 @@ export function SpotifyDock({ s, actions }) {
       </div>
       <div className="sd-body">
         <div className="sd-player" ref={holder} />
+        <label className="sd-vol">
+          <span>Sonidos del juego</span>
+          <input type="range" min="0" max="1" step="0.05" value={s.settings.volume ?? 0.6} onChange={(e) => actions.setting('volume', Number(e.target.value))} />
+        </label>
+        <p className="hint sd-vol-hint">El volumen de Spotify se maneja desde el volumen de tu compu o celular: Spotify no deja que una web lo cambie. Con esta barra equilibrás los sonidos del juego.</p>
         <div className="sd-suggest">{SUGGESTED.map((p) => <button key={p.uri} className={'opt sm' + (uri === p.uri ? ' active' : '')} onClick={() => load(p.uri)}>{p.name}</button>)}</div>
         <div className="sd-link">
           <div className="pink-input"><input value={link} onChange={(e) => setLink(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') fromLink(); }} placeholder="Pegá el link de tu playlist de Spotify" /></div>

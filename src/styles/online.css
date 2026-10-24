@@ -316,7 +316,18 @@
 .sd-title { flex: 1; display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; color: #1DB954; }
 .sd-duck { font-size: 10px; font-weight: 700; color: #cbd5e1; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,.08); }
 .sd-body { margin-top: 8px; }
-.spotify-dock.min .sd-body { height: 0; overflow: hidden; margin: 0; }
+.spotify-dock.min .sd-body { position: absolute; right: 0; bottom: 0; width: 1px; height: 1px; overflow: hidden; margin: 0; opacity: 0; pointer-events: none; }
+/* Achicado: un botón redondo con el logo (el reproductor sigue vivo, escondido) */
+.sd-mini { display: none; }
+.spotify-dock.min { width: auto; padding: 0; border: 0; background: none; box-shadow: none; }
+.spotify-dock.min .sd-head { display: none; }
+.spotify-dock.min .sd-mini { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; border: 0; cursor: pointer;
+  color: #fff; background: #1DB954; box-shadow: 0 10px 24px rgba(0,0,0,.45); }
+.spotify-dock.min.playing .sd-mini { animation: sdpulse 1.6s ease-out infinite; }
+@keyframes sdpulse { 0% { box-shadow: 0 0 0 0 rgba(29,185,84,.6), 0 10px 24px rgba(0,0,0,.45); } 100% { box-shadow: 0 0 0 14px rgba(29,185,84,0), 0 10px 24px rgba(0,0,0,.45); } }
+.sd-vol { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12px; font-weight: 700; color: #cbd5e1; }
+.sd-vol input { flex: 1; accent-color: #1DB954; }
+.sd-vol-hint { margin-top: 4px; font-size: 11px; }
 .sd-player { min-height: 152px; border-radius: 12px; overflow: hidden; background: #121212; }
 .sd-player iframe { display: block; border: 0; border-radius: 12px; }
 .sd-suggest { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
