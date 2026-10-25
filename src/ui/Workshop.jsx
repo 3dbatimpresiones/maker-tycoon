@@ -149,10 +149,10 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
               </button>
             ))}
           </div>
-          <FloorTabs s={s} actions={actions} />
           </>
         )}
       </div>
+      <FloorTabs s={s} actions={actions} />
       {view === '3d' && shown.length > 0 && (
         <div className="machine-strip">
           {shown.map((m) => {

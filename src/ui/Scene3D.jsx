@@ -6,7 +6,6 @@ import { MACHINES, MACHINE_EVENTS, PRODUCTS, SPACES } from '../game/data.js';
 import * as E from '../game/engine.js';
 import { dur } from '../game/format.js';
 import { sfx } from './sfx.js';
-import FloorTabs from './FloorTabs.jsx';
 
 function labelStatus(s, m) {
   if (m.waitStart) return { k: 'start', t: '▶ Imprimir' };
@@ -153,8 +152,7 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
       {ready && onFeedback && <button className="scene-fb" title="Mandanos una idea o contanos si algo anda mal" onClick={onFeedback}><Icon name="message" size={16} /> Sugerencias</button>}
       {ready && <button className="icon-btn sm scene-center" title="Ver todo el taller" onClick={() => { wsRef.current?.fit(); setFocused(false); }}><Icon name="target" size={18} /></button>}
       {ready && focused && <button className="chip-btn scene-back" onClick={() => { wsRef.current?.fit(); setFocused(false); }}>← Ver todo el taller</button>}
-      {ready && actions && <FloorTabs s={s} actions={actions} />}
-      {ready && <span className={'scene-hint' + (floor ? ' up' : '')}>Clic izquierdo: girar · Clic derecho: mover · Rueda: acercar</span>}
+      {ready && <span className="scene-hint">Clic izquierdo: girar · Clic derecho: mover · Rueda: acercar</span>}
     </div>
   );
 }
