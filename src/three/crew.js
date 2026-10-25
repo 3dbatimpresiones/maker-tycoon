@@ -196,7 +196,7 @@ export class SobrinoBrain {
       const rl = u.real;
       if (rl.cur === 'pickup' && rl.acts.pickup.isRunning() && !walking) { /* termina de agacharse */ }
       else this.play(walking && !still ? (this.holding && rl.acts.walk2 ? 'walk2' : 'walk') : 'idle');
-      if (!still) rl.mixer.update(Math.min(0.1, this.dt || 0.016));
+      rl.mixer.update(still ? 0 : Math.min(0.1, this.dt || 0.016)); // quieto: aplica la pose sin avanzar (si no, queda en T)
       this.g.position.y = 0;
       return;
     }
@@ -271,7 +271,7 @@ export class CatActor {
     if (this.real) {
       const s = this.state;
       this.playReal(s === 'go' || s === 'home' ? 'WalkClean' : s === 'up' || s === 'down' ? 'Idle' : 'SittingIdle');
-      if (anim) this.real.mixer.update(Math.min(0.1, dt));
+      this.real.mixer.update(anim ? Math.min(0.1, dt) : 0);
     }
   }
   step(dt, t, target, anim) {
