@@ -10,7 +10,7 @@ import * as E from '../game/engine.js';
 
 const META_KEY = 'mt3dbat.cloud';
 const PUSH_EVERY = 60000;
-const PING_EVERY = 45000;
+const PING_EVERY = 30000; // presencia + minutos jugados (la base cuenta 1 por minuto real)
 const LIVE_EVERY = 60000;
 const DEV_NO_ONLINE = import.meta.env.DEV && new URLSearchParams(window.location.search).get('demo');
 
@@ -269,10 +269,27 @@ export function useOnline(opts) {
   useEffect(() => {
     if (DEV_NO_ONLINE) return undefined;
     const cid = clientId();
+    // "jugando": la ventana del juego está a la vista y se usó en los últimos 2 minutos.
+    // "abierto": el juego sigue abierto pero en otra pestaña/ventana o sin tocarlo.
+    let lastInput = Date.now();
+    const onInput = () => { lastInput = Date.now(); };
+    const INPUTS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'];
+    INPUTS.forEach((ev) => window.addEventListener(ev, onInput, { passive: true }));
+    let lastState = null;
+    let legacy = false; // base sin la migración 033: ping de antes (sin estado), solo con la ventana a la vista
     const ping = () => {
-      if (stopPing.current || !cid || document.visibilityState !== 'visible') return;
-      rpc('bb_live_ping', { p_client: cid, p_app: 'juego' }).catch((e) => { if (isMissing(e) || e.missing) stopPing.current = true; });
+      if (stopPing.current || !cid) return;
+      const state = document.visibilityState === 'visible' && Date.now() - lastInput < 120000 ? 'jugando' : 'abierto';
+      lastState = state;
+      if (legacy && document.visibilityState !== 'visible') return;
+      rpc('bb_live_ping', legacy ? { p_client: cid, p_app: 'juego' } : { p_client: cid, p_app: 'juego', p_state: state }).catch((e) => {
+        if (!(isMissing(e) || e.missing)) return;
+        if (legacy) stopPing.current = true;
+        else { legacy = true; ping(); }
+      });
     };
+    const onVis = () => { const st = document.visibilityState === 'visible' ? 'jugando' : 'abierto'; if (st !== lastState) { if (st === 'jugando') lastInput = Date.now(); ping(); } };
+    document.addEventListener('visibilitychange', onVis);
     const counts = () => {
       if (document.visibilityState !== 'visible') return;
       rpc('bb_live_counts').then((d) => { setLive(d); setAvailable(true); }).catch((e) => { if (e.missing) setAvailable(false); });
@@ -285,7 +302,11 @@ export function useOnline(opts) {
     const t3 = setInterval(() => { top(); loadGifts(); }, 5 * 60000);
     const t1 = setInterval(ping, PING_EVERY);
     const t2 = setInterval(counts, LIVE_EVERY);
-    return () => { clearTimeout(t0); clearInterval(t1); clearInterval(t2); clearInterval(t3); };
+    return () => {
+      clearTimeout(t0); clearInterval(t1); clearInterval(t2); clearInterval(t3);
+      INPUTS.forEach((ev) => window.removeEventListener(ev, onInput));
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [session]);
 
   return {

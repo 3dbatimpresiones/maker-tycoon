@@ -19,17 +19,17 @@ export function Header({ s, actions, open, online, chat }) {
           <div className="brand-logo"><Icon name="box" size={26} /></div>
           <div>
             <h1>MAKER TYCOON <span className="c-cyan">3DBAT</span> <span className="c-cyan">v{VERSION}</span></h1>
-            <p className="tagline">De una impresora en el escritorio a tu propio taller</p>
+            {/* Nombre del taller: chico, editable, debajo del título (lo ven los demás en el ranking y las visitas) */}
+            <label className="name-inline" title="Nombre de tu taller: lo ven los demás en el ranking y en las visitas. Tocá para cambiarlo.">
+              <span aria-hidden="true">✎</span>
+              <input id="tallerName" type="text" placeholder="MI TALLER" maxLength={28} value={s.name} aria-label="Nombre del taller"
+                onChange={(e) => actions.setName(e.target.value)} onFocus={(e) => e.target.select()} size={Math.max(9, (s.name || '').length + 1)} />
+            </label>
           </div>
         </div>
         {BATBOX_HERE && <a className="back-bb" href={BATBOX_HERE + '#/juego'} title="Volver a BATBOX"><Icon name="arrowLeft" size={16} /> BATBOX</a>}
         <CloudPill online={online} s={s} open={open} />
         <LiveChip live={online.live} open={open} />
-      </div>
-      <div className="project-name">
-        <label htmlFor="tallerName">NOMBRE DEL TALLER</label>
-        <input id="tallerName" type="text" placeholder="MI TALLER" maxLength={28} value={s.name}
-          onChange={(e) => actions.setName(e.target.value)} onFocus={(e) => e.target.select()} />
       </div>
       <div className="top-actions">
         <AccountChip online={online} open={open} />

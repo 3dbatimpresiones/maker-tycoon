@@ -304,6 +304,7 @@ export function useGame() {
       return m;
     }),
     moveMachine: (mid, dir) => act((st) => { E.moveMachine(st, mid, dir); }),
+    markSeen: (key) => act((st) => { st.seen = st.seen || {}; st.seen[key] = 1; }),
     tradeIn: (model, mids, tokens = 0) => act((st) => {
       const r = E.tradeIn(st, model, mids, tokens);
       if (r) {

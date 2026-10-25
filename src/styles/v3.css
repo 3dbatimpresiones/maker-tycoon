@@ -31,3 +31,45 @@
 .floor-tabs .ft-dot { position: absolute; top: -3px; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: #ff4d6d; box-shadow: 0 0 6px #ff4d6d; }
 .ml.ml-free.dot { padding: 3px; min-width: 0; width: 24px; height: 24px; border-radius: 50%; justify-content: center; opacity: .75; }
 .ml.ml-free.dot:hover { opacity: 1; }
+
+/* Aviso grande: Nave de producción (nivel 6) / Planta (nivel 7) */
+.nave-intro.modal { width: min(820px, 100%); }
+.nave-intro .ni-hero { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+.nave-intro .ni-hero h3 { margin: 0 0 4px; font-size: 20px; color: var(--cyan, #5DDADB); }
+.nave-intro .ni-hero p { margin: 0; color: #cbd5e1; font-size: 14px; line-height: 1.45; }
+.nave-intro .ni-floors { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+.nave-intro .ni-floor { display: flex; flex-direction: column; gap: 3px; padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.03); }
+.nave-intro .ni-floor .ni-ic { font-size: 22px; }
+.nave-intro .ni-floor b { font-size: 13px; }
+.nave-intro .ni-floor small { font-size: 12px; color: #e2e8f0; font-variant-numeric: tabular-nums; }
+.nave-intro .ni-floor em { font-size: 11px; color: #94a3b8; font-style: normal; line-height: 1.35; }
+.nave-intro .ni-floor.f-fdm { border-color: rgba(93,218,219,.5); }
+.nave-intro .ni-floor.f-resin { border-color: rgba(168,85,247,.55); }
+.nave-intro .ni-floor.f-laser { border-color: rgba(248,113,113,.55); }
+.nave-intro .ni-floor.f-cnc { border-color: rgba(251,146,60,.55); }
+.nave-intro .ni-floor.locked { opacity: .6; }
+.nave-intro .ni-list { display: flex; flex-direction: column; gap: 8px; }
+.nave-intro .ni-list > div { display: flex; gap: 10px; align-items: flex-start; padding: 9px 12px; border-radius: 12px; background: rgba(255,255,255,.035); }
+.nave-intro .ni-list span { font-size: 18px; line-height: 1.3; }
+.nave-intro .ni-list p { margin: 0; font-size: 13.5px; line-height: 1.45; color: #cbd5e1; }
+.nave-intro .ni-list b { color: #fff; }
+.nave-intro code { font-size: 12px; padding: 1px 6px; border-radius: 6px; background: rgba(0,212,255,.12); color: #a5f3fc; }
+@media (max-width: 640px) {
+  .nave-intro .ni-floors { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nave-intro .ni-hero { flex-direction: column; text-align: center; }
+}
+
+/* Encabezado compacto: sin el recuadro grande del nombre; el nombre va chico debajo del título */
+.topbar { display: flex !important; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; padding: 12px 28px 10px; }
+.top-left { gap: 10px; }
+.top-actions { gap: 8px; }
+.name-inline { display: inline-flex; align-items: center; gap: 5px; margin-top: 3px; padding: 1px 8px 1px 6px; border-radius: 8px; border: 1px dashed transparent; cursor: text; color: var(--pink); font-size: 12px; }
+.name-inline:hover, .name-inline:focus-within { border-color: rgba(247,142,182,.55); background: rgba(247,142,182,.07); }
+.name-inline span { opacity: .7; font-size: 12px; }
+.name-inline input { background: transparent; border: 0; outline: none; padding: 0; font: inherit; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--pink); min-width: 0; max-width: 260px; }
+.name-inline input::placeholder { color: rgba(247,142,182,.45); }
+@media (max-width: 640px) {
+  .topbar { padding: 10px 14px 6px; }
+  .name-inline input { max-width: 170px; }
+}
+.top-actions { margin-left: auto; justify-content: flex-end; }

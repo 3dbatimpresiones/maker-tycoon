@@ -16,6 +16,7 @@ import { useChat } from '../online/useChat.js';
 import { ChatPanel } from './Chat.jsx';
 import { OnlineModal, ConflictModal, LockedOverlay, WelcomeGate, ProfileSetup, useGate, FeedbackModal } from './Online.jsx';
 import { VisitModal } from './Visit.jsx';
+import NaveIntro, { naveIntroKey } from './NaveIntro.jsx';
 import { SpotifyDock } from './Spotify.jsx';
 import { BRAND_DISCLAIMER } from '../game/data.js';
 
@@ -124,6 +125,9 @@ export default function App() {
       {gate.profile && !locked && !online.conflict && !modal && <ProfileSetup online={online} onSkip={gate.skipProfile} />}
       {locked && <LockedOverlay onTakeOver={actions.takeOver} />}
       {offline && !modal && !online.conflict && !locked && !gate.login && !gate.profile && <OfflineModal r={offline} onClose={actions.closeOffline} />}
+      {/* Aviso grande al llegar a la Nave (nivel 6) / Planta (nivel 7) */}
+      {naveIntroKey(s) && !offline && !modal && !online.conflict && !locked && !gate.login && !gate.profile && !s.tutorial.active &&
+        <NaveIntro s={s} which={naveIntroKey(s)} actions={actions} onClose={() => setTab('taller')} />}
     </div>
   );
 }
