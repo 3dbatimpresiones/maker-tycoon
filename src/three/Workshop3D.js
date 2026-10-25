@@ -131,8 +131,8 @@ export class Workshop3D {
 
   applyQuality() {
     const q = this.quality;
-    // Texturas y objetos reales en calidad alta y media; la luz de taller real (HDRI) solo en alta.
-    REAL.on = q !== 'baja';
+    // Texturas, objetos y personajes reales en todas las calidades; la luz de taller real (HDRI) solo en alta.
+    REAL.on = true;
     if (q === 'alta') {
       loadWorkshopEnv(this.renderer).then((env) => {
         if (env && this.quality === 'alta' && this.scene) { this.scene.environment = env; this.scene.environmentIntensity = 0.5; }
@@ -166,11 +166,8 @@ export class Workshop3D {
   setQuality(q) {
     const r = resolveQuality(q);
     if (r === this.quality) return;
-    const wasReal = r !== 'baja', isReal = this.quality !== 'baja';
     this.quality = r;
     this.applyQuality();
-    // Cambia entre taller simple y realista: se vuelve a armar el ambiente.
-    if (wasReal !== isReal && this.space != null) this.buildSpace(this.space);
   }
 
   resize() {
