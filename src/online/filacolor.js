@@ -6,6 +6,7 @@
 
 const BASE = 'https://filacolor.com.ar';
 const UTM = 'utm_source=3dbat&utm_medium=maker-tycoon&utm_campaign=proveedor-oficial';
+export const fcPhoto = (id) => (FILACOLOR.photos[id] ? `${import.meta.env.BASE_URL || './'}assets/fc/${FILACOLOR.photos[id]}.webp` : null);
 export const fcUrl = (path = '/', medium = 'maker-tycoon') =>
   `${BASE}${path}${path.includes('?') ? '&' : '?'}${UTM.replace('maker-tycoon', medium)}`;
 
@@ -71,6 +72,12 @@ export const FILACOLOR = {
     a1: '/producto/bambu-lab-a1/',
     k1c: '/producto/creality-k1c/',
     u1: '/producto/snapmaker-u1/',
+  },
+  // Fotos reales de los productos (tomadas de filacolor.com.ar, proveedor oficial y socio de 3DBAT).
+  // Están en public/assets/fc/. Se usan en la tienda en lugar del dibujo 3D.
+  photos: {
+    ender3: 'ender3', a1mini: 'a1mini', a1: 'a1', k1c: 'k1c', u1: 'u1',
+    PLA: 'PLA', PETG: 'PETG', TPU: 'TPU', ASA: 'ASA', PACF: 'PACF',
   },
   // Materiales del juego → categoría en Filacolor.
   gameMaterials: {

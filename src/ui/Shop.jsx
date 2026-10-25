@@ -6,7 +6,7 @@ import { MachineThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
 import { MACHINES, MACHINE_ORDER, UPGRADES, UPGRADE_ORDER, SPACES, MATERIALS, MATERIAL_ORDER, PRODUCTS, TECHS, SIZE_NAME, UNIT } from '../game/data.js';
 import { money, dur, kg } from '../game/format.js';
-import { FILACOLOR, fcUrl } from '../online/filacolor.js';
+import { FILACOLOR, fcUrl, fcPhoto } from '../online/filacolor.js';
 import fcLogo from '../assets/filacolor-logo.png';
 import Market, { WearBar } from './Market.jsx';
 import { Modal } from './Panels.jsx';
@@ -120,7 +120,7 @@ function Machines({ s, actions, glow }) {
         const multi = E.isMulti(s, M);
         return (
           <div key={id} className={'shop-item' + (unlocked ? '' : ' locked')}>
-            <div className="shop-art"><MachineThumb model={id} /></div>
+            <div className="shop-art"><MachineThumb model={id} />{fcPhoto(id) && <span className="fc-photo-tag">Foto Filacolor</span>}</div>
             <div className="shop-txt">
               <span className="brand-tag">{M.brand}</span>
               {FILACOLOR.machines[id] && <a className="fc-tag" href={fcUrl(FILACOLOR.machines[id])} target="_blank" rel="noopener noreferrer" title="La versión real, en el proveedor oficial de la comunidad">En Filacolor ↗</a>}
@@ -269,7 +269,9 @@ function Materials({ s, actions }) {
         const units = s.mat[k] / UNIT;
         return (
           <div key={k} className={'fil-item' + (unlocked ? '' : ' locked')}>
-            <div className="fil-spool" style={{ background: M.color }} />
+            {fcPhoto(k)
+              ? <img className="fil-photo" src={fcPhoto(k)} alt="" title="Foto: Filacolor" loading="lazy" />
+              : <div className="fil-spool" style={{ background: M.color }} />}
             <div className="shop-txt">
               <b>{M.name}</b>
               <small>{M.desc} <em className="muted">({M.brand})</em>{FILACOLOR.gameMaterials[k] && <> · <a className="fc-mini" href={fcUrl(FILACOLOR.gameMaterials[k])} target="_blank" rel="noopener noreferrer">Ver en Filacolor ↗</a></>}</small>

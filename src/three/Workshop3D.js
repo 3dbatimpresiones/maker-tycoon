@@ -11,6 +11,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 import { buildMachine } from './machines.js';
 import { buildRoom, buildBench, BENCH_H, SX } from './rooms.js';
+import { REAL, loadWorkshopEnv } from './real.js';
 import { makeSobrino, SobrinoBrain, CatActor, makeGift, giftLabel } from './crew.js';
 import { MACHINES, SPACES, LED_COLORS } from '../game/data.js';
 import { isMulti, has } from '../game/engine.js';
@@ -73,7 +74,8 @@ export class Workshop3D {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color('#0a0e22');
     const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.roomEnv = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environment = this.roomEnv;
     this.scene.environmentIntensity = 0.55;
     pmrem.dispose();
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.03, 80);
@@ -129,6 +131,13 @@ export class Workshop3D {
 
   applyQuality() {
     const q = this.quality;
+    // Texturas y objetos reales en calidad alta y media; la luz de taller real (HDRI) solo en alta.
+    REAL.on = q !== 'baja';
+    if (q === 'alta') {
+      loadWorkshopEnv(this.renderer).then((env) => {
+        if (env && this.quality === 'alta' && this.scene) { this.scene.environment = env; this.scene.environmentIntensity = 0.5; }
+      });
+    } else if (this.scene && this.roomEnv) { this.scene.environment = this.roomEnv; this.scene.environmentIntensity = 0.55; }
     const dpr = Math.min(window.devicePixelRatio || 1, q === 'alta' ? 2 : q === 'media' ? 1.5 : 1);
     this.renderer.setPixelRatio(dpr);
     this.renderer.shadowMap.enabled = q !== 'baja';
@@ -157,8 +166,11 @@ export class Workshop3D {
   setQuality(q) {
     const r = resolveQuality(q);
     if (r === this.quality) return;
+    const wasReal = r !== 'baja', isReal = this.quality !== 'baja';
     this.quality = r;
     this.applyQuality();
+    // Cambia entre taller simple y realista: se vuelve a armar el ambiente.
+    if (wasReal !== isReal && this.space != null) this.buildSpace(this.space);
   }
 
   resize() {

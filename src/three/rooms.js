@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { M, std, TEX } from './materials.js';
 import { buildPiece } from './pieces.js';
 import { MATERIALS, MATERIAL_ORDER, UNIT } from '../game/data.js';
+import { REAL, pbr, placeProp, realSpool } from './real.js';
 
 const GRID = { 2: [2, 1], 4: [4, 1], 8: [4, 2], 12: [4, 3], 16: [4, 4], 20: [5, 4], 24: [6, 4] };
 export const SX = 1.2, SZ = 1.45, BENCH_H = 0.76;
@@ -32,8 +33,11 @@ export function slotLayout(n) {
 // Banco de trabajo / escritorio para un lugar
 export function buildBench(style) {
   const g = new THREE.Group();
-  const top = style === 'desk' ? std('#ffffff', 0.7, 0, { map: TEX.wood([1, 1], '#7a5536') })
-    : style === 'steel' ? std('#8c95a5', 0.4, 0.7) : std('#ffffff', 0.75, 0, { map: TEX.wood([1, 1], '#9a7650') });
+  const top = REAL.on
+    ? (style === 'desk' ? pbr('plywood', [1, 0.68], { tint: '#b48a62', rough: 0.9 })
+      : style === 'steel' ? pbr('metal', [1, 0.68], { tint: '#c9d0da', metal: 0.85, rough: 0.55 }) : pbr('plywood', [1, 0.68], { rough: 0.9 }))
+    : style === 'desk' ? std('#ffffff', 0.7, 0, { map: TEX.wood([1, 1], '#7a5536') })
+      : style === 'steel' ? std('#8c95a5', 0.4, 0.7) : std('#ffffff', 0.75, 0, { map: TEX.wood([1, 1], '#9a7650') });
   box(1.0, 0.05, 0.68, top, 0, BENCH_H - 0.025, 0, g);
   const leg = style === 'desk' ? std('#1d1f24', 0.5, 0.4) : std('#2b2f38', 0.45, 0.6);
   for (const [x, z] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) box(0.045, BENCH_H - 0.05, 0.045, leg, x * 0.46, (BENCH_H - 0.05) / 2, z * 0.3, g);
@@ -43,6 +47,7 @@ export function buildBench(style) {
 }
 
 function spoolMesh(color) {
+  if (REAL.on) return realSpool(color);
   const g = new THREE.Group();
   const f = std('#1f2228', 0.6, 0.1);
   const a = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.008, 24), f); a.rotation.x = Math.PI / 2; a.position.z = 0.035; g.add(a);
@@ -59,14 +64,31 @@ export function buildRoom(space, n) {
   const wallH = space >= 4 ? 4.2 : space >= 2 ? 3.2 : 2.8;
   const room = { group: g, layout: L, W, D, wallH, updaters: [], lights: [] };
   // Piso
-  const floorMat = space <= 1 ? std('#ffffff', 0.75, 0, { map: TEX.wood([W / 2, D / 2], '#5b3d26') })
+  const realFloor = [
+    () => pbr('wood_floor', [W / 2, D / 2], { tint: '#d9c3a8', rough: 0.85 }),
+    () => pbr('wood_floor', [W / 2, D / 2], { rough: 0.8 }),
+    () => pbr('garage_floor', [W / 2.5, D / 2.5], { rough: 0.95 }),
+    () => pbr('tiles', [W / 1.6, D / 1.6], { rough: 0.6 }),
+    () => pbr('factory_floor', [W / 3, D / 3], { rough: 0.95 }),
+    () => pbr('factory_floor', [W / 3, D / 3], { tint: '#cfd3da', rough: 0.95 }),
+  ][space];
+  const floorMat = REAL.on && realFloor ? realFloor() : space <= 1 ? std('#ffffff', 0.75, 0, { map: TEX.wood([W / 2, D / 2], '#5b3d26') })
     : space === 3 ? std('#ffffff', 0.35, 0.05, { map: TEX.tiles([W / 1.2, D / 1.2]) })
       : space === 6 ? std('#ffffff', 0.28, 0.1, { map: TEX.epoxy([W / 3, D / 3]) })
         : std('#ffffff', 0.85, 0.05, { map: TEX.concrete([W / 3, D / 3], space >= 4 ? '#30343e' : '#3a3f4b') });
   const floor = plane(W, D, floorMat, g); floor.rotation.x = -Math.PI / 2;
   // Paredes (fondo e izquierda)
   const wallColor = ['#252b57', '#2a2f63', '#3b4150', '#2b2f5e', '#343a4a', '#2c3140', '#323a5c'][space];
-  const wallMat = std(wallColor, 0.9, 0);
+  const realWall = [
+    () => pbr('plaster', [W / 2.5, wallH / 2.5], { tint: '#6f78b8' }),
+    () => pbr('plaster', [W / 2.5, wallH / 2.5], { tint: '#7c84c4' }),
+    () => pbr('concrete_wall', [W / 3, wallH / 3], { tint: '#9ea3ad' }),
+    () => pbr('plaster', [W / 2.5, wallH / 2.5], { tint: '#8d93c8' }),
+    () => pbr('metal_wall', [W / 2, wallH / 2], { tint: '#8d96aa', metal: 0.5, rough: 0.6 }),
+    () => pbr('metal_wall', [W / 2, wallH / 2], { tint: '#9aa4b8', metal: 0.5, rough: 0.6 }),
+    () => pbr('metal_wall', [W / 2, wallH / 2], { tint: '#a9b3c8', metal: 0.5, rough: 0.6 }),
+  ][space];
+  const wallMat = REAL.on && realWall ? realWall() : std(wallColor, 0.9, 0);
   const back = plane(W, wallH, wallMat, g); back.position.set(0, wallH / 2, -D / 2);
   const left = plane(D, wallH, wallMat, g); left.position.set(-W / 2, wallH / 2, 0); left.rotation.y = Math.PI / 2;
   box(W, 0.1, 0.03, std('#15182e', 0.6, 0), 0, 0.05, -D / 2 + 0.015, g);
@@ -80,8 +102,9 @@ export function buildRoom(space, n) {
   const shelf = new THREE.Group();
   const shelfW = Math.min(2.4, D * 0.6);
   shelf.position.set(-W / 2 + 0.22, 0, -D / 2 + shelfW / 2 + 0.4);
-  for (let i = 0; i < 3; i++) box(0.36, 0.03, shelfW, std('#2b2f38', 0.5, 0.5), 0, 0.9 + i * 0.42, 0, shelf);
-  for (const z of [-1, 1]) box(0.36, 1.9, 0.03, std('#2b2f38', 0.5, 0.5), 0, 0.95, z * shelfW / 2, shelf);
+  const shelfMat = REAL.on ? pbr('metal', [0.4, shelfW], { tint: '#6c7380', metal: 0.8, rough: 0.5 }) : std('#2b2f38', 0.5, 0.5);
+  for (let i = 0; i < 3; i++) box(0.36, 0.03, shelfW, shelfMat, 0, 0.9 + i * 0.42, 0, shelf);
+  for (const z of [-1, 1]) box(0.36, 1.9, 0.03, shelfMat, 0, 0.95, z * shelfW / 2, shelf);
   add(shelf);
   room.shelf = shelf; room.shelfW = shelfW;
   room.setStock = (mat) => {
@@ -129,8 +152,13 @@ export function buildRoom(space, n) {
     const mate = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.028, 0.08, 16), std('#6b3f22', 0.6, 0)); mate.position.set(0.38, 0.81, 0.1); side.add(mate);
     const bomb = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.12, 8), M.alu()); bomb.position.set(0.39, 0.86, 0.1); bomb.rotation.z = 0.25; side.add(bomb);
     const yerba = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.005, 16), std('#5c7a2e', 0.9, 0)); yerba.position.set(0.38, 0.85, 0.1); side.add(yerba);
-    const termo = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 20), std('#2f6f4f', 0.35, 0.6)); termo.position.set(0.46, 0.92, -0.05); side.add(termo);
-    const tapa = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.05, 20), std('#1d1f24', 0.5, 0.3)); tapa.position.set(0.46, 1.09, -0.05); side.add(tapa);
+    if (REAL.on) {
+      placeProp(side, 'modified_thermos', { pos: [0.46, 0.765, -0.05], size: 0.32 });
+      placeProp(side, 'office_notepads', { pos: [-0.12, 0.765, 0.16], rotY: 0.3, size: 0.2, fit: 'max' });
+    } else {
+      const termo = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 20), std('#2f6f4f', 0.35, 0.6)); termo.position.set(0.46, 0.92, -0.05); side.add(termo);
+      const tapa = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.05, 20), std('#1d1f24', 0.5, 0.3)); tapa.position.set(0.46, 1.09, -0.05); side.add(tapa);
+    }
     const arm = new THREE.Group(); arm.position.set(-0.42, 0.77, -0.1); side.add(arm);
     box(0.12, 0.02, 0.12, std('#1d1f24', 0.5, 0.4), 0, 0, 0, arm);
     const a1 = box(0.02, 0.4, 0.02, std('#1d1f24', 0.5, 0.4), 0, 0.2, 0, arm); a1.rotation.z = -0.25;
@@ -148,8 +176,16 @@ export function buildRoom(space, n) {
     const door = plane(2.6, 2.4, std('#ffffff', 0.5, 0.6, { map: TEX.corrugated([10, 1]) }), g); door.position.set(0.6, 1.2, -D / 2 + 0.01);
     const peg = plane(1.8, 1.0, std('#ffffff', 0.8, 0, { map: TEX.pegboard([7, 4]) }), g); peg.position.set(-W / 2 + 0.01, 1.6, D / 2 - 1.4); peg.rotation.y = Math.PI / 2;
     for (let i = 0; i < 6; i++) box(0.04, 0.22 + (i % 3) * 0.08, 0.06, std(i % 2 ? '#e63946' : '#c9ced8', 0.4, 0.6), -W / 2 + 0.05, 1.55, D / 2 - 2.1 + i * 0.25, g);
-    box(0.6, 0.9, 0.45, std('#c62828', 0.4, 0.5), W / 2 - 0.5, 0.45, -D / 2 + 0.35, g);
-    for (let i = 0; i < 3; i++) { const tube = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 1.4).rotateX(Math.PI / 2), emissive('#e8f4ff', 2.2)); tube.position.set((i - 1) * 2.2, wallH - 0.05, 0); g.add(tube); }
+    if (REAL.on) placeProp(g, 'metal_tool_chest', { pos: [W / 2 - 0.55, 0, -D / 2 + 0.4], size: 0.95 });
+    else box(0.6, 0.9, 0.45, std('#c62828', 0.4, 0.5), W / 2 - 0.5, 0.45, -D / 2 + 0.35, g);
+    for (let i = 0; i < 3; i++) {
+      const tube = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 1.4).rotateX(Math.PI / 2), emissive('#e8f4ff', 2.2)); tube.position.set((i - 1) * 2.2, wallH - 0.05, 0); g.add(tube);
+      if (REAL.on) { // artefacto de tubo fluorescente: carcasa de chapa + tubo encendido
+        tube.visible = false;
+        box(0.16, 0.05, 1.45, pbr('metal', [0.2, 1], { tint: '#d8dde4', metal: 0.6, rough: 0.5 }), (i - 1) * 2.2, wallH - 0.03, 0, g, false);
+        const t2 = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 1.36, 12).rotateX(Math.PI / 2), emissive('#eef6ff', 2.4)); t2.position.set((i - 1) * 2.2, wallH - 0.075, 0); g.add(t2);
+      }
+    }
   }
   // Carteles del taller: muestran el cartel personalizado de cada jugador (nombre del taller,
   // texto propio o una imagen). room.setSign() los vuelve a dibujar.
@@ -245,6 +281,40 @@ export function buildRoom(space, n) {
     room.updaters.push((t) => { boxes.forEach((b, i) => { const span = W - 1.6; b.position.x = ((t * 0.25 + i / boxes.length) % 1) * span - span / 2; }); });
     for (let i = 0; i < 5; i++) for (let r = 0; r < 2; r++) { const lamp = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.2).rotateX(Math.PI / 2), emissive('#dfe8ff', 1.1)); lamp.position.set(-W / 2 + 1.6 + i * (W - 3.2) / 4, wallH - 0.2, -D / 4 + r * D / 2); g.add(lamp); }
   }
+  // Objetos reales del ambiente (Poly Haven, CC0), según el tamaño del taller.
+  if (REAL.on) {
+    const rx = W / 2, bz = -D / 2, fz = D / 2;
+    const P = (name, x, y, z, o = {}) => placeProp(g, name, { pos: [x, y, z], ...o });
+    if (space <= 1) {
+      P('potted_plant_01', rx - 0.35, 0, bz + 0.4, { size: space === 0 ? 0.7 : 0.9 });
+      if (space === 1) {
+        P('metal_stool_01', L.cols * SX / 2 + 0.55, 0, 0.75, { size: 0.62 });
+        P('plastic_crate_01', -W / 2 + 0.5, 0, fz - 0.55, { rotY: 0.3, size: 0.32 });
+        P('wall_clock', rx - 1.1, wallH * 0.74, bz + 0.03, { size: 0.32, fit: 'max' });
+      }
+    }
+    if (space === 2) {
+      P('korean_fire_extinguisher_01', rx - 1.2, 0, bz + 0.18, { size: 0.55 });
+      P('plastic_crate_01', -W / 2 + 0.55, 0, fz - 0.5, { rotY: -0.2, size: 0.32 });
+      P('metal_stool_01', rx - 0.45, 0, fz - 1.9, { size: 0.62 });
+      P('wall_clock', -W / 2 + 0.03, wallH * 0.74, fz - 0.6, { rotY: Math.PI / 2, size: 0.32, fit: 'max' });
+    }
+    if (space === 3) {
+      P('potted_plant_01', -W / 2 + 0.45, 0, fz - 0.45, { size: 1.0 });
+      P('potted_plant_01', rx - 0.4, 0, bz + 1.3, { size: 0.85, rotY: 1.2 });
+      P('wall_clock', rx - 2.4, wallH * 0.78, bz + 0.03, { size: 0.34, fit: 'max' });
+      P('korean_fire_extinguisher_01', rx - 0.3, 0, fz - 0.35, { size: 0.55 });
+      P('metal_stool_01', rx - 1.2, 0, bz + 1.25, { size: 0.62 });
+    }
+    if (space >= 4) {
+      const shelves = space === 6 ? 3 : 2;
+      for (let i = 0; i < shelves; i++) P('steel_frame_shelves_01', rx - 1.1 - i * 1.6, 0, bz + 0.38, { size: 2.0 });
+      P('metal_tool_chest', -W / 2 + 0.6, 0, fz - 0.6, { rotY: Math.PI / 2, size: 1.0 });
+      P('korean_fire_extinguisher_01', -W / 2 + 0.3, 0, bz + 1.4, { size: 0.6 });
+      P('korean_fire_extinguisher_01', rx - 0.3, 0, fz - 0.3, { size: 0.6 });
+      for (let i = 0; i < 3; i++) P('plastic_crate_01', rx - 1.0 - i * 0.45, 0, fz - 0.35, { rotY: i * 0.2, size: 0.32 });
+    }
+  }
   room.setLed = (color) => led.emissive.set(color);
   room.setVitrina = (list) => {
     if (!room.vitrinaPos) return;
@@ -280,9 +350,12 @@ export function buildRoom(space, n) {
   function makeBox(i) {
     const b = new THREE.Group();
     const s = 0.22 + (i % 3) * 0.03;
-    box(s, s * 0.8, s, boxMat, 0, s * 0.4, 0, b);
-    box(s * 1.01, 0.004, 0.04, tapeMat, 0, s * 0.8 + 0.002, 0, b, false);
-    box(s * 0.4, s * 0.25, 0.002, labelMat, 0, s * 0.45, s / 2 + 0.002, b, false);
+    if (REAL.on) placeProp(b, 'cardboard_box_01', { size: s, fit: 'max' });
+    else {
+      box(s, s * 0.8, s, boxMat, 0, s * 0.4, 0, b);
+      box(s * 1.01, 0.004, 0.04, tapeMat, 0, s * 0.8 + 0.002, 0, b, false);
+      box(s * 0.4, s * 0.25, 0.002, labelMat, 0, s * 0.45, s / 2 + 0.002, b, false);
+    }
     const col = i % 3, row = Math.floor(i / 3) % 2, lev = Math.floor(i / 6);
     b.position.set(-0.32 + col * 0.31, baseY + lev * 0.26, -0.1 + row * 0.26 * (space >= 2 ? 0.8 : 1));
     b.rotation.y = (i * 0.37) % 0.3 - 0.15;
