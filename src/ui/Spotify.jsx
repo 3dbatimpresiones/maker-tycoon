@@ -86,6 +86,12 @@ export function SpotifyDock({ s, actions }) {
     if (!u) { setErr('Pegá un link de Spotify (playlist, álbum, canción o podcast).'); return; }
     setLink(''); load(u);
   };
+  // Al cerrar o recargar la página se suelta el reproductor (evita que el navegador quede trabado).
+  useEffect(() => {
+    const off = () => { try { ctrl.current?.destroy(); } catch { /* nada */ } ctrl.current = null; if (holder.current) holder.current.innerHTML = ''; };
+    window.addEventListener('pagehide', off);
+    return () => window.removeEventListener('pagehide', off);
+  }, []);
   const close = () => {
     try { ctrl.current?.destroy(); } catch { /* ya no estaba */ }
     ctrl.current = null;

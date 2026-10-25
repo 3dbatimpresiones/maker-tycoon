@@ -337,3 +337,6 @@ const music = {
     }
   },
 };
+
+// Al cerrar o recargar la página se cierra el audio (evita que el navegador quede trabado).
+if (typeof window !== 'undefined') window.addEventListener('pagehide', () => { try { ctx?.close(); } catch { /* nada */ } ctx = null; });

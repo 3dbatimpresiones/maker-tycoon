@@ -41,9 +41,18 @@ function setup() {
   const key = new THREE.DirectionalLight('#ffffff', 2.2); key.position.set(2, 4, 3); scene.add(key);
   const rim = new THREE.DirectionalLight('#F78EB6', 1.2); rim.position.set(-3, 2, -2); scene.add(rim);
   const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 50);
-  ctx = { renderer, scene, camera };
+  ctx = { renderer, scene, camera, pmrem };
   return ctx;
 }
+// El dibujante de miniaturas suelta la placa de video cuando no lo necesita (y al cerrar o recargar).
+let idleT = null;
+function release() {
+  if (!ctx) return;
+  const { renderer, scene, pmrem } = ctx;
+  ctx = null;
+  try { scene.environment?.dispose(); pmrem.dispose(); renderer.dispose(); renderer.forceContextLoss(); } catch { /* nada */ }
+}
+if (typeof window !== 'undefined') window.addEventListener('pagehide', release);
 
 function frameObject(camera, obj) {
   const box = new THREE.Box3().setFromObject(obj);
@@ -90,7 +99,8 @@ function renderOne(key) {
 function pump() {
   if (busy) return;
   const key = queue.shift();
-  if (!key) return;
+  clearTimeout(idleT);
+  if (!key) { idleT = setTimeout(release, 3000); return; }
   busy = true;
   const go = () => {
     try { if (!cache.has(key)) { cache.set(key, renderOne(key)); persist(); } } catch { cache.set(key, null); }

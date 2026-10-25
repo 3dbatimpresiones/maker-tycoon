@@ -65,7 +65,7 @@ export class Workshop3D {
   constructor(canvas, opts = {}) {
     this.canvas = canvas;
     this.quality = resolveQuality(opts.quality);
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: this.quality === 'media', powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: this.quality === 'media', powerPreference: 'default' }); // sin forzar la placa de alto rendimiento: al recargar puede colgar el navegador en notebooks con dos placas
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.0;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -134,9 +134,13 @@ export class Workshop3D {
     // Texturas, objetos y personajes reales en todas las calidades; la luz de taller real (HDRI) solo en alta.
     REAL.on = true;
     if (q === 'alta') {
-      loadWorkshopEnv(this.renderer).then((env) => {
-        if (env && this.quality === 'alta' && this.scene) { this.scene.environment = env; this.scene.environmentIntensity = 0.5; }
-      });
+      // La luz de taller real se carga un rato después de arrancar (el arranque queda más liviano).
+      setTimeout(() => {
+        if (this.disposed || this.quality !== 'alta') return;
+        loadWorkshopEnv(this.renderer).then((env) => {
+          if (env && !this.disposed && this.quality === 'alta' && this.scene) { this.scene.environment = env; this.scene.environmentIntensity = 0.5; }
+        });
+      }, 2500);
     } else if (this.scene && this.roomEnv) { this.scene.environment = this.roomEnv; this.scene.environmentIntensity = 0.55; }
     const dpr = Math.min(window.devicePixelRatio || 1, q === 'alta' ? 2 : q === 'media' ? 1.5 : 1);
     this.renderer.setPixelRatio(dpr);
