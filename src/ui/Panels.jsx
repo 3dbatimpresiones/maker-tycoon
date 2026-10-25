@@ -503,6 +503,10 @@ export function SettingsModal({ s, actions, onClose, online, open }) {
         ))}
       </div>
       <p className="hint">Con «Mínimas» las máquinas no se mueven, pero las piezas igual crecen y las barras avanzan.</p>
+      <label className="ch-toggle lite-toggle">
+        <input type="checkbox" checked={!!st.lite} onChange={(e) => { actions.setting('lite', e.target.checked); if (e.target.checked) actions.setting('anim', 'min'); }} />
+        <span><b>⚡ Modo liviano</b> · sin la plata que sale de cada máquina, sin barritas, sin brillos ni animaciones, y el 3D a menos cuadros. Ideal si la compu anda lenta.</span>
+      </label>
 
       <div className="section-label">LUCES DEL TALLER</div>
       <div className="face-grid led-grid">

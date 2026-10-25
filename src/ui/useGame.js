@@ -93,6 +93,7 @@ export function useGame() {
   }, [say]);
   const floatAt = useCallback((mid, text, kind = 'money') => {
     const id = uid++;
+    if (ref.current?.settings?.lite) return; // modo liviano: sin números flotando
     setFloats((f) => [...f.slice(-24), { id, mid, text, kind }]);
     setTimeout(() => setFloats((f) => f.filter((x) => x.id !== id)), 1300);
   }, []);

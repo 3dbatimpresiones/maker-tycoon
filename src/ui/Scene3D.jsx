@@ -52,7 +52,7 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
   sRef.current = s;
 
   useEffect(() => {
-    let raf = 0, alive = true, ro = null, lastSync = 0, onExit = null;
+    let raf = 0, alive = true, ro = null, lastSync = 0, onExit = null, lastLite = 0;
     import('../three/Workshop3D.js').then(({ Workshop3D }) => {
       if (!alive) return;
       let ws;
@@ -81,6 +81,8 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
           sfx.setIntensity(st.space);
           sfx.updateMachines(ws.audioPositions());
         }
+        // Modo liviano: el 3D se dibuja a ~30 cuadros por segundo y los carteles se acomodan menos seguido.
+        if (st.settings.lite) { if (now - (lastLite || 0) < 33) return; lastLite = now; }
         ws.frame(st, now / 1000);
         // Posiciones proyectadas + separación simple para que no se pisen
         const items = [];
@@ -160,7 +162,7 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
               onClick={() => onTap(m)} title={`${M.brand} ${M.name}`}>
               <span className="ml-name">{order && <em>📋</em>}{M.brand === 'Bambu Lab' ? 'Bambu' : M.brand} {M.name}</span>
               <span className="ml-st">{st.t}</span>
-              {st.k === 'print' && <span className="ml-bar"><i style={{ width: `${Math.round(p * 100)}%` }} /></span>}
+              {st.k === 'print' && !s.settings.lite && <span className="ml-bar"><i style={{ width: `${Math.round(p * 100)}%` }} /></span>}
               {floats.filter((f) => f.mid === m.id).map((f) => <span key={f.id} className={'float float-' + f.kind}>{f.text}</span>)}
             </button>
           );
