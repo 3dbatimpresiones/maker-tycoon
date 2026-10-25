@@ -327,3 +327,8 @@ button:not(:disabled):active, .chip-btn:not(:disabled):active, .btn-center:not(:
 @media (min-width: 901px) {
   .shop-card .shop-scroll { flex: 1 1 0; min-height: 420px; max-height: none; }
 }
+
+/* Controles del tablero de pedidos */
+.o-ctrl { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: -4px 0 10px; }
+.o-ctrl .chip-btn { font-size: 12px; }
+.o-auto { font-size: 12px; color: #cbd5e1; gap: 6px; }

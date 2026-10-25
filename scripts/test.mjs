@@ -725,4 +725,18 @@ t('pedidos: si falta material se compra solo con envío urgente (no se traba)', 
   assert.equal(s2.stats.spools, 0, 'sin pedido no compra solo');
 });
 
+t('pedidos: liberar todas las máquinas y apagar el Gestor', () => {
+  const s = E.newGame(null, 53); skipTutorial(s);
+  s.orders.spawnT = 999; run(s, 0.2);
+  assert.ok(E.acceptOrder(s, s.orders.offers[0].id));
+  assert.ok(s.machines.some((m) => m.orderId));
+  assert.ok(E.releaseAllOrders(s) >= 1);
+  assert.ok(!s.machines.some((m) => m.orderId) && s.orders.active.length === 1, 'el pedido sigue, sin máquinas');
+  s.upgrades.gestor = 1; s.settings.autoOrders = false; s.orders.spawnT = 999;
+  run(s, 10);
+  assert.ok(s.orders.offers.length >= 1, 'con el Gestor apagado los pedidos esperan en el tablero');
+  s.settings.autoOrders = true; run(s, 5);
+  assert.ok(s.orders.active.length >= 2, 'prendido, los acepta solo');
+});
+
 console.log(`\n${n} pruebas OK`);

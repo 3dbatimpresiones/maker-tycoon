@@ -2,6 +2,26 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.4', date: '2026-10-25', title: 'Más control sobre tus pedidos',
+    intro: 'Arreglos y mejoras que pidieron ustedes.',
+    groups: [
+      ['📋 Pedidos', [
+        'Botón «Liberar máquinas»: saca todas las máquinas de los pedidos para que las asignes vos al que quieras.',
+        'Interruptor «Aceptar pedidos solo» (con el Gestor de pedidos): apagalo y elegís vos qué aceptar, así no se te pasa ningún pedido especial.',
+        'Si falta material para un pedido, se compra solo con envío urgente (+25 %): los pedidos ya no se traban.',
+        'La lista de pedidos tiene su propio scroll.',
+      ]],
+      ['🏭 Planta 3DBAT más grande', [
+        'Ahora tiene pisos de 30 máquinas cada uno: hasta 120 (40 más que la Nave).',
+      ]],
+      ['🧉 Y además', [
+        'Los desafíos cuentan los mates cebados, las piezas retiradas a mano y las fallas resueltas.',
+        'Botón ? a la derecha del mate que explica qué hace.',
+        'Pestañas de la Tienda en dos filas y sin espacio vacío abajo.',
+      ]],
+    ],
+  },
+  {
     v: '1.3', date: '2026-10-25', title: 'Granjas en serio, BATI LIVE y mercado de lotes',
     intro: 'Más motivos para jugar en equipo, juntarse los viernes y ayudar a los que recién empiezan.',
     groups: [
@@ -27,11 +47,6 @@ export const CHANGELOG = [
       ]],
       ['🔧 Arreglos', [
         'Los accesorios de BATI y la historia ya no se pierden al hacer la Mudanza.',
-        'Si falta material para un pedido, se compra solo con envío urgente (+25 %): los pedidos ya no se traban.',
-        'Los desafíos ahora cuentan los mates cebados, las piezas retiradas a mano y las fallas resueltas.',
-        'Botón ? al lado del mate que explica qué hace.',
-        'Pedidos con scroll propio y Tienda sin espacio vacío abajo.',
-        'La Planta 3DBAT ahora tiene pisos más grandes: 30 máquinas cada uno (hasta 120, 40 más que la Nave).',
       ]],
     ],
   },

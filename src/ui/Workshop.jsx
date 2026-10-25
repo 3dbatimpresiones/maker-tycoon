@@ -195,6 +195,10 @@ export default function Workshop({ s, live, actions, floats, onMachine, onEvent,
         </div>
         <div className="rb-actions">
           <button className="btn-apply stats-btn" onClick={() => open('stats')} title="Estadísticas del taller">📊</button>
+          <button className={'btn-apply mate-btn' + (mateOn ? ' on' : '') + (glow === 'mate' && mateReady ? ' tut-glow' : '')}
+            disabled={!mateReady} onClick={actions.mate} title="Atajo: M">
+            🧉 {E.rule(s, 'sinmate') ? 'Sin mate (desafío)' : mateOn ? `Mate activo · ${Math.ceil(s.mate.until - s.time)} s` : mateReady ? `Cebar mate (+${Math.round((E.mateBoost(s) - 1) * 100)} %)` : `Mate en ${clock(s.mate.ready - s.time)}`}
+          </button>
           <span className="mate-help">
             <button className="mate-q" onClick={() => setMateInfo((v) => !v)} aria-label="¿Qué hace el mate?"
               title={`El mate acelera todas tus máquinas un ${Math.round((E.mateBoost(s) - 1) * 100)} % durante ${dur(E.mateDuration(s))}. Después hay que esperar ${dur(E.mateCooldown(s))} para cebar otro.`}>?</button>
@@ -208,10 +212,6 @@ export default function Workshop({ s, live, actions, floats, onMachine, onEvent,
               </span>
             )}
           </span>
-          <button className={'btn-apply mate-btn' + (mateOn ? ' on' : '') + (glow === 'mate' && mateReady ? ' tut-glow' : '')}
-            disabled={!mateReady} onClick={actions.mate} title="Atajo: M">
-            🧉 {E.rule(s, 'sinmate') ? 'Sin mate (desafío)' : mateOn ? `Mate activo · ${Math.ceil(s.mate.until - s.time)} s` : mateReady ? `Cebar mate (+${Math.round((E.mateBoost(s) - 1) * 100)} %)` : `Mate en ${clock(s.mate.ready - s.time)}`}
-          </button>
         </div>
       </div>
     </section>

@@ -154,6 +154,7 @@ function ClientsList({ s }) {
 export default function Orders({ s, actions, glow }) {
   const size = E.boardSize(s);
   const used = s.orders.offers.filter((o) => !o.contract).length + s.orders.active.filter((o) => !o.contract).length;
+  const busyMachines = s.machines.filter((m) => m.orderId).length;
   return (
     <section className="card orders-card">
       <div className="card-head">
@@ -161,6 +162,18 @@ export default function Orders({ s, actions, glow }) {
         <h2>Pedidos</h2>
         <span className="slots-chip">{used}/{size}</span>
       </div>
+      {/* Controles: liberar todas las máquinas y prender/apagar la aceptación automática */}
+      {(busyMachines > 0 || E.has(s, 'gestor')) && (
+        <div className="o-ctrl">
+          {busyMachines > 0 && <button className="chip-btn" onClick={actions.releaseAll} title="Saca todas las máquinas de los pedidos para que las asignes vos">🔓 Liberar máquinas ({busyMachines})</button>}
+          {E.has(s, 'gestor') && (
+            <label className="ch-toggle o-auto" title="Si lo apagás, el Gestor no acepta pedidos solo: los elegís vos (así no se te pasa ningún pedido especial)">
+              <input type="checkbox" checked={s.settings.autoOrders !== false} onChange={(e) => actions.setting('autoOrders', e.target.checked)} />
+              <span>🤖 Aceptar pedidos solo</span>
+            </label>
+          )}
+        </div>
+      )}
       {/* Los pedidos tienen su propio scroll: la página no se estira hacia abajo */}
       <div className="orders-scroll">
       {s.orders.active.length > 0 && <div className="section-label">EN CURSO</div>}

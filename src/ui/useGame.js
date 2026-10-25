@@ -536,6 +536,7 @@ export function useGame() {
     abandonChallenge: () => act((st) => { E.abandonChallenge(st); toast('Desafío abandonado: seguís jugando sin las reglas.', 'info'); }),
     setProduct: (mid, pid) => act((st) => E.setProduct(st, mid, pid)),
     mate: () => act((st, ctx) => E.useMate(st, ctx)),
+    releaseAll: () => act((st) => { const n = E.releaseAllOrders(st); if (n) toast(`🔓 Liberé ${n} ${n === 1 ? 'máquina' : 'máquinas'}: ahora asignalas con + al pedido que quieras.`, 'info', 5000); return n; }),
     accept: (oid, quote = 'std') => act((st) => { const ok = E.acceptOrder(st, oid, quote); if (ok) sfx.accept(); return ok; }),
     decline: (oid) => act((st) => E.declineOrder(st, oid)),
     assign: (oid, d) => act((st) => E.assignMore(st, oid, d)),

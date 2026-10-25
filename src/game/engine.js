@@ -1204,6 +1204,13 @@ export function acceptOrder(s, oid, qid = 'std') {
   for (const m of machines) m.orderId = o.id;
   return true;
 }
+// Libera todas las máquinas de todos los pedidos (los pedidos siguen en curso, sin máquinas).
+// La pieza que cada una está haciendo se termina igual y cuenta para su pedido.
+export function releaseAllOrders(s) {
+  let n = 0;
+  for (const m of s.machines) if (m.orderId) { m.orderId = null; n++; }
+  return n;
+}
 export function declineOrder(s, oid) { s.orders.offers = s.orders.offers.filter((x) => x.id !== oid); }
 export function assignMore(s, oid, delta) {
   const o = s.orders.active.find((x) => x.id === oid);
@@ -1323,7 +1330,8 @@ function stepOrders(s, dt, ctx) {
       if (o) ctx.out.push({ type: 'combo', oid: o.id });
     }
   }
-  if (has(s, 'gestor')) {
+  // El jugador puede apagar el Gestor para elegir él mismo qué pedidos aceptar.
+  if (has(s, 'gestor') && s.settings.autoOrders !== false) {
     O.gestorT += dt;
     if (O.gestorT >= 3) {
       O.gestorT = 0;
