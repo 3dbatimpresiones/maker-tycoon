@@ -473,3 +473,10 @@
 .three-col .buy-btn .bb-price { overflow-wrap: normal; word-break: keep-all; }
 .three-col .buy-btn .bb-price b { font-size: 11.5px; white-space: nowrap; }
 .three-col .buy-btn { padding-left: 4px; padding-right: 4px; }
+
+/* Estado tipo Steam en el ranking */
+.rank-row .rs { font-size: 11px; font-weight: 600; line-height: 1.25; white-space: normal; }
+.rank-row .rs i { font-style: normal; color: var(--muted); font-weight: 400; }
+.rank-row .rs-play { color: #4ade80; }
+.rank-row .rs-bg { color: #fbbf24; }
+.rank-row .rs-off { color: var(--muted); font-weight: 400; }

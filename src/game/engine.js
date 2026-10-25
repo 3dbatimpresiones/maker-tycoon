@@ -1214,6 +1214,7 @@ export function resolveGlobal(s, opt, ctx = {}) {
 export function tick(s, dt, ctx = {}) {
   ctx.out = ctx.out || [];
   s.time += dt;
+  s.stats.playSecs = (s.stats.playSecs || 0) + dt;
   const blackout = s.global && s.global.id === 'corte';
   for (const m of s.machines) stepMachine(s, m, dt, ctx, blackout);
   if (has(s, 'sobrino') && !has(s, 'expulsion')) {
@@ -1459,6 +1460,8 @@ export function migrate(obj) {
   for (const k of Object.keys(obj.upgrades)) if (!UPGRADES[k]) delete obj.upgrades[k];
   obj.mat = { ...emptyMats(), ...obj.mat };
   obj.stats = { ...base.stats, ...obj.stats };
+  // Tiempo jugado total (sobrevive a las mudanzas). Las partidas de antes arrancan con el tiempo de la partida actual.
+  if (typeof obj.stats.playSecs !== 'number') obj.stats.playSecs = obj.time || 0;
   obj.run = { ...base.run, ...obj.run };
   obj.boost = { ...base.boost, ...obj.boost };
   obj.orders = { ...base.orders, ...obj.orders };

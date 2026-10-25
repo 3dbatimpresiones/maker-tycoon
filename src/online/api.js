@@ -63,6 +63,7 @@ export function summaryOf(s) {
   return {
     name: s.name || '', space: s.space || 0, money: s.money || 0, totalEarned: s.totalEarned || 0,
     machines: s.machines?.length || 0, moves: s.prestige?.moves || 0, pieces: s.stats?.pieces || 0, rep: s.rep || 0,
+    playSecs: Math.round(s.stats?.playSecs || 0),
   };
 }
 export const sameProgress = (a, b) => !!a && !!b && Math.round(a.pieces) === Math.round(b.pieces)
