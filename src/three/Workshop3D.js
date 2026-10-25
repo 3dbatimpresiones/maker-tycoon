@@ -88,6 +88,11 @@ export class Workshop3D {
     this.controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
     // Si el jugador mueve la cámara, se respeta (no se re-encuadra sola) y se corta cualquier animación.
     this.controls.addEventListener('start', () => { this.userMoved = true; this.camAnim = null; });
+    // La rueda apretada es para desplazar la vista: se frena el "desplazamiento automático" de
+    // Windows/Chrome (la flechita que mueve la página) y el pegado del portapapeles en Linux.
+    this.stopAutoScroll = (e) => { if (e.button === 1) e.preventDefault(); };
+    canvas.addEventListener('mousedown', this.stopAutoScroll);
+    canvas.addEventListener('auxclick', this.stopAutoScroll);
     // Luces: cielo suave, sol por la ventana (sombras), luz de área de ventana, techo cálido
     this.hemi = new THREE.HemisphereLight('#dfe6ff', '#2a2420', 0.55);
     this.scene.add(this.hemi);
@@ -584,6 +589,7 @@ export class Workshop3D {
 
   dispose() {
     this.controls.dispose();
+    for (const ev of ['mousedown', 'auxclick']) this.canvas.removeEventListener(ev, this.stopAutoScroll);
     this.renderer.dispose();
   }
 }
