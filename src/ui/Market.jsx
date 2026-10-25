@@ -174,7 +174,8 @@ function Item({ s, it, logged, onBuy, onCancel, onLogin, onOffer, onCancelOffer,
           <span><b>{it.mine ? 'Vos' : it.seller?.name || 'Un maker'}</b> · {ago(it.at)} · {left(it.ends)}</span>
         </div>
         {btn}
-        {!it.mine && logged && (it.my_offer
+        {/* El canje entre makers aparece cuando la base ya lo tiene (migración 032: la lista trae "offers"). */}
+        {!it.mine && logged && it.offers != null && (it.my_offer
           ? <button className="chip-btn tr-btn" disabled={busy} onClick={onCancelOffer}>🔁 Tu oferta de canje está esperando · Retirarla</button>
           : <button className="chip-btn tr-btn" onClick={onOffer}>🔁 Ofrecer canje (máquinas, plata o fichas)</button>)}
         {it.offers > 0 && <span className="mk-offers">{it.offers} oferta{it.offers > 1 ? 's' : ''} de canje</span>}
