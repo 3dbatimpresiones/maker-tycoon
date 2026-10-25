@@ -62,7 +62,7 @@ export default function App() {
   const offersCount = s.orders.offers.length;
 
   return (
-    <div className={`app anim-${s.settings.anim}${chat.open ? ' chat-on' : ''}`}>
+    <div className={`app anim-${s.settings.anim}${chat.shown ? ' chat-on' : ''}${chat.open && chat.min ? ' chat-min' : ''}`}>
       <Header s={s} actions={actions} open={open} online={online} chat={chat} />
       <Hud s={s} onFilament={() => goShop('filament')} onTokens={() => open('desafios')} />
       <main className={`layout tab-${tab}`}>

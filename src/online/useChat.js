@@ -14,13 +14,23 @@ const DEV_NO_ONLINE = import.meta.env.DEV && new URLSearchParams(window.location
 export const LINK_RE = /(https?:|ftp:|www\.|discord\.gg|t\.me\/|wa\.me\/|bit\.ly|[a-z0-9-]\s*(\.|\[\.\]|\(\.\)|\[dot\]|\(dot\))\s*(com|net|org|ar|io|gg|ly|xyz|info|app|site|online|link|click|ru|cn|tk|store|shop|top|live|dev|page|biz|tv)([^a-z0-9]|$))/i;
 
 const PREFS_KEY = 'mt3dbat.chat';
-const readPrefs = () => { try { return { notify: false, muted: [], ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch { return { notify: false, muted: [] }; } };
+// Avisos: cada uno elige. Por defecto avisa de todo en el juego (los del navegador se activan aparte).
+export const DEFAULT_PREFS = { notify: false, muted: [], msgGlobal: true, msgFarm: true, msgGroup: true, mentions: true, sound: true };
+const readPrefs = () => { try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch { return { ...DEFAULT_PREFS }; } };
+const roomLabel = (r) => (r.kind === 'farm' ? `la granja ${r.name}` : r.kind === 'group' ? `el grupo ${r.name}` : 'Global');
+function browserNotify(title, body, tag) {
+  if (document.visibilityState === 'visible' || !readPrefs().notify || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  try { new Notification(title, { body: (body || '').slice(0, 140), tag }); } catch { /* sin avisos */ }
+}
 const writePrefs = (p) => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch { /* sin acceso */ } };
 
 export function useChat({ online, toast }) {
   const ext = useRef(null);
   ext.current = { online, toast };
-  const [open, setOpen] = useState(false);
+  const [open, setOpenRaw] = useState(false);
+  const [min, setMin] = useState(false); // achicado a un botón redondo (como Spotify)
+  const setOpen = useCallback((v) => { setOpenRaw(v); if (!v) setMin(false); }, []);
+  const shown = open && !min;            // el chat se está viendo
   const [room, setRoom] = useState('global');
   const [rooms, setRooms] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -29,11 +39,14 @@ export function useChat({ online, toast }) {
   const [prefs, setPrefsState] = useState(readPrefs);
   const roomRef = useRef(room);
   roomRef.current = room;
-  const openRef = useRef(open);
-  openRef.current = open;
+  const openRef = useRef(shown);
+  openRef.current = shown;
   const lastId = useRef({});      // último mensaje recibido por sala
   const readId = useRef({});      // último marcado como leído por sala
   const notified = useRef(0);     // última mención avisada
+  const seenLast = useRef({});    // último mensaje ya visto/avisado por sala
+  const initDone = useRef(false); // la primera consulta no avisa lo viejo
+  const globalInit = useRef(false);
   const busy = useRef(false);
   const again = useRef(false);    // llegó un pedido mientras había otro en curso: se repite al terminar
   const logged = !!online.session && !!online.me?.player;
@@ -47,15 +60,47 @@ export function useChat({ online, toast }) {
     const muted = readPrefs().muted || [];
     const shown = fresh.filter((m) => !muted.includes((m.nick || '').toLowerCase()));
     const watching = openRef.current && document.visibilityState === 'visible';
-    for (const m of shown.slice(-3)) {
-      const here = watching && m.room === roomRef.current;
-      sfx.mention?.();
-      if (!here) ext.current.toast(`💬 ${m.nick} te mencionó en ${m.room_name}: «${(m.body || '').slice(0, 70)}»`, 'info', 7000);
-      if (document.visibilityState !== 'visible' && readPrefs().notify && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        try { new Notification(`${m.nick} te mencionó · Maker Tycoon`, { body: (m.body || '').slice(0, 140), tag: 'mt-chat-' + m.id }); } catch { /* sin avisos */ }
+    const p = readPrefs();
+    if (p.mentions !== false) {
+      for (const m of shown.slice(-3)) {
+        const here = watching && m.room === roomRef.current;
+        if (p.sound !== false) sfx.mention?.();
+        if (!here) ext.current.toast(`💬 ${m.nick} te mencionó en ${m.room_name}: «${(m.body || '').slice(0, 70)}»`, 'info', 7000);
+        browserNotify(`${m.nick} te mencionó · Maker Tycoon`, m.body, 'mt-chat-' + m.id);
       }
     }
     rpc('bb_mt_chat_read', { p_room: null, p_last_id: null, p_mention_seen: notified.current }).catch(() => {});
+  }, []);
+
+  // Avisa los mensajes nuevos de las salas que no estás mirando (según lo que elegiste).
+  const notifyRooms = useCallback((list) => {
+    const p = readPrefs();
+    const watching = openRef.current && document.visibilityState === 'visible';
+    const muted = p.muted || [];
+    const fresh = [];
+    for (const r of list) {
+      const last = r.last;
+      if (!last) continue;
+      const prev = seenLast.current[r.room] ?? (initDone.current ? 0 : undefined);
+      seenLast.current[r.room] = Math.max(seenLast.current[r.room] || 0, last.id);
+      if (prev === undefined || last.id <= prev || last.mine || last.me_mentioned) continue;
+      if (watching && r.room === roomRef.current) continue;
+      const on = r.kind === 'global' ? p.msgGlobal : r.kind === 'farm' ? p.msgFarm : p.msgGroup;
+      if (on === false || muted.includes((last.nick || '').toLowerCase())) continue;
+      fresh.push({ r, last });
+    }
+    initDone.current = true;
+    if (!fresh.length) return;
+    if (p.sound !== false) sfx.chatMsg?.();
+    if (fresh.length === 1) {
+      const { r, last } = fresh[0];
+      ext.current.toast(`💬 ${last.nick} en ${roomLabel(r)}: «${(last.body || '').slice(0, 70)}»`, 'info', 5000);
+      browserNotify(`${last.nick} en ${roomLabel(r)} · Maker Tycoon`, last.body, 'mt-room-' + r.room);
+    } else {
+      const names = fresh.map((x) => roomLabel(x.r)).join(', ');
+      ext.current.toast(`💬 Mensajes nuevos en ${names}`, 'info', 5000);
+      browserNotify('Mensajes nuevos · Maker Tycoon', names, 'mt-rooms');
+    }
   }, []);
 
   const poll = useCallback(async () => {
@@ -70,6 +115,9 @@ export function useChat({ online, toast }) {
       if (!d?.profile) { setInfo((x) => ({ ...x, profile: false })); return; }
       setInfo({ profile: true, staff: !!d.staff, muted_until: d.muted_until, mute_reason: d.mute_reason });
       setRooms(d.rooms || []);
+      // Primera vez en Global: se cuenta como leído lo de antes, así el contador arranca desde ahora.
+      const g = (d.rooms || []).find((x) => x.kind === 'global');
+      if (g && g.read == null && !globalInit.current) { globalInit.current = true; rpc('bb_mt_chat_read', { p_room: 'global', p_last_id: g.last_id || 0, p_mention_seen: null }).catch(() => { globalInit.current = false; }); }
       // Si te sacaron del grupo o dejaste la granja, se vuelve a Global.
       if (r0 && !(d.rooms || []).some((x) => x.room === r0)) { setRoom('global'); return; }
       if (r0 && r0 === roomRef.current && openRef.current) {
@@ -93,6 +141,7 @@ export function useChat({ online, toast }) {
           setRooms((rs) => rs.map((x) => (x.room === r0 ? { ...x, unread: 0, mentions: 0 } : x)));
         }
       }
+      notifyRooms(d.rooms || []);
       notifyMentions(d.mentions);
     } catch (e) {
       if (e.missing) setAvailable(false);
@@ -100,7 +149,7 @@ export function useChat({ online, toast }) {
       busy.current = false;
       if (again.current) { again.current = false; setTimeout(() => pollRef.current(), 0); }
     }
-  }, [notifyMentions]);
+  }, [notifyMentions, notifyRooms]);
   const pollRef = useRef(poll);
   pollRef.current = poll;
 
@@ -128,9 +177,9 @@ export function useChat({ online, toast }) {
   // Al abrir el chat o cambiar de sala: carga enseguida.
   useEffect(() => {
     if (!logged) return;
-    if (open) { lastId.current[room] = undefined; setMessages([]); }
+    if (shown) { lastId.current[room] = undefined; setMessages([]); }
     wakeRef.current();
-  }, [open, room, logged]);
+  }, [shown, room, logged]);
 
   const send = useCallback(async (body) => {
     const text = String(body || '').trim();
@@ -179,7 +228,10 @@ export function useChat({ online, toast }) {
   const unread = rooms.reduce((a, x) => a + (x.unread || 0), 0);
   const mentions = rooms.reduce((a, x) => a + (x.mentions || 0), 0);
   return {
-    open, setOpen, toggle: () => setOpen((o) => !o), room, setRoom, rooms, messages, info, available, logged, unread, mentions,
+    open, setOpen, min, setMin, shown,
+    // Botón del encabezado: abre; si ya está abierto, lo achica o lo vuelve a mostrar (como Spotify).
+    toggle: () => { if (!open) { setOpenRaw(true); setMin(false); } else setMin((m) => !m); },
+    room, setRoom, rooms, messages, info, available, logged, unread, mentions,
     prefs, setPrefs, muteLocal, enableNotify, send, remove, people, createGroup, groupMembers, groupAdd, groupRemove, groupRename, groupLeave,
   };
 }

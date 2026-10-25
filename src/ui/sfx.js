@@ -126,6 +126,10 @@ export const sfx = {
     tone(b, 0.08, { type: 'triangle', gain: 0.03, wet: 0.35 });
     tone(b * 1.5, 0.14, { type: 'sine', at: 0.05, gain: 0.025, wet: 0.45 });
   },
+  chatMsg() { // alguien escribió en el chat
+    if (throttle('chatMsg', 2500)) return;
+    tone(880, 0.1, { type: 'sine', gain: 0.045, wet: 0.35 });
+  },
   mention() { // te mencionaron en el chat
     if (throttle('mention', 1500)) return;
     tone(988, 0.12, { type: 'sine', gain: 0.07, wet: 0.3 });

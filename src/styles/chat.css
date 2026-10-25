@@ -91,3 +91,25 @@
   .top-actions .icon-btn.lbl-btn { min-width: 50px; height: 46px; padding: 5px 6px 4px; }
   .top-left { flex-wrap: wrap; }
 }
+
+/* Interruptores de avisos */
+.ch-toggles { display: grid; gap: 4px; }
+.ch-toggle { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 10px; cursor: pointer; font-size: 13px; color: #e2e8f0; }
+.ch-toggle:hover { background: rgba(93,218,219,.08); }
+.ch-toggle input { appearance: none; flex: none; width: 36px; height: 20px; border-radius: 99px; background: rgba(255,255,255,.15); position: relative; cursor: pointer; transition: background .15s; margin: 0; }
+.ch-toggle input::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.ch-toggle input:checked { background: var(--cyan); }
+.ch-toggle input:checked::after { transform: translateX(16px); }
+
+/* Chat achicado: botón redondo (arriba del de Spotify si están los dos) */
+.ch-top-btns { display: inline-flex; gap: 6px; }
+.chat-mini { position: fixed; right: 18px; bottom: 18px; z-index: 61; width: 56px; height: 56px; border-radius: 50%; border: 0; cursor: pointer;
+  display: grid; place-items: center; color: var(--dark); background: var(--cyan); box-shadow: 0 10px 24px rgba(0,0,0,.45); }
+.chat-mini.men { background: #FF6B9D; color: #fff; animation: mkpulse 1.6s infinite; }
+.chat-mini .ch-badge { top: -4px; right: -4px; }
+.app.chat-min .spotify-dock.min { bottom: 84px; }
+.app.chat-min .spotify-dock:not(.min) { bottom: 84px; }
+@media (max-width: 720px) {
+  .chat-mini { bottom: 84px; }
+  .app.chat-min .spotify-dock { bottom: 150px; }
+}

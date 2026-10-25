@@ -234,14 +234,24 @@ export function ChatPanel({ chat, online, open }) {
         <div className="ch-sub">
           <span>{ROOM_ICON[cur.kind]} <b>{cur.kind === 'farm' ? `Granja ${cur.name}` : cur.name}</b>{cur.kind === 'global' && <small> · todos los que están jugando</small>}</span>
           {cur.kind === 'group' && <button className="chip-btn" onClick={() => setPanel(panel === 'group' ? null : 'group')}>Integrantes</button>}
-          <button className="chip-btn" onClick={() => setPanel(panel === 'opts' ? null : 'opts')} title="Avisos y silenciados">⚙</button>
+          <button className="chip-btn" onClick={() => setPanel(panel === 'opts' ? null : 'opts')} title="Elegí de qué te avisa el chat">🔔 Avisos</button>
         </div>
         {panel === 'new' && <NewGroup chat={chat} onDone={() => setPanel(null)} />}
         {panel === 'group' && cur.kind === 'group' && <GroupInfo chat={chat} r={cur} onDone={() => setPanel(null)} />}
         {panel === 'opts' && (
           <div className="ch-panel">
-            <div className="ch-panel-head"><b>Avisos</b><button className="icon-btn sm" onClick={() => setPanel(null)}><Icon name="x" size={16} /></button></div>
-            <p className="hint">Cuando alguien te menciona con <b>@{online.me.player.nick}</b> te aviso en el juego. Si querés, también con un aviso de la compu o el celular cuando no estás mirando el juego.</p>
+            <div className="ch-panel-head"><b>🔔 Avisos del chat</b><button className="icon-btn sm" onClick={() => setPanel(null)}><Icon name="x" size={16} /></button></div>
+            <p className="hint">Elegí de qué te aviso mientras jugás (aunque tengas el chat cerrado).</p>
+            <div className="ch-toggles">
+              {[['msgGlobal', '🌎 Cuando alguien escribe en Global'], ['msgFarm', '🏭 Cuando alguien escribe en mi granja'], ['msgGroup', '👥 Cuando alguien escribe en mis grupos'],
+                ['mentions', `@ Cuando me mencionan (@${online.me.player.nick})`], ['sound', '🔊 Con sonido']].map(([k, label]) => (
+                <label key={k} className="ch-toggle">
+                  <input type="checkbox" checked={chat.prefs[k] !== false} onChange={(e) => chat.setPrefs({ [k]: e.target.checked })} />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+            <p className="hint">También te puedo avisar con una notificación de la compu o el celular cuando no estás mirando el juego.</p>
             {typeof Notification === 'undefined' ? <p className="hint">Este navegador no permite avisos.</p>
               : chat.prefs.notify && Notification.permission === 'granted'
                 ? <button className="chip-btn" onClick={() => chat.setPrefs({ notify: false })}>🔔 Avisos del navegador: activados (desactivar)</button>
@@ -284,11 +294,23 @@ export function ChatPanel({ chat, online, open }) {
       </>
     );
   }
+  // Achicado: solo un botón redondo con el logo (lo escrito no se pierde y los avisos siguen).
+  if (chat.min) {
+    return (
+      <button className={'chat-mini' + (chat.mentions ? ' men' : '')} onClick={() => chat.setMin(false)} title="Mostrar el chat">
+        <Icon name="message" size={26} />
+        {chat.unread > 0 && <em className={'ch-badge' + (chat.mentions ? ' men' : '')}>{chat.mentions ? '@' : chat.unread > 98 ? '99+' : chat.unread}</em>}
+      </button>
+    );
+  }
   return (
     <aside className="chat-dock" role="dialog" aria-label="Chat en vivo">
       <div className="ch-top">
         <b><Icon name="message" size={18} /> Chat en vivo</b>
-        <button className="icon-btn sm" onClick={() => chat.setOpen(false)} title="Cerrar el chat"><Icon name="x" size={18} /></button>
+        <span className="ch-top-btns">
+          <button className="icon-btn sm" onClick={() => chat.setMin(true)} title="Achicar (queda el botón redondo)"><Icon name="minus" size={18} /></button>
+          <button className="icon-btn sm" onClick={() => chat.setOpen(false)} title="Cerrar el chat"><Icon name="x" size={18} /></button>
+        </span>
       </div>
       {content}
     </aside>
@@ -299,9 +321,9 @@ export function ChatPanel({ chat, online, open }) {
 export function ChatButton({ chat, online }) {
   if (online.available !== true || chat.available === false) return null;
   return (
-    <button className={'icon-btn lbl-btn chat-btn' + (chat.open ? ' on' : '')} onClick={chat.toggle} title="Chat en vivo con los que están jugando">
+    <button className={'icon-btn lbl-btn chat-btn' + (chat.shown ? ' on' : '')} onClick={chat.toggle} title="Chat en vivo con los que están jugando">
       <Icon name="message" /><span>Chat</span>
-      {!chat.open && chat.unread > 0 && <em className={'ch-badge' + (chat.mentions ? ' men' : '')}>{chat.mentions ? '@' : chat.unread > 98 ? '99+' : chat.unread}</em>}
+      {!chat.shown && chat.unread > 0 && <em className={'ch-badge' + (chat.mentions ? ' men' : '')}>{chat.mentions ? '@' : chat.unread > 98 ? '99+' : chat.unread}</em>}
     </button>
   );
 }
