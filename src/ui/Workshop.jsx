@@ -9,6 +9,7 @@ import FloorTabs from './FloorTabs.jsx';
 import { ExpoStrip } from './City.jsx';
 import { StoryStrip } from './BatiPanel.jsx';
 import { DuelStrip } from './League.jsx';
+import { LiveStrip } from './BatiLive.jsx';
 import { money, rate, dur, clock, fmtText } from '../game/format.js';
 import { currentMission } from '../game/progress.js';
 
@@ -96,7 +97,7 @@ function ChallengeStrip({ s, open }) {
   );
 }
 
-export default function Workshop({ s, actions, floats, onMachine, onEvent, goShop, glow, open, podium, gifts }) {
+export default function Workshop({ s, live, actions, floats, onMachine, onEvent, goShop, glow, open, podium, gifts }) {
   const sp = SPACES[s.space];
   const floors = E.hasFloors(s);
   const floor = floors ? (s.settings.floor || 'fdm') : null;
@@ -129,6 +130,7 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
       </div>
       <ChallengeStrip s={s} open={open} />
       <ExpoStrip s={s} open={open} />
+      <LiveStrip live={live} />
       <DuelStrip s={s} open={open} />
       <StoryStrip s={s} open={open} />
       {mission.id !== 'libre' && (

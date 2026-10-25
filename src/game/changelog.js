@@ -2,6 +2,35 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.3', date: '2026-10-25', title: 'Granjas en serio, BATI LIVE y mercado de lotes',
+    intro: 'Más motivos para jugar en equipo, juntarse los viernes y ayudar a los que recién empiezan.',
+    groups: [
+      ['🏭 Granjas con roles', [
+        'Cada integrante elige su rol: Responsable FDM, Especialista en resina, láser o CNC, Logística o Reclutador.',
+        'Cada rol tiene su misión semanal, que da puntos y experiencia a la granja.',
+        'Pedido de colaboración semanal (Festival Maker 3DBAT): una meta por tecnología que se completa entre todos.',
+      ]],
+      ['⚔️ Guerra amistosa de granjas', [
+        'Todos los sábados tu granja se cruza con otra de nivel parecido durante 24 horas.',
+        'Nadie ataca ni roba: gana la que más produce y con más integrantes distintos aportando.',
+        'Premio: banner Campeones, título para todos y puntos para la granja.',
+      ]],
+      ['🔴 BATI LIVE · viernes de 21 a 22 h', [
+        'Una hora de feria nocturna: pedidos ×1,5, ventas ×1,25 y más pedidos urgentes.',
+        'Meta comunitaria de piezas: si se cumple, todos los que aportaron se llevan título y la figura de BATI.',
+        'BATI anuncia el evento, lo relata en vivo y avisa cuando se cumple la meta.',
+      ]],
+      ['📦 Mercado de lotes', [
+        'Nueva pestaña Lotes en la Tienda: vendé material o fichas que te sobran y comprá lotes de otros makers.',
+        'Donaciones para jugadores nuevos.',
+        'Si nadie compra tu lote en 3 días, vuelve solo.',
+      ]],
+      ['🔧 Arreglos', [
+        'Los accesorios de BATI y la historia ya no se pierden al hacer la Mudanza.',
+      ]],
+    ],
+  },
+  {
     v: '1.2', date: '2026-10-25', title: 'Liga Maker y Duelos',
     intro: 'El ranking deja de ser solo una lista: ahora cada semana competís contra jugadores de tu nivel.',
     groups: [

@@ -13,6 +13,7 @@ import { LINKS } from '../config.js';
 import fcLogo from '../assets/filacolor-logo.png';
 import fcIcon from '../assets/filacolor-icon.png';
 import { LeagueTab } from './League.jsx';
+import FarmSocial from './FarmSocial.jsx';
 
 // ---------- Piezas chicas ----------
 export const GoogleG = ({ size = 18 }) => (
@@ -709,6 +710,7 @@ function FarmView({ id, online, onVisit }) {
         <div className="fh-pts"><b>{num(f.points)}</b><small>pts temporada</small></div>
       </div>
       <div className="lv-bar" title={lv.next ? `${num(f.xp)} / ${num(lv.next)} de experiencia` : 'Nivel máximo'}><i style={{ width: `${lv.frac * 100}%` }} /></div>
+      {f.members.some((m) => m.me) && <FarmSocial />}
 
       <div className="section-label">NAVE DE PRODUCCIÓN</div>
       <div className="nave">

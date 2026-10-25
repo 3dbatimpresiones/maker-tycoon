@@ -400,6 +400,14 @@ export function useGame() {
       return m;
     }),
     moveMachine: (mid, dir) => act((st) => { E.moveMachine(st, mid, dir); }),
+    lotEscrow: (p) => act((st) => E.lotEscrow(st, p)),
+    lotApply: (kind, arg, msg) => act((st) => {
+      if (kind === 'published') E.lotPublished(st, arg);
+      else if (kind === 'refund') { if (E.lotRefund(st, arg)) toast(`📦 No se pudo publicar el lote${msg ? `: ${msg}` : ''}. Volvió a tu taller.`, 'warn', 5000); }
+      else if (kind === 'bought') { if (E.lotBought(st, arg)) { sfx.buy(); toast(arg.gift ? '🎁 ¡Recibiste un regalo de la comunidad!' : '📦 Lote comprado: ya está en tu taller.', 'info', 4000); } }
+      else if (kind === 'paid') { if (E.lotPaid(st, arg)) { sfx.sale?.(); toast(`📦 Vendiste un lote a ${arg.buyer || 'un maker'}: +${money(Number(arg.price))}`, 'info', 5000); } }
+      else if (kind === 'back') { if (E.lotBack(st, arg)) toast('📦 Un lote tuyo volvió a tu taller.', 'info', 4000); }
+    }),
     startDuel: (d) => act((st) => {
       if (!E.startDuel(st, d)) return false;
       sfx.urgent();

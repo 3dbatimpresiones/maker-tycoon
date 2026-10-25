@@ -74,6 +74,7 @@ export function newGame(keep = null, seed = (Date.now() ^ 0x5bd1e995) >>> 0, cha
     stats: keep?.stats || freshStats(),
     run: freshRun(),
     mastery: keep?.mastery || {},
+    lots: keep?.lots || undefined, bati: keep?.bati || undefined, story: keep?.story || undefined,
     // Ciudad: los rivales vencidos y las Expos ganadas se recuerdan; la demanda arranca de nuevo.
     city: keep?.city ? { hot: [], cold: null, until: 0, rivals: keep.city.rivals || {}, expo: null, expoT: 1800, expoWins: keep.city.expoWins || 0, expos: keep.city.expos || 0, lastExpo: keep.city.lastExpo || null } : undefined,
     tokens: keep?.tokens || 0,
@@ -312,7 +313,7 @@ export function pieceValue(s, pid, stars) {
 export const trendActive = (s, pid) => s.trend.p === pid && s.time < s.trend.until;
 export function saleMult(s, pid) {
   return (trendActive(s, pid) ? 2 : 1) * (s.time < s.boost.viral ? 2 : 1) * (s.time < s.boost.turbo ? 2 : 1)
-    * (s.time < s.boost.feria ? 1.5 : 1) * (mastered(s, 'mostrador') ? 1.25 : 1) * demandMult(s, pid);
+    * (s.time < s.boost.feria ? 1.5 : 1) * (mastered(s, 'mostrador') ? 1.25 : 1) * demandMult(s, pid) * (LIVE.on ? 1.25 : 1);
 }
 export function productRate(s, m, pid, withBoosts = false) {
   const p = PRODUCTS[pid];
@@ -396,8 +397,10 @@ export function offlineCapH(s) { return (has(s, 'remota') ? 6 : 2) + (perk(s, 'd
 // Sobrino ayudante: 1 = retira piezas · 2 = con la expulsión automática pasa a logística
 // (ordena las bobinas y despacha los pedidos: +5 % de paga en pedidos).
 export const sobrinoLevel = (s) => (has(s, 'sobrino') ? (has(s, 'expulsion') ? 2 : 1) : 0);
+// BATI LIVE (viernes 21 a 22 h, hora argentina): lo prende la interfaz según el reloj.
+export const LIVE = { on: false };
 export function orderMult(s) {
-  return Math.pow(1.1, lvlOf(s, 'instagram')) * (perk(s, 'contactos') ? 1.2 : 1) * (mastered(s, 'exigente') ? 1.25 : 1)
+  return (LIVE.on ? 1.5 : 1) * Math.pow(1.1, lvlOf(s, 'instagram')) * (perk(s, 'contactos') ? 1.2 : 1) * (mastered(s, 'exigente') ? 1.25 : 1)
     * (sobrinoLevel(s) >= 2 ? 1.05 : 1);
 }
 
@@ -1367,7 +1370,7 @@ function stepGlobal(s, ctx) {
   const negOk = !ctx.idle && s.time - s.lastNeg >= 60;
   const printing = s.machines.filter((m) => m.state === 'printing').length;
   const list = [];
-  const add = (id, ok) => { if (ok) list.push({ v: id, w: GLOBAL_EVENTS[id].weight }); };
+  const add = (id, ok) => { if (ok) list.push({ v: id, w: GLOBAL_EVENTS[id].weight * (id === 'urgente' && LIVE.on ? 3 : 1) }); };
   add('corte', negOk && printing >= 3 && s.time - s.lastCorte > 900);
   add('cambio', !ctx.idle && s.orders.active.some((o) => o.items.some((i) => i.done < i.qty) && o.deadline - s.time > 120));
   add('favor', !ctx.idle && s.mat.PLA >= 8);
@@ -1443,6 +1446,75 @@ export function tick(s, dt, ctx = {}) {
   if (tp) ctx.out.push({ type: 'trend', pid: tp });
   stepGlobal(s, ctx);
   return ctx.out;
+}
+
+// ---------- Mercado comunitario de lotes (migración 038) ----------
+// Lo que se publica se aparta de la partida; si la base lo rechaza, vuelve. Cada cobro o
+// devolución se marca para que nunca se aplique dos veces.
+export function lotsOf(s) { if (!s.lots) s.lots = { pending: [], done: {} }; return s.lots; }
+// Precio de referencia: lo que sale en la tienda (para fijar topes razonables).
+export const lotRefPrice = (s, kind, mat, qty) => (kind === 'tokens' ? qty * 150000 : (qty / UNIT) * MATERIALS[mat].price);
+export function lotReason(s, kind, mat, qty, price, gift) {
+  if (kind === 'mat') {
+    if (!MATERIALS[mat]) return 'Elegí un material';
+    if (qty < 100 || qty > 50000) return 'Entre 0,1 y 50 (kg o unidades)';
+    if ((s.mat[mat] || 0) < qty) return `No tenés tanto ${MATERIALS[mat].name}`;
+  } else {
+    if (qty < 1 || qty > 20) return 'Entre 1 y 20 fichas';
+    if (s.tokens < qty) return 'No tenés tantas fichas';
+  }
+  if (gift) return null;
+  const ref = lotRefPrice(s, kind, mat, qty);
+  if (!(price > 0)) return 'Poné un precio';
+  if (price < ref * 0.3) return `Muy barato: mínimo ${Math.ceil(ref * 0.3)}`;
+  if (price > ref * 3) return `Muy caro: máximo ${Math.floor(ref * 3)}`;
+  return null;
+}
+export function lotEscrow(s, { nonce, kind, mat, qty, price, nick }) {
+  if (lotReason(s, kind, mat, qty, price, !!nick)) return false;
+  if (kind === 'mat') s.mat[mat] -= qty; else s.tokens -= qty;
+  lotsOf(s).pending.push({ nonce, kind, mat: kind === 'mat' ? mat : null, qty, price: nick ? 0 : Math.round(price), nick: nick || null });
+  return true;
+}
+export function lotPublished(s, nonce) { const L = lotsOf(s); L.pending = L.pending.filter((x) => x.nonce !== nonce); }
+export function lotRefund(s, nonce) {
+  const L = lotsOf(s);
+  const p = L.pending.find((x) => x.nonce === nonce);
+  if (!p) return false;
+  if (p.kind === 'mat') s.mat[p.mat] = (s.mat[p.mat] || 0) + p.qty; else s.tokens += p.qty;
+  L.pending = L.pending.filter((x) => x !== p);
+  return true;
+}
+const giveLot = (s, l) => { if (l.kind === 'mat') s.mat[l.mat] = (s.mat[l.mat] || 0) + Number(l.qty); else s.tokens += Number(l.qty); };
+export function lotBuyReason(s, l) {
+  if (l.mine) return 'Es tuyo';
+  if (l.gift && !l.for_me) return 'Es un regalo para otra persona';
+  if (s.money < Number(l.price)) return 'Te falta plata';
+  return null;
+}
+export function lotBought(s, l) {
+  const L = lotsOf(s);
+  if (L.done['b' + l.id]) return false;
+  L.done['b' + l.id] = 1;
+  s.money -= Number(l.price);
+  giveLot(s, l);
+  return true;
+}
+// Venta cobrada (la plata no cuenta como "ganado": no da puntos)
+export function lotPaid(s, l) {
+  const L = lotsOf(s);
+  if (L.done['p' + l.id]) return false;
+  L.done['p' + l.id] = 1;
+  s.money += Number(l.price);
+  return true;
+}
+// Lote que vuelve (venció o lo sacaste)
+export function lotBack(s, l) {
+  const L = lotsOf(s);
+  if (L.done['r' + l.id]) return false;
+  L.done['r' + l.id] = 1;
+  giveLot(s, l);
+  return true;
 }
 
 // ---------- Duelos Maker (10 minutos, se comparan en el servidor) ----------
@@ -1739,7 +1811,7 @@ function keepForMove(s, prestige) {
     keptRep: Math.floor(s.rep * keepFrac),
     name: s.name, totalEarned: s.totalEarned, stats: s.stats, achievements: s.achievements, mastery: s.mastery,
     tokens: s.tokens, daily: s.daily, weekly: s.weekly, prestige, settings: s.settings, seen: s.seen, cosmetics: s.cosmetics,
-    market: s.market, city: s.city,
+    market: s.market, city: s.city, lots: s.lots, bati: s.bati, story: s.story,
     orders: { fidelity: s.orders.fidelity, clients: s.orders.clients },
   };
 }

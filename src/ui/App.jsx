@@ -22,6 +22,8 @@ import StatsModal from './Stats.jsx';
 import BatiPanel from './BatiPanel.jsx';
 import { setBatiAcc } from './Bati.jsx';
 import { batiOf } from '../game/bati.js';
+import { useBatiLive } from './BatiLive.jsx';
+import { useLotsSync } from './Lots.jsx';
 import { NewsModal, UpdateBanner, newsDue, markNewsSeen } from './News.jsx';
 import { SpotifyDock } from './Spotify.jsx';
 import { BRAND_DISCLAIMER } from '../game/data.js';
@@ -36,6 +38,8 @@ export default function App() {
   const mk = useMarket({ online, getState, actions, isLocked: () => locked,
     notify: (txt) => { actions.toast(txt, 'info', 8000); actions.say(txt, { mood: 'happy', ctas: ['usados'] }); } });
   const chat = useChat({ online, toast: actions.toast });
+  const live = useBatiLive({ say: actions.say, toast: actions.toast, online });
+  const lots = useLotsSync({ online, actions: { ...actions, getState } });
   const [usedPick, setUsedPick] = useState(null); // máquina elegida para vender en Usados
   const [tab, setTab] = useState('taller');
   const [shopTab, setShopTab] = useState('machines');
@@ -80,10 +84,10 @@ export default function App() {
         <div className="col col-orders" data-tab="pedidos">
           <Orders s={s} actions={actions} glow={glow} />
         </div>
-        <Workshop s={s} actions={actions} floats={floats} glow={glow} podium={online.available === true ? online.podium : null} gifts={online.gifts}
+        <Workshop s={s} live={live} actions={actions} floats={floats} glow={glow} podium={online.available === true ? online.podium : null} gifts={online.gifts}
           onMachine={(mm) => open('machine', mm.id)} onEvent={(mm) => open('event', mm.id)} goShop={goShop} open={open} />
         <div className="col col-shop" data-tab="tienda">
-          <Shop s={s} actions={actions} tab={shopTab} setTab={setShopTab} glow={glow} online={online} mk={mk} open={open}
+          <Shop s={s} actions={actions} tab={shopTab} setTab={setShopTab} glow={glow} online={online} mk={mk} open={open} lots={lots}
             usedPick={usedPick} clearUsedPick={() => setUsedPick(null)} />
         </div>
         <div className="col col-more" data-tab="mas">

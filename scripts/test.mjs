@@ -668,4 +668,27 @@ t('duelo maker: 10 minutos, puntaje relativo a la capacidad y aviso al terminar'
   assert.equal(evs.filter((e) => e.type === 'duelNarr').length, 2, 'BATI narra la mitad y el último minuto');
 });
 
+t('lotes: apartar, devolver si falla, comprar y cobrar una sola vez', () => {
+  const s = E.newGame(null, 47); skipTutorial(s);
+  s.mat.PETG = 6000; s.tokens = 5; s.money = 1e6;
+  assert.equal(E.lotReason(s, 'mat', 'PETG', 9000, 100000, false), 'No tenés tanto PETG');
+  assert.match(E.lotReason(s, 'mat', 'PETG', 5000, 10, false), /barato/);
+  const price = Math.round(E.lotRefPrice(s, 'mat', 'PETG', 5000));
+  assert.ok(E.lotEscrow(s, { nonce: 'n1', kind: 'mat', mat: 'PETG', qty: 5000, price }));
+  assert.equal(s.mat.PETG, 1000);
+  assert.ok(E.lotRefund(s, 'n1'));
+  assert.equal(s.mat.PETG, 6000, 'si la base lo rechaza, vuelve');
+  assert.ok(E.lotEscrow(s, { nonce: 'n2', kind: 'tokens', qty: 3, nick: 'Nuevito' }), 'donación sin precio');
+  assert.equal(s.tokens, 2);
+  E.lotPublished(s, 'n2');
+  assert.equal(E.lotRefund(s, 'n2'), false, 'ya publicado: no vuelve');
+  const lot = { id: 9, kind: 'mat', mat: 'PLA', qty: 2000, price: 30000 };
+  const pla = s.mat.PLA, m0 = s.money;
+  assert.ok(E.lotBought(s, lot)); assert.equal(E.lotBought(s, lot), false);
+  assert.equal(s.mat.PLA, pla + 2000); assert.equal(s.money, m0 - 30000);
+  assert.ok(E.lotPaid(s, { id: 10, price: 50000 })); assert.equal(E.lotPaid(s, { id: 10, price: 50000 }), false);
+  const back = E.migrate(JSON.parse(E.serialize(s)));
+  assert.ok(back.lots.done.b9 && back.lots.done.p10, 'se guarda lo cobrado');
+});
+
 console.log(`\n${n} pruebas OK`);

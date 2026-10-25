@@ -1,5 +1,6 @@
 // Tienda: máquinas (marcas reales), mejoras, taller (espacios) y materiales.
 import { useState } from 'react';
+import Lots from './Lots.jsx';
 import { createPortal } from 'react-dom';
 import Icon from './Icon.jsx';
 import { MachineThumb } from './Thumb.jsx';
@@ -299,9 +300,9 @@ function Materials({ s, actions }) {
   );
 }
 
-const TABS = [['machines', 'Máquinas'], ['used', 'Usados'], ['upgrades', 'Mejoras'], ['space', 'Taller'], ['filament', 'Materiales']];
+const TABS = [['machines', 'Máquinas'], ['used', 'Usados'], ['lots', 'Lotes'], ['upgrades', 'Mejoras'], ['space', 'Taller'], ['filament', 'Materiales']];
 
-export default function Shop({ s, actions, tab, setTab, glow, online, mk, open, usedPick, clearUsedPick }) {
+export default function Shop({ s, actions, tab, setTab, glow, online, mk, open, usedPick, clearUsedPick, lots }) {
   const toFix = s.machines.some((m) => E.wearOf(m) >= E.WEAR_WARN);
   const glowTab = { 'shop-machines': 'machines', 'shop-upgrades': 'upgrades', 'shop-space': 'space' }[glow];
   return (
@@ -320,6 +321,7 @@ export default function Shop({ s, actions, tab, setTab, glow, online, mk, open, 
       <div className="shop-scroll">
         {tab === 'machines' && <Machines s={s} actions={actions} glow={glow} />}
         {tab === 'used' && mk && <Market s={s} online={online} mk={mk} open={open} preselect={usedPick} clearPreselect={clearUsedPick} />}
+        {tab === 'lots' && <Lots s={s} actions={actions} online={online} lots={lots} />}
         {tab === 'upgrades' && <Upgrades s={s} actions={actions} glow={glow} />}
         {tab === 'space' && <Spaces s={s} actions={actions} glow={glow} />}
         {tab === 'filament' && <Materials s={s} actions={actions} />}
