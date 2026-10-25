@@ -6,7 +6,6 @@ import { VERSION, LINKS, BATBOX_HERE } from '../config.js';
 import { CurrencyToggle } from './Panels.jsx';
 import { CloudPill, AccountChip, LiveChip } from './Online.jsx';
 import { useSpotify } from './Spotify.jsx';
-import { ChatButton } from './Chat.jsx';
 
 export const readyClaims = (s) => [s.daily, s.weekly].filter(Boolean).reduce((a, set) => a + set.list.filter((c) => !c.claimed && c.prog >= c.target).length, 0);
 
@@ -36,7 +35,6 @@ export function Header({ s, actions, open, online, chat }) {
         <CurrencyToggle s={s} actions={actions} compact />
         <a className="icon-btn lbl-btn hide-sm" href={LINKS.instagram} target="_blank" rel="noopener noreferrer" title="Instagram de 3DBAT"><Icon name="instagram" /><span>Instagram</span></a>
         {!BATBOX_HERE && <a className="icon-btn lbl-btn hide-sm" href={LINKS.batbox} target="_blank" rel="noopener noreferrer" title="BATBOX: herramientas y tutoriales gratis"><Icon name="box" /><span>BATBOX</span></a>}
-        {chat && <ChatButton chat={chat} online={online} />}
         <button className="icon-btn lbl-btn hide-sm" onClick={() => open('online', null, 'ranking')} title="Ranking, retos y granjas"><Icon name="users" /><span>Ranking</span></button>
         <button className="icon-btn lbl-btn hide-sm" onClick={() => open('logros')} title="Logros"><Icon name="trophy" /><span>Logros</span></button>
         <button className={'icon-btn lbl-btn hide-sm' + (readyClaims(s) ? ' attn' : '')} onClick={() => open('desafios')} title="Desafíos"><Icon name="target" /><span>Desafíos</span></button>

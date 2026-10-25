@@ -294,15 +294,8 @@ export function ChatPanel({ chat, online, open }) {
       </>
     );
   }
-  // Achicado: solo un botón redondo con el logo (lo escrito no se pierde y los avisos siguen).
-  if (chat.min) {
-    return (
-      <button className={'chat-mini' + (chat.mentions ? ' men' : '')} onClick={() => chat.setMin(false)} title="Mostrar el chat">
-        <Icon name="message" size={26} />
-        {chat.unread > 0 && <em className={'ch-badge' + (chat.mentions ? ' men' : '')}>{chat.mentions ? '@' : chat.unread > 98 ? '99+' : chat.unread}</em>}
-      </button>
-    );
-  }
+  // Achicado: queda el botón redondo de abajo (ChatButton); lo escrito no se pierde y los avisos siguen.
+  if (chat.min) return null;
   return (
     <aside className="chat-dock" role="dialog" aria-label="Chat en vivo">
       <div className="ch-top">
@@ -317,13 +310,14 @@ export function ChatPanel({ chat, online, open }) {
   );
 }
 
-// Botón del encabezado, con los no leídos (rojo si te mencionaron).
+// Botón redondo flotante abajo a la derecha (como Spotify): abre el chat, con los no leídos (rojo si te mencionaron).
+export const chatAvailable = (chat, online) => online.available === true && chat.available !== false;
 export function ChatButton({ chat, online }) {
-  if (online.available !== true || chat.available === false) return null;
+  if (!chatAvailable(chat, online) || chat.shown) return null;
   return (
-    <button className={'icon-btn lbl-btn chat-btn' + (chat.shown ? ' on' : '')} onClick={chat.toggle} title="Chat en vivo con los que están jugando">
-      <Icon name="message" /><span>Chat</span>
-      {!chat.shown && chat.unread > 0 && <em className={'ch-badge' + (chat.mentions ? ' men' : '')}>{chat.mentions ? '@' : chat.unread > 98 ? '99+' : chat.unread}</em>}
+    <button className={'chat-mini' + (chat.mentions ? ' men' : '')} onClick={chat.toggle} title="Chat en vivo con los que están jugando">
+      <Icon name="message" size={26} />
+      {chat.unread > 0 && <em className={'ch-badge' + (chat.mentions ? ' men' : '')}>{chat.mentions ? '@' : chat.unread > 98 ? '99+' : chat.unread}</em>}
     </button>
   );
 }

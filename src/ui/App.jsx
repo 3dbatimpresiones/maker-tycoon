@@ -13,7 +13,7 @@ import { TAGLINE } from '../config.js';
 import { useOnline } from '../online/useOnline.js';
 import { useMarket } from '../online/useMarket.js';
 import { useChat } from '../online/useChat.js';
-import { ChatPanel } from './Chat.jsx';
+import { ChatPanel, ChatButton, chatAvailable } from './Chat.jsx';
 import { OnlineModal, ConflictModal, LockedOverlay, WelcomeGate, ProfileSetup, useGate, FeedbackModal } from './Online.jsx';
 import { VisitModal } from './Visit.jsx';
 import NaveIntro, { naveIntroKey } from './NaveIntro.jsx';
@@ -64,7 +64,7 @@ export default function App() {
   const offersCount = s.orders.offers.length;
 
   return (
-    <div className={`app anim-${s.settings.anim}${chat.shown ? ' chat-on' : ''}${chat.open && chat.min ? ' chat-min' : ''}`}>
+    <div className={`app anim-${s.settings.anim}${chat.shown ? ' chat-on' : ''}${!chat.shown && chatAvailable(chat, online) ? ' chat-min' : ''}`}>
       <Header s={s} actions={actions} open={open} online={online} chat={chat} />
       <Hud s={s} onFilament={() => goShop('filament')} onTokens={() => open('desafios')} />
       <main className={`layout tab-${tab}`}>
@@ -104,6 +104,7 @@ export default function App() {
 
       <SpotifyDock s={s} actions={actions} />
       {chat.open && <ChatPanel chat={chat} online={online} open={open} />}
+      <ChatButton chat={chat} online={online} />
 
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => <div key={t.id} className={'toast t-' + t.kind}>{t.text}</div>)}
