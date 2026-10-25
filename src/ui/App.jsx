@@ -17,6 +17,7 @@ import { ChatPanel, ChatButton, chatAvailable } from './Chat.jsx';
 import { OnlineModal, ConflictModal, LockedOverlay, WelcomeGate, ProfileSetup, useGate, FeedbackModal } from './Online.jsx';
 import { VisitModal } from './Visit.jsx';
 import NaveIntro, { naveIntroKey } from './NaveIntro.jsx';
+import CityModal from './City.jsx';
 import { SpotifyDock } from './Spotify.jsx';
 import { BRAND_DISCLAIMER } from '../game/data.js';
 
@@ -100,7 +101,7 @@ export default function App() {
 
       <BatiGuide tutorial={s.tutorial.active} mission={mission} queue={bati}
         onDismiss={actions.dismissBati} onSkip={actions.skipTutorial}
-        onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('comunidad'); }} onCta={(k) => { if (k === 'online') open('online', null, 'perfil'); if (k === 'reparar') goShop('upgrades'); if (k === 'usados') goShop('used'); }} />
+        onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('comunidad'); }} onCta={(k) => { if (k === 'online') open('online', null, 'perfil'); if (k === 'reparar') goShop('upgrades'); if (k === 'usados') goShop('used'); if (k === 'ciudad') open('ciudad'); if (k === 'expo') open('ciudad', null, 'expo'); }} />
 
       <SpotifyDock s={s} actions={actions} />
       {chat.open && <ChatPanel chat={chat} online={online} open={open} />}
@@ -114,6 +115,7 @@ export default function App() {
         onSellUsed={online.available === true && mk.available !== false ? () => { setUsedPick(m.id); goShop('used'); close(); } : null} />}
       {modal?.kind === 'event' && m && <EventModal s={s} m={m} actions={actions} onClose={close} />}
       {modal?.kind === 'logros' && <AchievementsModal s={s} onClose={close} />}
+      {modal?.kind === 'ciudad' && <CityModal s={s} actions={actions} tab={modal.tab} onClose={close} />}
       {modal?.kind === 'oficio' && <OficioModal s={s} actions={actions} onClose={close} />}
       {modal?.kind === 'comunidad' && <CommunityModal s={s} onClose={close} />}
       {modal?.kind === 'desafios' && <ChallengesModal s={s} actions={actions} onClose={close} />}

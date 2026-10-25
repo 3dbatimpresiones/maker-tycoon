@@ -35,6 +35,7 @@ export function Header({ s, actions, open, online, chat }) {
         <CurrencyToggle s={s} actions={actions} compact />
         <a className="icon-btn lbl-btn hide-sm" href={LINKS.instagram} target="_blank" rel="noopener noreferrer" title="Instagram de 3DBAT"><Icon name="instagram" /><span>Instagram</span></a>
         {!BATBOX_HERE && <a className="icon-btn lbl-btn hide-sm" href={LINKS.batbox} target="_blank" rel="noopener noreferrer" title="BATBOX: herramientas y tutoriales gratis"><Icon name="box" /><span>BATBOX</span></a>}
+        {E.cityUnlocked(s) && <button className={'icon-btn lbl-btn hide-sm' + (s.city?.expo?.state === 'open' ? ' attn' : '')} onClick={() => open('ciudad')} title="Ciudad: mapa de demanda, rivales y Expo Maker"><Icon name="home" /><span>Ciudad</span></button>}
         <button className="icon-btn lbl-btn hide-sm" onClick={() => open('online', null, 'ranking')} title="Ranking, retos y granjas"><Icon name="users" /><span>Ranking</span></button>
         <button className="icon-btn lbl-btn hide-sm" onClick={() => open('logros')} title="Logros"><Icon name="trophy" /><span>Logros</span></button>
         <button className={'icon-btn lbl-btn hide-sm' + (readyClaims(s) ? ' attn' : '')} onClick={() => open('desafios')} title="Desafíos"><Icon name="target" /><span>Desafíos</span></button>

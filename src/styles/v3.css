@@ -126,3 +126,51 @@
 .o-steps i.ok { background: var(--ok, #4ade80); }
 .o-steps i.cur { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
 .o-steps small { margin-left: 6px; font-size: 10.5px; color: var(--muted); }
+
+/* Ciudad: mapa, rivales y Expo */
+.city-modal.modal { width: min(860px, 100%); }
+.city-tabs { margin-bottom: 10px; }
+.city-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.zone { padding: 10px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.03); display: flex; flex-direction: column; gap: 4px; }
+.zone.hot { border-color: rgba(251,146,60,.7); background: rgba(251,146,60,.09); }
+.zone.cold { border-color: rgba(125,211,252,.45); background: rgba(125,211,252,.05); opacity: .85; }
+.zone-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.zone-head b { color: #fff; font-size: 14px; }
+.zone-head em { margin-left: auto; font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); }
+.zone.hot .zone-head em { color: #fdba74; } .zone.cold .zone-head em { color: #7dd3fc; }
+.zone-ic { font-size: 20px; }
+.zone small { color: var(--muted); font-size: 11.5px; }
+.zone-prods { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.zone-prods .zp.off { opacity: .3; filter: grayscale(1); }
+.rival-list { display: flex; flex-direction: column; gap: 6px; }
+.rival { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.03); }
+.rival.me { border-color: var(--pink); background: rgba(247,142,182,.1); }
+.rv-pos { width: 28px; font-weight: 800; color: var(--cyan); }
+.rv-ic { font-size: 22px; }
+.rv-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rv-txt b { color: #fff; } .rv-txt small { color: var(--muted); font-size: 11.5px; } .rv-txt small i { color: #cbd5e1; }
+.rv-beaten { color: #4ade80 !important; }
+.rv-fame { text-align: right; font-weight: 800; color: #fff; display: flex; flex-direction: column; }
+.rv-fame small { font-weight: 400; color: var(--muted); font-size: 10px; }
+.expo-live { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(167,139,250,.6); background: rgba(167,139,250,.1); margin-bottom: 10px; }
+.expo-live.open { border-color: rgba(251,191,36,.7); background: rgba(251,191,36,.1); }
+.expo-live b { color: #fff; } .expo-live span { font-size: 12.5px; color: #cbd5e1; }
+.expo-picks, .expo-choose { display: flex; flex-wrap: wrap; gap: 6px; }
+.expo-pick { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--line); }
+.expo-pick b { font-size: 12.5px; color: #fff; } .expo-pick small { color: var(--muted); font-size: 11px; }
+.expo-opt { width: 92px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.03); color: #cbd5e1; font: inherit; cursor: pointer; }
+.expo-opt small { font-size: 10px; text-align: center; line-height: 1.2; }
+.expo-opt.on { border-color: var(--cyan); background: rgba(93,218,219,.14); color: #fff; }
+.expo-stands { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.expo-stand { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.03); color: #cbd5e1; font: inherit; cursor: pointer; }
+.expo-stand span { font-size: 22px; } .expo-stand b { font-size: 12px; color: #fff; } .expo-stand small { font-size: 11px; }
+.expo-stand.on { border-color: var(--pink); background: rgba(247,142,182,.1); }
+.expo-row { display: flex; gap: 8px; align-items: center; padding: 4px 8px; font-size: 13px; color: #cbd5e1; }
+.expo-row.me { color: var(--pink); font-weight: 700; }
+.expo-row b { margin-left: auto; color: #fff; }
+.expo-last { margin-top: 12px; padding: 8px; border-radius: 12px; background: rgba(255,255,255,.03); }
+.expo-last small { display: block; padding: 4px 8px; color: var(--muted); }
+.expo-strip { display: block; width: 100%; text-align: left; margin: 0 0 10px; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(167,139,250,.6);
+  background: rgba(167,139,250,.12); color: #e9d5ff; font: inherit; font-size: 13px; cursor: pointer; }
+.expo-strip.open { border-color: rgba(251,191,36,.7); background: rgba(251,191,36,.12); color: #fde68a; animation: mkpulse 1.8s infinite; }
+@media (max-width: 640px) { .city-map { grid-template-columns: 1fr; } .expo-stands { grid-template-columns: 1fr; } }

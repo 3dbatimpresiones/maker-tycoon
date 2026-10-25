@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import * as E from '../src/game/engine.js';
 import { step, skipTutorial, MISSIONS, ensureChallenges, claimChallenge } from '../src/game/progress.js';
-import { PERKS, TOKEN_SHOP, PRODUCTS, UPGRADES } from '../src/game/data.js';
+import { PERKS, TOKEN_SHOP, PRODUCTS, UPGRADES, ZONES, EXPO_PREP } from '../src/game/data.js';
 import { money, dur, num, setCurrency } from '../src/game/format.js';
 import { decideSync, summaryOf, isFreshSave } from '../src/online/api.js';
 
@@ -604,6 +604,50 @@ t('proyecto grande: etapas en cadena y bonus al final', () => {
   assert.ok(s.tokens >= tokens0 + 3 + 5, 'fichas por etapa + 5 al final');
   assert.ok(s.money > money0);
   assert.equal(s.stats.projects, 1);
+});
+
+t('ciudad: la demanda rota, cambia el precio de venta y los rivales se pueden superar', () => {
+  const s = E.newGame(null, 44); skipTutorial(s);
+  s.rep = 30; run(s, 1);
+  assert.equal(s.city.hot.length, 2); assert.ok(s.city.cold);
+  const z = ZONES.find((x) => x.id === s.city.hot[0]);
+  const pid = z.products[0];
+  assert.equal(E.demandMult(s, pid), 1.4);
+  const cold = ZONES.find((x) => x.id === s.city.cold);
+  const onlyCold = cold.products.find((p) => !E.zonesOf(p).some((zz) => s.city.hot.includes(zz.id)));
+  if (onlyCold) assert.equal(E.demandMult(s, onlyCold), 0.85);
+  const until = s.city.until;
+  run(s, until - s.time + 1);
+  assert.ok(s.city.until > until, 'rotó');
+  // rivales: con muchísima fama los superás a todos (premio una vez)
+  s.stats.orders = 1e5;
+  const evs = [];
+  for (let i = 0; i < 120; i++) { const ctx = { out: [] }; step(s, 0.1, ctx); evs.push(...ctx.out); }
+  assert.ok(Object.values(s.city.rivals).filter((r) => r.beaten).length === 4);
+  const later = [];
+  for (let i = 0; i < 120; i++) { const ctx = { out: [] }; step(s, 0.1, ctx); later.push(...ctx.out); }
+  assert.ok(evs.filter((e) => e.type === 'rivalBeaten').length >= 1);
+  assert.equal(later.filter((e) => e.type === 'rivalBeaten').length, 0, 'el premio es una sola vez por rival');
+});
+
+t('Expo Maker: inscribirse, producir y quedar en un puesto', () => {
+  const s = E.newGame(null, 45); skipTutorial(s);
+  s.rep = 1e5; s.money = 1e12; s.mat.PLA = 1e9;
+  for (let i = 0; i < 3; i++) E.buyMachine(s, 'ender3');
+  E.openExpo(s);
+  assert.equal(E.expoJoinReason(s, [], 0), 'Elegí de 1 a 3 productos');
+  assert.ok(E.expoJoin(s, ['llavero', 'benchy'], 2));
+  assert.equal(s.city.expo.state, 'joined');
+  const ctx = { out: [] };
+  for (let i = 0; i < (EXPO_PREP + 5) * 10; i++) {
+    step(s, 0.1, ctx);
+    for (const m of s.machines) { if (m.event) E.resolveEvent(s, m.id, 0); if (m.state === 'done') E.retrieve(s, m.id, ctx); }
+  }
+  const done = ctx.out.find((e) => e.type === 'expoDone');
+  assert.ok(done && done.place >= 1 && done.place <= 5, JSON.stringify(done));
+  assert.equal(s.city.expo, null);
+  assert.equal(s.city.expos, 1);
+  assert.ok(s.city.lastExpo.table.length === 5);
 });
 
 console.log(`\n${n} pruebas OK`);

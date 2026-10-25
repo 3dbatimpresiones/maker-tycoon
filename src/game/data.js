@@ -290,6 +290,32 @@ export const PROJECTS = [
 ];
 export const PROJECT_BONUS = 0.5; // al terminar todas las etapas: +50 % de lo cobrado
 
+// ---------- Ciudad: mapa de demanda, talleres rivales y Expo Maker ----------
+// Zonas de la ciudad: cada 30 minutos de juego cambia cuáles piden más (×1,4) y cuál está floja (×0,85).
+export const ZONES = [
+  { id: 'escuelas', name: 'Escuelas', icon: '🏫', blurb: 'Material didáctico, robótica y maquetas.', products: ['engranaje', 'maqueta', 'dron', 'caja', 'llavero', 'carcasa'] },
+  { id: 'comercios', name: 'Comercios', icon: '🏪', blurb: 'Locales que necesitan exhibir y ordenar.', products: ['soporte', 'organizador', 'maceta', 'cartel', 'gancho', 'llaveroacr'] },
+  { id: 'industria', name: 'Industria', icon: '🏭', blurb: 'Repuestos y piezas técnicas, sin vueltas.', products: ['industrial', 'engranaje', 'alu', 'carcasa', 'topes', 'dental'] },
+  { id: 'eventos', name: 'Eventos', icon: '🎉', blurb: 'Cumpleaños, casamientos y fiestas de empresa.', products: ['llavero', 'llaveromulti', 'llaverobati', 'posavasos', 'tabla', 'cartelmad'] },
+  { id: 'gamers', name: 'Gamers', icon: '🎮', blurb: 'Figuras, cosplay y coleccionables.', products: ['figura', 'figurapintada', 'miniatura', 'casco', 'armadura', 'busto', 'benchy'] },
+  { id: 'diseno', name: 'Diseño y deco', icon: '📐', blurb: 'Estudios, arquitectos y tiendas de diseño.', products: ['lampara', 'silla', 'mueble', 'maqueta', 'mural', 'joya'] },
+];
+export const DEMAND_HOT = 1.4, DEMAND_COLD = 0.85, DEMAND_EVERY = 1800;
+// Talleres rivales (NPC): compiten por fama, a veces se quedan con un pedido que dejaste esperando y van a la Expo.
+export const RIVALS = [
+  { id: 'barato', name: 'TodoBarato3D', icon: '💸', pace: 0.85, zone: 'comercios', style: 'Hace todo barato y rápido. La calidad… otro día.', quote: '«¿Para qué pagar más?»' },
+  { id: 'premium', name: 'Premium Prints', icon: '💎', pace: 1.15, zone: 'diseno', style: 'Solo trabajos premium, con precios de joyería.', quote: '«La calidad no se negocia.»' },
+  { id: 'rompe', name: 'RompeTodo Makers', icon: '💥', pace: 0.7, zone: 'industria', style: 'Vive rompiendo máquinas, pero no se rinde nunca.', quote: '«¡Se trabó otra vez!»' },
+  { id: 'cosplay', name: 'Cosplay Factory', icon: '🦸', pace: 1.0, zone: 'gamers', style: 'Cascos, armaduras y figuras para la Comic-Con.', quote: '«Si no brilla, no sirve.»' },
+];
+// Expo Maker: el gran evento. 15 minutos para producir lo que vas a mostrar.
+export const EXPO_PREP = 900, EXPO_EVERY = 5400, EXPO_REP = 6;
+export const EXPO_STANDS = [
+  { id: 0, name: 'Mesa simple', icon: '🪑', mult: 1, cost: 0 },
+  { id: 1, name: 'Stand decorado', icon: '🎪', mult: 1.3, cost: 0.4 },   // cost × ingreso de 10 min
+  { id: 2, name: 'Stand premium con luces', icon: '✨', mult: 1.6, cost: 1.2 },
+];
+
 // Pisos de la Nave y la Planta (uno por tecnología, 20 lugares cada uno).
 export const FLOORS = [
   { id: 'fdm', name: 'FDM', long: 'FDM Lab', icon: '🖨️', blurb: 'El corazón de la granja: volumen y velocidad.' },

@@ -6,6 +6,7 @@ import { MachineThumb, ProductThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
 import { MACHINES, PRODUCTS, SPACES, MACHINE_EVENTS, GLOBAL_EVENTS, FLOORS, FLOOR_SLOTS } from '../game/data.js';
 import FloorTabs from './FloorTabs.jsx';
+import { ExpoStrip } from './City.jsx';
 import { money, rate, dur, clock, fmtText } from '../game/format.js';
 import { currentMission } from '../game/progress.js';
 
@@ -125,6 +126,7 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
         <span className="slots-chip" title={floors ? `Piso ${FLOORS.find((f) => f.id === floor).long} · ${s.machines.length} máquinas en toda la nave` : ''}>{shown.length}/{cap}</span>
       </div>
       <ChallengeStrip s={s} open={open} />
+      <ExpoStrip s={s} open={open} />
       {mission.id !== 'libre' && (
         <div className={'mission-strip' + (s.tutorial.active ? ' tut' : '')}>
           <Icon name="target" size={16} /><span><b>{s.tutorial.active ? 'TUTORIAL' : 'MISIÓN'}</b> {fmtText(mission.text)}</span>

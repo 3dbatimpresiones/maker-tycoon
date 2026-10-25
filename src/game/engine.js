@@ -9,6 +9,7 @@ import {
   UPGRADES, repNeeded, REP_PRICE_BONUS, ORDER_TEMPLATES, ORDER_OFFER_LIFE, ORDER_SPAWN_EVERY, CONTRACT_CLIENTS,
   MACHINE_EVENTS, GLOBAL_EVENTS, MAKER_TITLES, MASTERY_BASE, MASTERY_GROWTH, MASTERY_BONUS,
   MASTERY_CHALLENGES, TECHS, FLOORS, FLOOR_SLOTS, COMBO_CLIENTS, MODS, MOD_SLOTS, PROJECTS, PROJECT_BONUS,
+  ZONES, DEMAND_HOT, DEMAND_COLD, DEMAND_EVERY, RIVALS, EXPO_PREP, EXPO_EVERY, EXPO_REP, EXPO_STANDS,
 } from './data.js';
 
 export const SAVE_VERSION = 3;
@@ -73,6 +74,8 @@ export function newGame(keep = null, seed = (Date.now() ^ 0x5bd1e995) >>> 0, cha
     stats: keep?.stats || freshStats(),
     run: freshRun(),
     mastery: keep?.mastery || {},
+    // Ciudad: los rivales vencidos y las Expos ganadas se recuerdan; la demanda arranca de nuevo.
+    city: keep?.city ? { hot: [], cold: null, until: 0, rivals: keep.city.rivals || {}, expo: null, expoT: 1800, expoWins: keep.city.expoWins || 0, expos: keep.city.expos || 0, lastExpo: keep.city.lastExpo || null } : undefined,
     tokens: keep?.tokens || 0,
     daily: keep?.daily || null,
     weekly: keep?.weekly || null,
@@ -309,7 +312,7 @@ export function pieceValue(s, pid, stars) {
 export const trendActive = (s, pid) => s.trend.p === pid && s.time < s.trend.until;
 export function saleMult(s, pid) {
   return (trendActive(s, pid) ? 2 : 1) * (s.time < s.boost.viral ? 2 : 1) * (s.time < s.boost.turbo ? 2 : 1)
-    * (s.time < s.boost.feria ? 1.5 : 1) * (mastered(s, 'mostrador') ? 1.25 : 1);
+    * (s.time < s.boost.feria ? 1.5 : 1) * (mastered(s, 'mostrador') ? 1.25 : 1) * demandMult(s, pid);
 }
 export function productRate(s, m, pid, withBoosts = false) {
   const p = PRODUCTS[pid];
@@ -566,9 +569,11 @@ export function retrieve(s, mid, ctx = {}, by = 'hand') {
     it.done++;
     out.push({ type: 'orderPiece', mid, oid: o.id, pid });
     if (o.items.every((i) => i.done >= i.qty)) completeOrder(s, o, out);
+    m.made = (m.made || 0) + 1;
   } else {
     const gain = pieceValue(s, pid, stars) * saleMult(s, pid);
     addMoney(s, gain);
+    m.made = (m.made || 0) + 1; m.earned = (m.earned || 0) + gain;
     out.push({ type: 'sale', mid, amount: gain, pid, by });
   }
   out.push({ type: 'piece', pid, by });
@@ -1254,8 +1259,15 @@ function failOrder(s, o, out) {
 }
 function stepOrders(s, dt, ctx) {
   const O = s.orders;
-  for (const o of O.offers) if (o.expires <= s.time && o.project && o.project.stage > 0) {
-    ctx.out.push({ type: 'projectLost', name: PROJECTS.find((x) => x.id === o.project.id)?.name || 'Proyecto' });
+  for (const o of O.offers) {
+    if (o.expires > s.time) continue;
+    if (o.project && o.project.stage > 0) ctx.out.push({ type: 'projectLost', name: PROJECTS.find((x) => x.id === o.project.id)?.name || 'Proyecto' });
+    // Un pedido que dejaste esperando a veces se lo lleva un taller rival.
+    else if (!o.urgent && o.tpl !== 'exposicion' && cityUnlocked(s) && rand(s) < 0.35) {
+      const r = RIVALS[Math.floor(rand(s) * RIVALS.length)];
+      cityOf(s).stolen = (cityOf(s).stolen || 0) + 1;
+      ctx.out.push({ type: 'stolen', rival: r.name, icon: r.icon, title: o.title });
+    }
   }
   O.offers = O.offers.filter((o) => o.expires > s.time);
   for (const o of [...O.active]) if (s.time >= o.deadline) failOrder(s, o, ctx.out);
@@ -1418,11 +1430,150 @@ export function tick(s, dt, ctx = {}) {
     }
   }
   stepOrders(s, dt, ctx);
+  stepCity(s, dt, ctx);
   const tp = stepTrend(s);
   if (tp) ctx.out.push({ type: 'trend', pid: tp });
   stepGlobal(s, ctx);
   return ctx.out;
 }
+
+// ---------- Ciudad: mapa de demanda ----------
+export const cityUnlocked = (s) => !s.tutorial.active && repLevel(s) >= 2;
+function cityOf(s) {
+  if (!s.city) s.city = { hot: [], cold: null, until: 0, rivals: {}, expo: null, expoT: 1800, expoWins: 0, expos: 0, stolen: 0 };
+  return s.city;
+}
+function rotateDemand(s) {
+  const c = cityOf(s);
+  const ids = ZONES.map((z) => z.id);
+  const pick = () => ids.splice(Math.floor(rand(s) * ids.length), 1)[0];
+  c.hot = [pick(), pick()];
+  c.cold = pick();
+  c.until = s.time + DEMAND_EVERY;
+}
+export function zoneState(s, zid) {
+  const c = s.city;
+  if (!c || !cityUnlocked(s)) return 0;
+  return c.hot.includes(zid) ? 1 : c.cold === zid ? -1 : 0;
+}
+export function demandMult(s, pid) {
+  const c = s.city;
+  if (!c || !cityUnlocked(s) || !c.hot.length) return 1;
+  let hot = false, cold = false;
+  for (const z of ZONES) if (z.products.includes(pid)) { const st = zoneState(s, z.id); if (st > 0) hot = true; else if (st < 0) cold = true; }
+  return hot ? DEMAND_HOT : cold ? DEMAND_COLD : 1;
+}
+export const zonesOf = (pid) => ZONES.filter((z) => z.products.includes(pid));
+
+// ---------- Talleres rivales ----------
+// Tu fama local: reputación, pedidos entregados, proyectos y Expos ganadas.
+export function myFame(s) {
+  const c = s.city || {};
+  return Math.round(120 * repLevel(s) + 4 * (s.stats.orders || 0) + 60 * (s.stats.projects || 0) + 150 * (c.expoWins || 0) + 25 * (c.expos || 0));
+}
+// La de los rivales crece con el tiempo de juego y tu nivel: siempre hay alguien cerca.
+export function rivalFame(s, r) {
+  const lvl = repLevel(s);
+  const hrs = (s.stats.playSecs || s.time || 0) / 3600;
+  return Math.round(r.pace * (180 + 105 * Math.pow(lvl, 1.12) + 40 * Math.sqrt(hrs)) + 30 * Math.sin(hrs * 1.3 + r.pace * 7));
+}
+export function fameTable(s) {
+  const rows = RIVALS.map((r) => ({ id: r.id, name: r.name, icon: r.icon, fame: rivalFame(s, r), rival: r }));
+  rows.push({ id: 'me', name: s.name || 'Tu taller', icon: '🦇', fame: myFame(s), me: true });
+  return rows.sort((a, b) => b.fame - a.fame);
+}
+// Superar a un rival por primera vez da un premio (una sola vez por rival).
+function checkRivals(s, out) {
+  const c = cityOf(s);
+  const me = myFame(s);
+  for (const r of RIVALS) {
+    if (c.rivals[r.id]?.beaten) continue;
+    if (me > rivalFame(s, r)) {
+      c.rivals[r.id] = { beaten: true, at: s.time };
+      s.tokens += 3;
+      addRep(s, 2, out);
+      out.push({ type: 'rivalBeaten', name: r.name, icon: r.icon });
+    }
+  }
+}
+
+// ---------- Expo Maker ----------
+export const expoUnlocked = (s) => !s.tutorial.active && repLevel(s) >= EXPO_REP;
+export function standCost(s, id) { return Math.round(EXPO_STANDS[id].cost * Math.max(incomeRate(s), 50) * 600); }
+// Cuántas unidades de un producto podrías hacer en la preparación si le dedicaras un tercio de las máquinas.
+function expoPotential(s, pid, share) {
+  return s.machines.filter((m) => canPrint(s, m, pid)).reduce((a, m) => a + machineSpeed(s, m, false) * EXPO_PREP / PRODUCTS[pid].time, 0) * share;
+}
+const expoPoints = (pid, units) => units * Math.sqrt(PRODUCTS[pid].price);
+export function expoJoinReason(s, picks, stand) {
+  const e = s.city?.expo;
+  if (!e || e.state !== 'open') return 'No hay ninguna Expo abierta';
+  if (!picks.length || picks.length > 3) return 'Elegí de 1 a 3 productos';
+  if (picks.some((p) => !productFeasible(s, p, 1))) return 'Hay un producto que no podés fabricar';
+  if (s.money < standCost(s, stand)) return 'Te falta plata para ese stand';
+  return null;
+}
+export function expoJoin(s, picks, stand = 0) {
+  if (expoJoinReason(s, picks, stand)) return false;
+  const e = s.city.expo;
+  s.money -= standCost(s, stand);
+  const variety = 1 + 0.15 * (picks.length - 1);
+  // Los rivales llevan lo suyo: más o menos lo que lograrías vos con un stand decorado, según su ritmo.
+  const par = picks.reduce((a, p) => a + expoPoints(p, expoPotential(s, p, 0.55 / picks.length)), 0) * variety * 1.3;
+  e.state = 'joined';
+  e.ends = s.time + EXPO_PREP;
+  e.picks = picks; e.stand = stand;
+  e.base = Object.fromEntries(picks.map((p) => [p, s.mastery[p] || 0]));
+  e.rivals = RIVALS.map((r) => ({ id: r.id, name: r.name, icon: r.icon, score: Math.round(par * r.pace * (0.75 + rand(s) * 0.5)) }));
+  return true;
+}
+export function expoProgress(s) {
+  const e = s.city?.expo;
+  if (!e || e.state !== 'joined') return null;
+  const units = Object.fromEntries(e.picks.map((p) => [p, Math.max(0, (s.mastery[p] || 0) - (e.base[p] || 0))]));
+  const variety = 1 + 0.15 * (e.picks.filter((p) => units[p] > 0).length - 1);
+  const score = Math.round(e.picks.reduce((a, p) => a + expoPoints(p, units[p]), 0) * Math.max(1, variety) * EXPO_STANDS[e.stand].mult);
+  return { units, score };
+}
+function finishExpo(s, out) {
+  const c = cityOf(s);
+  const e = c.expo;
+  if (e.state !== 'joined') { c.expo = null; out.push({ type: 'expoMissed' }); return; }
+  const { score, units } = expoProgress(s);
+  const table = [...e.rivals, { id: 'me', name: s.name || 'Tu taller', icon: '🦇', score, me: true }].sort((a, b) => b.score - a.score);
+  const place = table.findIndex((x) => x.me) + 1;
+  const prize = { 1: { tokens: 6, rep: 4, money: 30 }, 2: { tokens: 3, rep: 2, money: 12 }, 3: { tokens: 1, rep: 1, money: 5 } }[place] || { tokens: 0, rep: 0, money: 0 };
+  const cash = Math.round(prize.money * 60 * Math.max(incomeRate(s), 50));
+  if (cash) addMoney(s, cash);
+  s.tokens += prize.tokens;
+  if (prize.rep) addRep(s, prize.rep, out);
+  c.expos = (c.expos || 0) + 1;
+  if (place === 1) c.expoWins = (c.expoWins || 0) + 1;
+  c.lastExpo = { place, score, table, units, cash, tokens: prize.tokens, at: s.time };
+  c.expo = null;
+  out.push({ type: 'expoDone', place, cash, tokens: prize.tokens, score });
+}
+function stepCity(s, dt, ctx) {
+  if (!cityUnlocked(s)) return;
+  const c = cityOf(s);
+  if (s.time >= c.until) { const first = !c.hot.length; rotateDemand(s); if (!first) ctx.out.push({ type: 'demand', hot: c.hot, cold: c.cold }); }
+  c.checkT = (c.checkT || 0) + dt;
+  if (c.checkT >= 5) { c.checkT = 0; checkRivals(s, ctx.out); }
+  if (!expoUnlocked(s)) return;
+  if (c.expo) {
+    if (c.expo.state === 'open' && s.time >= c.expo.closes) { c.expo = null; ctx.out.push({ type: 'expoMissed' }); }
+    else if (c.expo.state === 'joined' && s.time >= c.expo.ends) finishExpo(s, ctx.out);
+    return;
+  }
+  c.expoT = (c.expoT ?? 1800) - dt;
+  if (c.expoT > 0) return;
+  c.expoT = EXPO_EVERY;
+  // Se anuncia la Expo: 5 minutos para inscribirte; la preparación dura 15 desde que te anotás.
+  c.expo = { state: 'open', closes: s.time + 300 };
+  ctx.out.push({ type: 'expoOpen' });
+}
+// Para pruebas y para el panel: abrir una Expo ya.
+export function openExpo(s) { const c = cityOf(s); c.expo = { state: 'open', closes: s.time + 300 }; return c.expo; }
 
 // ---------- Producción en bloque (offline y salto temporal) ----------
 function bulkProduce(s, t, eff, payMaterials = true) {
@@ -1522,7 +1673,7 @@ function keepForMove(s, prestige) {
     keptRep: Math.floor(s.rep * keepFrac),
     name: s.name, totalEarned: s.totalEarned, stats: s.stats, achievements: s.achievements, mastery: s.mastery,
     tokens: s.tokens, daily: s.daily, weekly: s.weekly, prestige, settings: s.settings, seen: s.seen, cosmetics: s.cosmetics,
-    market: s.market,
+    market: s.market, city: s.city,
     orders: { fidelity: s.orders.fidelity, clients: s.orders.clients },
   };
 }

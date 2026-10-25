@@ -154,7 +154,7 @@ export function MachinePanel({ s, m, actions, onClose, onSellUsed }) {
             <button key={pid} className={'list-row' + (active ? ' active' : '') + (can ? '' : ' disabled')} disabled={!can} onClick={() => actions.setProduct(m.id, pid)}>
               {active ? <span className="dot" /> : <span className="dot off" />}
               <ProductThumb pid={pid} size={34} dim={!can} />
-              <span className="meta"><b>{P.name}</b> · {MATERIALS[P.mat].name} · {P.size}{P.multi ? ' · multicolor' : ''}{E.trendActive(s, pid) ? ' · 📈 ×2' : ''}<br />
+              <span className="meta"><b>{P.name}</b> · {MATERIALS[P.mat].name} · {P.size}{P.multi ? ' · multicolor' : ''}{E.trendActive(s, pid) ? ' · 📈 ×2' : ''}{E.demandMult(s, pid) > 1 ? ' · 🔥 zona con demanda' : E.demandMult(s, pid) < 1 ? ' · ❄️ zona floja' : ''}<br />
                 {can ? <>{money(E.pieceValue(s, pid, E.machineStars(s, m)))} c/u · {dur(P.time / E.machineSpeed(s, m, false))} · <b className="c-cyan">{rate(E.productRate(s, m, pid))}</b></> : <><Icon name="lock" size={12} /> {why}</>}
               </span>
               {(s.mastery[pid] || 0) > 0 && <Mastery s={s} pid={pid} />}
@@ -554,6 +554,7 @@ export function MorePanel({ s, open, online }) {
       <div className="card-head"><div className="card-icon"><Icon name="more" /></div><h2>Más</h2></div>
       <div className="more-list">
         <button className="item-card" onClick={() => open('online', null, 'perfil')}><span className="item-ico">🌐</span><span className="item-txt"><strong>Online: ranking, retos y granjas</strong><small>{online?.user ? (online.me?.player ? `${online.me.player.nick} · ${online.me.points ?? 0} pts` : 'Creá tu perfil') : 'Guardá tu partida en la nube con Google'}</small></span></button>
+        {E.cityUnlocked(s) && <button className="item-card" onClick={() => open('ciudad')}><span className="item-ico">🏙️</span><span className="item-txt"><strong>Ciudad</strong><small>{s.city?.expo ? '¡Hay una Expo Maker!' : 'Mapa de demanda, rivales y Expo Maker'}</small></span></button>}
         <button className="item-card" onClick={() => open('sugerencias')}><span className="item-ico">💡</span><span className="item-txt"><strong>Sugerencias</strong><small>Mandanos una idea o contanos si algo anda mal</small></span></button>
         <button className="item-card fc-item" onClick={() => open('online', null, 'filacolor')}><span className="item-ico">🧵</span><span className="item-txt"><strong>Filacolor · Proveedor oficial</strong><small>Filamentos, impresoras y servicio técnico</small></span></button>
         <button className="item-card" onClick={() => open('oficio')}><span className="item-ico">🏅</span><span className="item-txt"><strong>Oficio y Mudanza</strong><small>{E.canMove(s) ? '¡Ya podés mudarte!' : `Nivel Maker: ${E.makerTitle(s.prestige.total)}`}</small></span></button>

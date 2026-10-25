@@ -185,6 +185,25 @@ export function useGame() {
           sfx.achievement(); toast(`${e.icon} ¡Proyecto terminado: ${e.name}! Bonus +${money(e.bonus)} · +5 🎟️`, 'info', 6000);
           say(`¡Terminaste el proyecto «${e.name}» entero! Te llevás un bonus de ${money(e.bonus)} y 5 fichas. Eso es tener una empresa de verdad.`, { mood: 'happy' });
           break;
+        case 'demand':
+          if (!st.seen.demand1) { st.seen.demand1 = 1; say('Cambió la demanda en la ciudad: algunas zonas compran más (🔥 ×1,4) y otra está floja. Mirá el mapa en el botón Ciudad.', { ctas: ['ciudad'] }); }
+          else toast('🗺️ Cambió la demanda de la ciudad: mirá qué zonas están 🔥', 'info', 3500);
+          break;
+        case 'stolen': toast(`${e.icon} ${e.rival} se quedó con «${e.title}» porque lo dejaste esperando.`, 'warn', 5000); break;
+        case 'rivalBeaten':
+          sfx.achievement(); toast(`🏁 ¡Superaste en fama a ${e.icon} ${e.name}! +3 🎟️`, 'info', 5000);
+          sayOnce('rival1', 'En la ciudad hay talleres rivales. Cada vez que superás a uno en fama por primera vez te llevás fichas. La fama sube con pedidos, proyectos y Expos.', { mood: 'happy', ctas: ['ciudad'] });
+          break;
+        case 'expoOpen':
+          sfx.urgent(); toast('🎪 ¡Se anunció una Expo Maker! Tenés 5 minutos para inscribirte.', 'warn', 6000);
+          say('¡Hay Expo Maker! Elegí hasta 3 productos, armá tu stand y en 15 minutos fabricá todo lo que puedas. Competís con los talleres rivales por plata, fichas y reputación.', { mood: 'happy', ctas: ['expo'] });
+          break;
+        case 'expoMissed': toast('🎪 Se cerró la Expo Maker sin tu taller. ¡La próxima!', 'info', 4000); break;
+        case 'expoDone':
+          sfx.achievement();
+          toast(e.place === 1 ? `🏆 ¡Ganaste la Expo Maker! +${money(e.cash)} · +${e.tokens} 🎟️` : e.place <= 3 ? `🎪 Expo Maker: puesto ${e.place}. +${money(e.cash)} · +${e.tokens} 🎟️` : `🎪 Expo Maker: puesto ${e.place}. ¡La próxima sale mejor!`, 'info', 7000);
+          say(e.place === 1 ? '¡GANAMOS LA EXPO! Toda la ciudad habla de tu taller.' : e.place <= 3 ? `¡Podio en la Expo! Puesto ${e.place}. Para ganar: stand mejor, productos caros y variedad.` : 'Esta vez no llegamos al podio. Probá con un stand mejor y poné más máquinas en los productos de la Expo.', { mood: e.place <= 3 ? 'happy' : 'worried', ctas: ['expo'] });
+          break;
         case 'challengeDone': sfx.achievement(); say(`¡Superaste el desafío «${e.name}»! Premio para siempre: ${e.reward} (+3 fichas).`, { mood: 'happy' }); break;
         case 'newChallenges':
           if (!st.seen.daily1) { st.seen.daily1 = 1; say('Hay desafíos nuevos todos los días (y uno semanal). Dan fichas para canjear por turbos, saltos de tiempo y más. Están en el botón 🎯 Desafíos.'); }
@@ -322,6 +341,7 @@ export function useGame() {
       return m;
     }),
     moveMachine: (mid, dir) => act((st) => { E.moveMachine(st, mid, dir); }),
+    expoJoin: (picks, stand) => act((st) => { const ok = E.expoJoin(st, picks, stand); if (ok) { sfx.buy(); toast('🎪 ¡Inscripto en la Expo! Tenés 15 minutos para fabricar.', 'info', 5000); } return ok; }),
     installMod: (mid, k) => act((st) => { const ok = E.installMod(st, mid, k); if (ok) { sfx.buy(); toast(`🔧 Mod instalado: ${MODS[k].name}`); } return ok; }),
     removeMod: (mid, k) => act((st) => E.removeMod(st, mid, k)),
     markSeen: (key) => act((st) => { st.seen = st.seen || {}; st.seen[key] = 1; }),

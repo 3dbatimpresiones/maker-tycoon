@@ -108,6 +108,8 @@ const CTA = {
   online: { label: 'Jugar online', icon: 'users', internal: true },
   reparar: { label: 'Ir a reparar', icon: 'wrench', internal: true },
   usados: { label: 'Ver Usados', icon: 'cart', internal: true },
+  ciudad: { label: 'Ver la ciudad', icon: 'home', internal: true },
+  expo: { label: 'Ir a la Expo', icon: 'trophy', internal: true },
   batbox: { label: 'Abrir BATBOX', href: LINKS.batbox, icon: 'box' },
   comunidad: { label: 'Comunidad Makers 3DBAT', href: LINKS.comunidad, icon: 'users' },
 };
