@@ -254,6 +254,42 @@ export const ORDER_OFFER_LIFE = 240;
 export const ORDER_SPAWN_EVERY = 40;
 
 // Contratos de empresa: pedidos grandes que además dan fichas.
+// Mods por máquina: 3 ranuras en cada una. Efectos: speed (×), fail (×), stars (+), use (× material).
+// cost = fracción del precio base de la máquina.
+export const MOD_SLOTS = 3;
+export const MODS = {
+  hotend: { tech: 'fdm', name: 'Hotend de alto flujo', icon: '🔥', speed: 1.2, cost: 0.18, blurb: '+20 % de velocidad.' },
+  boq06: { tech: 'fdm', name: 'Boquilla 0.6', icon: '🎯', speed: 1.35, stars: -1, cost: 0.08, blurb: '+35 % de velocidad, pero −1 ★ de calidad.' },
+  gabinete: { tech: 'fdm', name: 'Gabinete cerrado', icon: '📦', fail: 0.7, cost: 0.15, blurb: '−30 % de fallas (sin corrientes de aire ni gatos).' },
+  pei: { tech: 'fdm', name: 'Placa PEI texturada', icon: '🧲', use: 0.9, fail: 0.9, cost: 0.1, blurb: '−10 % de material y −10 % de fallas de adherencia.' },
+  endurecida: { tech: 'fdm', name: 'Boquilla endurecida', icon: '💎', stars: 1, cost: 0.25, blurb: '+1 ★ de calidad.' },
+  fep: { tech: 'resin', name: 'Film FEP premium', icon: '🎞️', fail: 0.7, cost: 0.15, blurb: '−30 % de fallas.' },
+  calefactor: { tech: 'resin', name: 'Calefactor de cuba', icon: '♨️', speed: 1.2, cost: 0.15, blurb: '+20 % de velocidad (la resina tibia fluye mejor).' },
+  lcd16k: { tech: 'resin', name: 'Pantalla 16K', icon: '🖥️', stars: 1, cost: 0.3, blurb: '+1 ★ de calidad.' },
+  airassist: { tech: 'laser', name: 'Air assist', icon: '💨', speed: 1.25, fail: 0.9, cost: 0.15, blurb: '+25 % de velocidad y −10 % de fallas.' },
+  extractor: { tech: 'laser', name: 'Extractor de humo', icon: '🌀', fail: 0.7, cost: 0.12, blurb: '−30 % de fallas.' },
+  lente: { tech: 'laser', name: 'Lente premium', icon: '🔍', stars: 1, cost: 0.25, blurb: '+1 ★ de calidad.' },
+  husillo: { tech: 'cnc', name: 'Husillo reforzado', icon: '⚙️', speed: 1.25, cost: 0.2, blurb: '+25 % de velocidad.' },
+  aspiracion: { tech: 'cnc', name: 'Aspiración de virutas', icon: '🧹', fail: 0.7, cost: 0.12, blurb: '−30 % de fallas.' },
+  fresas: { tech: 'cnc', name: 'Fresas premium', icon: '🪛', stars: 1, use: 0.95, cost: 0.25, blurb: '+1 ★ de calidad y −5 % de material.' },
+};
+
+// Proyectos grandes de varias etapas (desde Reputación 7). Cada etapa usa una tecnología;
+// si todavía no la tenés, esa etapa se hace con lo que tengas.
+export const PROJECTS = [
+  { id: 'cafeteria', client: 'Café «La Boquilla»', name: 'Cafetería maker', icon: '☕',
+    stages: [['fdm', 'Macetas y soportes para el salón'], ['laser', 'Carteles y posavasos'], ['cnc', 'Tablas y mesas de madera'], ['resin', 'Figuras para la vitrina']] },
+  { id: 'feria', client: 'Feria Gamer del Sur', name: 'Feria gamer', icon: '🎮',
+    stages: [['resin', 'Figuras de colección para el stand'], ['fdm', 'Soportes y accesorios gamer'], ['laser', 'Credenciales y carteles']] },
+  { id: 'stand', client: 'Estudio Kimbo', name: 'Stand empresarial', icon: '🏢',
+    stages: [['laser', 'Cartelería del stand'], ['cnc', 'Mostrador fresado'], ['fdm', 'Regalos empresariales']] },
+  { id: 'robotica', client: 'Escuela técnica N.º 3', name: 'Laboratorio de robótica', icon: '🤖',
+    stages: [['fdm', 'Piezas para los robots'], ['laser', 'Cajas y chasis'], ['cnc', 'Bases mecanizadas']] },
+  { id: 'museo', client: 'Museo interactivo', name: 'Sala del museo', icon: '🏛️',
+    stages: [['resin', 'Réplicas de piezas históricas'], ['cnc', 'Pedestales de madera'], ['laser', 'Placas descriptivas'], ['fdm', 'Maquetas para tocar']] },
+];
+export const PROJECT_BONUS = 0.5; // al terminar todas las etapas: +50 % de lo cobrado
+
 // Pisos de la Nave y la Planta (uno por tecnología, 20 lugares cada uno).
 export const FLOORS = [
   { id: 'fdm', name: 'FDM', long: 'FDM Lab', icon: '🖨️', blurb: 'El corazón de la granja: volumen y velocidad.' },

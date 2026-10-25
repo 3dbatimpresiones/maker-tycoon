@@ -101,3 +101,28 @@
 .cl-row { padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
 .cl-row .cl-line { font-size: 12px; color: #fff; }
 .cl-stats { color: var(--muted); font-size: 11px; }
+
+/* Mods por máquina */
+.mods-box { margin: 4px 0 10px; }
+.mods-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.mod-slot { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 8px; border-radius: 12px; min-height: 64px; font: inherit; }
+.mod-slot.on { border: 1px solid rgba(93,218,219,.5); background: rgba(93,218,219,.08); }
+.mod-slot.on b { font-size: 12px; color: #fff; padding-right: 18px; }
+.mod-slot.on small { font-size: 10.5px; color: var(--muted); line-height: 1.3; }
+.mod-slot.on .mini-btn { position: absolute; top: 4px; right: 4px; }
+.mod-slot .mod-ic { font-size: 18px; }
+.mod-slot.empty { align-items: center; justify-content: center; flex-direction: row; gap: 6px; border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; }
+.mod-slot.empty:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); }
+.mods-shop { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.mods-shop .mod-ic { font-size: 20px; width: 30px; text-align: center; }
+.mods-shop > .chip-btn { align-self: flex-end; }
+.mods-add { margin-top: 8px; }
+@media (max-width: 520px) { .mods-slots { grid-template-columns: 1fr; } .mod-slot { min-height: 0; } }
+.mods-shop .list-row { text-align: left; justify-content: flex-start; } .mods-shop .list-row .meta { flex: 1; }
+
+/* Proyectos de varias etapas */
+.o-steps { display: flex; align-items: center; gap: 4px; margin: 2px 0 6px; }
+.o-steps i { width: 22px; height: 6px; border-radius: 4px; background: rgba(255,255,255,.12); }
+.o-steps i.ok { background: var(--ok, #4ade80); }
+.o-steps i.cur { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.o-steps small { margin-left: 6px; font-size: 10.5px; color: var(--muted); }

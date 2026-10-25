@@ -6,8 +6,7 @@ import { BatiArt, CtaButtons } from './Bati.jsx';
 import * as E from '../game/engine.js';
 import {
   MACHINES, PRODUCTS, PRODUCT_ORDER, MACHINE_EVENTS, PERKS, LED_COLORS, SPACES, SIZE_NAME, MATERIALS,
-  MASTERY_CHALLENGES, TOKEN_SHOP, BRAND_DISCLAIMER,
-} from '../game/data.js';
+  MASTERY_CHALLENGES, TOKEN_SHOP, BRAND_DISCLAIMER, MODS, MOD_SLOTS } from '../game/data.js';
 import { ACHIEVEMENTS } from '../game/progress.js';
 import { money, rate, dur, num, fmtText, SEASON } from '../game/format.js';
 import { LINKS, IG_HANDLE, VERSION } from '../config.js';
@@ -64,12 +63,56 @@ function Mastery({ s, pid }) {
 }
 
 // ---------- Panel de una máquina ----------
+// Mods de la máquina: 3 ranuras con mejoras propias de su tecnología.
+function ModsBox({ s, m, actions }) {
+  const [open, setOpen] = useState(false);
+  const mine = m.mods || [];
+  const avail = E.modsFor(m).filter((k) => !mine.includes(k));
+  return (
+    <div className="mods-box">
+      <div className="section-label">MODS DE ESTA MÁQUINA · {mine.length}/{MOD_SLOTS}</div>
+      <div className="mods-slots">
+        {Array.from({ length: MOD_SLOTS }).map((_, i) => {
+          const k = mine[i];
+          const X = k && MODS[k];
+          return X ? (
+            <div key={i} className="mod-slot on" title={X.blurb}>
+              <span className="mod-ic">{X.icon}</span><b>{X.name}</b><small>{X.blurb}</small>
+              <button className="mini-btn" onClick={() => actions.removeMod(m.id, k)} title={`Sacarlo: te devuelven ${money(Math.round(E.modCost(s, m, k) * 0.5))}`}><Icon name="x" size={12} /></button>
+            </div>
+          ) : (
+            <button key={i} className="mod-slot empty" onClick={() => setOpen(true)} disabled={!avail.length}><Icon name="plus" size={16} /> Ranura libre</button>
+          );
+        })}
+      </div>
+      {(open || false) && mine.length < MOD_SLOTS && (
+        <div className="mods-shop">
+          {avail.map((k) => {
+            const X = MODS[k];
+            const why = E.modReason(s, m, k);
+            return (
+              <button key={k} className={'list-row' + (why ? ' disabled' : '')} disabled={!!why} onClick={() => { actions.installMod(m.id, k); }}>
+                <span className="mod-ic">{X.icon}</span>
+                <span className="meta"><b>{X.name}</b> · {X.blurb}<br /><small>{why && why !== 'Te falta plata' ? why : money(E.modCost(s, m, k))}</small></span>
+                {!why && <span className="chip-btn">Instalar</span>}
+              </button>
+            );
+          })}
+          <button className="chip-btn" onClick={() => setOpen(false)}>Listo</button>
+        </div>
+      )}
+      {!open && mine.length < MOD_SLOTS && avail.length > 0 && <button className="chip-btn mods-add" onClick={() => setOpen(true)}>🔧 Ver mods para instalar</button>}
+      <p className="hint">Los mods son solo de esta máquina. Si la vendés, la publicás en Usados o la entregás en un canje, se desarman y te devuelven la mitad.</p>
+    </div>
+  );
+}
+
 export function MachinePanel({ s, m, actions, onClose, onSellUsed }) {
   const [sure, setSure] = useState(false);
   if (!m) return null;
   const M = MACHINES[m.model];
   const order = m.orderId && s.orders.active.find((o) => o.id === m.orderId);
-  const refund = Math.round((m.paid || 0) * 0.5);
+  const refund = Math.round((m.paid || 0) * 0.5) + E.modsRefund(s, m);
   const prods = PRODUCT_ORDER.filter((pid) => PRODUCTS[pid].tech === M.tech);
   return (
     <Modal title={`${M.brand} ${M.name}`} icon="printer" onClose={onClose} wide>
@@ -99,6 +142,7 @@ export function MachinePanel({ s, m, actions, onClose, onSellUsed }) {
           )}
         </div>
       </div>
+      <ModsBox s={s} m={m} actions={actions} />
       <div className="section-label">¿QUÉ FABRICA?</div>
       <div className="list prod-list">
         {prods.map((pid) => {

@@ -39,6 +39,16 @@ export function ClientLine({ s, name, full = false }) {
   );
 }
 
+// Puntitos de las etapas del proyecto
+function ProjectSteps({ p }) {
+  return (
+    <div className="o-steps" title={`Etapa ${p.stage + 1} de ${p.n}`}>
+      {Array.from({ length: p.n }).map((_, i) => <i key={i} className={i < p.stage ? 'ok' : i === p.stage ? 'cur' : ''} />)}
+      {p.earned > 0 && <small>cobrado {money(p.earned)}</small>}
+    </div>
+  );
+}
+
 function Offer({ s, o, actions, glow }) {
   const [qid, setQid] = useState('std');
   const quoting = E.quotable(s, o);
@@ -54,7 +64,8 @@ function Offer({ s, o, actions, glow }) {
   }
   return (
     <div className={'order offer' + (o.urgent ? ' urgent' : '') + (o.contract ? ' contract' : '') + (glow ? ' tut-glow' : '')}>
-      {o.contract && <span className="o-badge">CONTRATO DE EMPRESA</span>}
+      {o.contract && <span className="o-badge">{o.project ? 'PROYECTO GRANDE' : o.combo ? 'PEDIDO COMBINADO' : 'CONTRATO DE EMPRESA'}</span>}
+      {o.project && <ProjectSteps p={o.project} />}
       <div className="o-head">
         <div className="o-title"><b>{o.title}</b>{o.urgent || o.tpl === 'exposicion' ? <small>{o.client}</small> : <ClientLine s={s} name={o.client} />}</div>
         <button className="o-x" onClick={() => actions.decline(o.id)} aria-label="Rechazar pedido" title="Rechazar"><Icon name="x" size={16} /></button>
@@ -101,6 +112,7 @@ function Active({ s, o, actions }) {
   const late = !sug.enough && left < o.time * 0.6;
   return (
     <div className={'order active' + (o.urgent ? ' urgent' : '') + (o.contract ? ' contract' : '')}>
+      {o.project && <ProjectSteps p={o.project} />}
       <div className="o-head">
         <div className="o-title"><b>{o.title}</b><small>{o.client}{o.quote && o.quote !== 'std' ? ` · ${E.QUOTES[o.quote].icon} ${E.QUOTES[o.quote].name}` : ''}</small></div>
         <span className={'o-clock' + (left < 60 ? ' hot' : '')}><Icon name="clock" size={14} /> {clock(left)}</span>

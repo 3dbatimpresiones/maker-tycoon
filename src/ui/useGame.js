@@ -3,7 +3,7 @@
 import { useEffect, useReducer, useRef, useState, useCallback } from 'react';
 import * as E from '../game/engine.js';
 import { step, startMissionHooks, currentMission, skipTutorial, claimChallenge } from '../game/progress.js';
-import { PRODUCTS, MACHINES, UPGRADES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, TOKEN_SHOP, MASTERY_CHALLENGES, fullName } from '../game/data.js';
+import { PRODUCTS, MACHINES, UPGRADES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, TOKEN_SHOP, MASTERY_CHALLENGES, fullName, MODS } from '../game/data.js';
 import { SAVE_KEY, BACKUP_KEY } from '../config.js';
 import { money, num, setCurrency, fmtText } from '../game/format.js';
 import { sfx } from './sfx.js';
@@ -127,6 +127,7 @@ export function useGame() {
           sfx.fail();
           toast(`⏰ Venció «${e.title}». Cobraste lo entregado (${money(e.pay)}).${e.failRep > 1 ? ` −${e.failRep} de reputación por el presupuesto.` : ''}`, 'err', 5000);
           if (e.gone) toast(`😠 ${e.client} te dejó una mala reseña y se fue con otro taller por un rato.`, 'err', 6000);
+          if (e.project) toast(`🏗️ Se cayó el proyecto «${e.project}»: venció una etapa.`, 'err', 6000);
           sayOnce('orderfail', 'Un pedido venció. No pasa nada: cobrás lo que entregaste y perdés un poquito de reputación, nunca un nivel. Asignale más impresoras la próxima.', { mood: 'worried' });
           break;
         case 'offer':
@@ -173,6 +174,16 @@ export function useGame() {
         case 'combo':
           sfx.alert(); toast('🔀 ¡Pedido combinado! Necesita trabajo de varios pisos. Paga ×3,5 y da fichas.', 'warn', 4500);
           sayOnce('combo1', 'Los pedidos combinados mezclan tecnologías: por ejemplo, un cartel láser con soportes FDM y una pieza CNC. Cada piso hace su parte y cobrás todo junto.', { mood: 'happy' });
+          break;
+        case 'project':
+          sfx.alert(); toast('🏗️ ¡Llegó un proyecto grande de varias etapas!', 'warn', 4500);
+          sayOnce('project1', 'Los proyectos grandes tienen varias etapas, cada una con una tecnología (FDM, láser, CNC, resina). Cada etapa se cobra al entregarla y al terminar todas te llevás un 50 % extra y 5 fichas. Si una etapa vence, el proyecto se cae.', { mood: 'happy' });
+          break;
+        case 'projectLost': sfx.fail(); toast(`🏗️ Se cayó el proyecto «${e.name}»: no aceptaste la etapa siguiente a tiempo.`, 'err', 6000); break;
+        case 'projectStage': sfx.order(); toast(`🏗️ ${e.name}: ¡ya está la etapa ${e.stage}/${e.n} en el tablero!`, 'info', 4500); break;
+        case 'projectDone':
+          sfx.achievement(); toast(`${e.icon} ¡Proyecto terminado: ${e.name}! Bonus +${money(e.bonus)} · +5 🎟️`, 'info', 6000);
+          say(`¡Terminaste el proyecto «${e.name}» entero! Te llevás un bonus de ${money(e.bonus)} y 5 fichas. Eso es tener una empresa de verdad.`, { mood: 'happy' });
           break;
         case 'challengeDone': sfx.achievement(); say(`¡Superaste el desafío «${e.name}»! Premio para siempre: ${e.reward} (+3 fichas).`, { mood: 'happy' }); break;
         case 'newChallenges':
@@ -311,6 +322,8 @@ export function useGame() {
       return m;
     }),
     moveMachine: (mid, dir) => act((st) => { E.moveMachine(st, mid, dir); }),
+    installMod: (mid, k) => act((st) => { const ok = E.installMod(st, mid, k); if (ok) { sfx.buy(); toast(`🔧 Mod instalado: ${MODS[k].name}`); } return ok; }),
+    removeMod: (mid, k) => act((st) => E.removeMod(st, mid, k)),
     markSeen: (key) => act((st) => { st.seen = st.seen || {}; st.seen[key] = 1; }),
     tradeIn: (model, mids, tokens = 0) => act((st) => {
       const r = E.tradeIn(st, model, mids, tokens);

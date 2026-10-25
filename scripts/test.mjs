@@ -555,4 +555,55 @@ t('clientes: entregar sube la confianza; fallar dos veces lo aleja un rato', () 
   assert.ok(E.clientOf(moved, who).reviews >= 3, 'los clientes sobreviven a la mudanza');
 });
 
+t('mods por máquina: 3 ranuras, efectos y devolución al vender', () => {
+  const s = E.newGame(null, 42); skipTutorial(s);
+  s.money = 1e9;
+  const m = s.machines[0];
+  const v0 = E.machineSpeed(s, m, false), st0 = E.machineStars(s, m);
+  assert.ok(E.installMod(s, m.id, 'hotend'));
+  assert.ok(Math.abs(E.machineSpeed(s, m, false) - v0 * 1.2) < 1e-9);
+  assert.equal(E.installMod(s, m.id, 'hotend'), false, 'no se repite');
+  assert.equal(E.installMod(s, m.id, 'fep'), false, 'uno de resina no va en una FDM');
+  assert.ok(E.installMod(s, m.id, 'endurecida'));
+  assert.equal(E.machineStars(s, m), Math.min(5, st0 + 1));
+  assert.ok(E.installMod(s, m.id, 'gabinete'));
+  assert.equal(E.modReason(s, m, 'pei'), 'Sin ranuras libres (3/3)');
+  const before = s.money;
+  assert.ok(E.removeMod(s, m.id, 'gabinete'));
+  assert.equal(s.money - before, Math.round(E.modCost(s, m, 'gabinete') * 0.5));
+  const back = E.migrate(JSON.parse(E.serialize(s)));
+  assert.deepEqual(back.machines[0].mods, ['hotend', 'endurecida'], 'se guardan');
+  E.buyMachine(s, 'ender3');
+  const refund = E.modsRefund(s, m) + Math.round((m.paid || 0) * 0.5);
+  const b2 = s.money;
+  assert.ok(E.sellMachine(s, m.id));
+  assert.equal(s.money - b2, refund, 'al vender devuelve la mitad de los mods');
+});
+
+t('proyecto grande: etapas en cadena y bonus al final', () => {
+  const s = E.newGame(null, 43); skipTutorial(s);
+  s.rep = 1e6; s.money = 1e12; s.mat.PLA = 1e9; s.mat.PETG = 1e9;
+  for (let i = 0; i < 3; i++) E.buyMachine(s, 'ender3');
+  const o = E.spawnProject(s, 'stand');
+  assert.ok(o && o.project.stage === 0 && o.project.n === 3, JSON.stringify(o?.project));
+  assert.equal(E.spawnProject(s), null, 'uno por vez');
+  const money0 = s.money, tokens0 = s.tokens;
+  const evs = [];
+  for (let stage = 0; stage < 3; stage++) {
+    const cur = s.orders.offers.find((x) => x.project);
+    assert.ok(cur, 'etapa ' + (stage + 1) + ' en el tablero');
+    assert.equal(cur.project.stage, stage);
+    assert.ok(E.acceptOrder(s, cur.id));
+    for (let i = 0; i < 80000 && s.orders.active.some((x) => x.project); i++) {
+      const ctx = { out: [] };
+      step(s, 0.1, ctx); evs.push(...ctx.out);
+      for (const m of s.machines) { if (m.event) E.resolveEvent(s, m.id, 0); if (m.state === 'done') E.retrieve(s, m.id, ctx); }
+    }
+  }
+  assert.ok(!s.orders.offers.some((x) => x.project) && !s.orders.active.some((x) => x.project), 'terminado');
+  assert.ok(s.tokens >= tokens0 + 3 + 5, 'fichas por etapa + 5 al final');
+  assert.ok(s.money > money0);
+  assert.equal(s.stats.projects, 1);
+});
+
 console.log(`\n${n} pruebas OK`);

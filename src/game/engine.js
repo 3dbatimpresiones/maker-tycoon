@@ -8,7 +8,7 @@ import {
   UNIT, MATERIALS, MATERIAL_ORDER, STAR_MULT, SPACES, MACHINES, MACHINE_ORDER, PRODUCTS, PRODUCT_ORDER, SIZES,
   UPGRADES, repNeeded, REP_PRICE_BONUS, ORDER_TEMPLATES, ORDER_OFFER_LIFE, ORDER_SPAWN_EVERY, CONTRACT_CLIENTS,
   MACHINE_EVENTS, GLOBAL_EVENTS, MAKER_TITLES, MASTERY_BASE, MASTERY_GROWTH, MASTERY_BONUS,
-  MASTERY_CHALLENGES, TECHS, FLOORS, FLOOR_SLOTS, COMBO_CLIENTS,
+  MASTERY_CHALLENGES, TECHS, FLOORS, FLOOR_SLOTS, COMBO_CLIENTS, MODS, MOD_SLOTS, PROJECTS, PROJECT_BONUS,
 } from './data.js';
 
 export const SAVE_VERSION = 3;
@@ -205,7 +205,7 @@ export function machineStars(s, m) {
   if (has(s, 'calibracion') && M.stars <= 2) st++;
   if (has(s, 'boquilla') && M.tech === 'fdm') st++;
   if (perk(s, 'mirada')) st++;
-  return Math.min(5, st);
+  return Math.max(1, Math.min(5, st + modStars(m)));
 }
 export const mateActive = (s) => s.time < s.mate.until;
 export function mateDuration(s) { return 60 + (has(s, 'termo') ? 30 : 0) + (perk(s, 'termo') ? 30 : 0); }
@@ -225,7 +225,42 @@ export function speedMult(s, model, withMate = true) {
   if (withMate && mateActive(s)) k *= mateBoost(s);
   return k;
 }
-export const machineSpeed = (s, m, withMate = true) => MACHINES[m.model].speed * speedMult(s, m.model, withMate);
+// ---------- Mods por máquina ----------
+const modsOf = (m) => (m.mods || []).map((k) => MODS[k]).filter(Boolean);
+export const modSpeed = (m) => modsOf(m).reduce((a, x) => a * (x.speed || 1), 1);
+export const modFail = (m) => modsOf(m).reduce((a, x) => a * (x.fail || 1), 1);
+export const modStars = (m) => modsOf(m).reduce((a, x) => a + (x.stars || 0), 0);
+export const modUse = (m) => modsOf(m).reduce((a, x) => a * (x.use || 1), 1);
+export const modCost = (s, m, k) => Math.round(MACHINES[m.model].cost * MODS[k].cost);
+export const modsFor = (m) => Object.keys(MODS).filter((k) => MODS[k].tech === MACHINES[m.model].tech);
+export function modReason(s, m, k) {
+  const X = MODS[k];
+  if (!X || X.tech !== MACHINES[m.model].tech) return 'No sirve para esta máquina';
+  if ((m.mods || []).includes(k)) return 'Ya lo tiene';
+  if ((m.mods || []).length >= MOD_SLOTS) return `Sin ranuras libres (${MOD_SLOTS}/${MOD_SLOTS})`;
+  if (s.money < modCost(s, m, k)) return 'Te falta plata';
+  return null;
+}
+export function installMod(s, mid, k) {
+  const m = s.machines.find((x) => x.id === mid);
+  if (!m || modReason(s, m, k)) return false;
+  s.money -= modCost(s, m, k);
+  m.mods = [...(m.mods || []), k];
+  return true;
+}
+// Si la máquina se va (venta, usados, canje), sus mods se desarman y te devuelven la mitad.
+export const modsRefund = (s, m) => (m.mods || []).reduce((a, k) => a + Math.round(modCost(s, m, k) * 0.5), 0);
+function dropMods(s, list) { for (const m of list) { s.money += modsRefund(s, m); m.mods = []; } }
+// Sacar un mod: devuelve la mitad de lo que costó.
+export function removeMod(s, mid, k) {
+  const m = s.machines.find((x) => x.id === mid);
+  if (!m || !(m.mods || []).includes(k)) return false;
+  s.money += Math.round(modCost(s, m, k) * 0.5);
+  m.mods = m.mods.filter((x) => x !== k);
+  return true;
+}
+
+export const machineSpeed = (s, m, withMate = true) => MACHINES[m.model].speed * speedMult(s, m.model, withMate) * modSpeed(m);
 
 export function materialUnlocked(s, mat) {
   const up = MATERIALS[mat].upgrade;
@@ -416,7 +451,7 @@ function startPiece(s, m, out) {
   const job = pickJob(s, m);
   if (!job) { m.state = 'idle'; return; }
   const p = PRODUCTS[job.pid];
-  if (!consume(s, p.mat, p.use, out)) {
+  if (!consume(s, p.mat, p.use * modUse(m), out)) {
     if (m.state !== 'nofil') out.push({ type: 'nofil', mid: m.id, mat: p.mat });
     m.state = 'nofil'; m.cur = null; m.curOrder = null;
     return;
@@ -453,7 +488,7 @@ function machineEventWeights(s, m) {
 }
 function eventChance(s, m) {
   return MACHINES[m.model].fail * (perk(s, 'ojo') ? 0.75 : 1) * (s.time < s.boost.risky ? 2 : 1)
-    * (rule(s, 'lluvias') ? 3 : 1) * (mastered(s, 'lluvias') ? 0.7 : 1) * wearFailMult(m);
+    * (rule(s, 'lluvias') ? 3 : 1) * (mastered(s, 'lluvias') ? 0.7 : 1) * wearFailMult(m) * modFail(m);
 }
 // Probabilidad de falla por pieza que se muestra en pantalla (con el desgaste).
 export const machineFail = (s, m) => eventChance(s, m);
@@ -496,7 +531,7 @@ export function resolveEvent(s, mid, opt = 0, ctx = {}) {
       m.progress = 0;
       if (!o.free && m.cur) {
         const p = PRODUCTS[m.cur];
-        if (!consume(s, p.mat, p.use, out)) { m.state = 'nofil'; m.cur = null; m.curOrder = null; }
+        if (!consume(s, p.mat, p.use * modUse(m), out)) { m.state = 'nofil'; m.cur = null; m.curOrder = null; }
       }
       break;
     case 'penalty': m.pen++; break;
@@ -590,6 +625,7 @@ export function sellMachine(s, mid) {
   const i = s.machines.findIndex((x) => x.id === mid);
   if (i < 0) return false;
   s.money += Math.round((s.machines[i].paid || 0) * 0.5);
+  dropMods(s, [s.machines[i]]);
   s.machines.splice(i, 1);
   return true;
 }
@@ -639,6 +675,7 @@ export function tradeIn(s, model, mids, tokens = 0) {
   const q = tradeQuote(s, model, ids, tokens);
   s.money -= q.pay;
   s.tokens -= q.tokens;
+  dropMods(s, s.machines.filter((m) => ids.includes(m.id)));
   s.machines = s.machines.filter((m) => !ids.includes(m.id));
   const m = addMachine(s, model, q.price);
   s.stats.tradeIns = (s.stats.tradeIns || 0) + 1;
@@ -715,6 +752,7 @@ export function listUsed(s, mid, price, nonce) {
   if (!(Number(price) > 0)) return null;
   const p = Math.max(usedMin(m.model), Math.min(usedMax(m.model, wear), Math.round(price)));
   const entry = { nonce, model: m.model, wear, price: p, paid: m.paid || 0, at: Date.now() };
+  dropMods(s, [s.machines[i]]);
   s.machines.splice(i, 1);
   marketOf(s).outbox.push(entry);
   return entry;
@@ -758,6 +796,7 @@ export function offerEscrow(s, it, mids, cash, tokens, nonce) {
   const tk = Math.max(0, Math.floor(tokens || 0));
   if (offerReason(s, it, mids, c, tk)) return null;
   const items = s.machines.filter((m) => mids.includes(m.id)).map((m) => ({ model: m.model, wear: wear3(m.wear), paid: m.paid || 0 }));
+  dropMods(s, s.machines.filter((m) => mids.includes(m.id)));
   s.machines = s.machines.filter((m) => !mids.includes(m.id));
   s.money -= c;
   s.tokens -= tk;
@@ -1029,6 +1068,56 @@ export function spawnCombo(s) {
   s.orders.offers.unshift(o);
   return o;
 }
+// ---------- Proyectos de varias etapas ----------
+export const projectsUnlocked = (s) => !s.tutorial.active && repLevel(s) >= 7;
+const projectBusy = (s) => [...s.orders.offers, ...s.orders.active].some((o) => o.project);
+// Arma la etapa k del proyecto como un pedido (con la tecnología de esa etapa, o lo que tengas).
+function projectStage(s, P, k, earned = 0) {
+  const [tech, label] = P.stages[k];
+  let prods = feasibleProducts(s, (p) => p.tech === tech);
+  let usedTech = tech;
+  if (!prods.length) { prods = feasibleProducts(s); usedTech = null; }
+  if (!prods.length) return null;
+  const ranked = prods.sort((a, b) => PRODUCTS[b].price - PRODUCTS[a].price).slice(0, 4);
+  const n = Math.min(ranked.length, 1 + (rand(s) < 0.5 ? 1 : 0));
+  const chosen = [];
+  while (chosen.length < n) { const p = ranked[Math.floor(rand(s) * ranked.length)]; if (!chosen.includes(p)) chosen.push(p); }
+  const pool = s.machines.filter((m) => chosen.some((pid) => canPrint(s, m, pid)));
+  const duration = 1500 + Math.round(rand(s) * 3) * 300;
+  const capacity = pool.reduce((a, m) => a + machineSpeed(s, m, false), 0) * duration * 0.2;
+  const items = chosen.map((pid) => [pid, Math.max(2, Math.round(capacity / chosen.length / PRODUCTS[pid].time))]);
+  const tpl = { id: 'proyecto', client: P.client, title: `${P.icon} ${P.name} · etapa ${k + 1}/${P.stages.length}: ${label}`, items, time: duration, mult: 3.5, rep: 3 + k };
+  const o = makeOffer(s, tpl, { contract: true, life: k === 0 ? 900 : 3600, tokens: 1,
+    flavor: k === 0 ? `Proyecto grande de ${P.stages.length} etapas. Cada etapa paga ×3,5 y al terminar todas cobrás +${Math.round(PROJECT_BONUS * 100)} % extra y 5 fichas.`
+      : `Etapa ${k + 1} de ${P.stages.length}.${usedTech ? '' : ' Todavía no tenés esa tecnología: la hacés con lo que tengas.'} Si la dejás vencer, el proyecto se cae.` });
+  o.project = { id: P.id, stage: k, n: P.stages.length, earned, tech: usedTech };
+  return o;
+}
+export function spawnProject(s, pid = null) {
+  if (projectBusy(s)) return null;
+  const list = PROJECTS.filter((P) => !clientGone(s, P.client));
+  const P = pid ? PROJECTS.find((x) => x.id === pid) : list[Math.floor(rand(s) * list.length)];
+  if (!P) return null;
+  const o = projectStage(s, P, 0);
+  if (o) s.orders.offers.unshift(o);
+  return o;
+}
+// Cuando termina una etapa: la siguiente queda en el tablero; al final, el bonus.
+function advanceProject(s, o, out) {
+  const P = PROJECTS.find((x) => x.id === o.project.id);
+  const earned = o.project.earned + o.reward;
+  if (P && o.project.stage + 1 < P.stages.length) {
+    const next = projectStage(s, P, o.project.stage + 1, earned);
+    if (next) { s.orders.offers.unshift(next); out.push({ type: 'projectStage', name: P.name, stage: o.project.stage + 2, n: P.stages.length }); return; }
+  }
+  const bonus = Math.round(earned * PROJECT_BONUS);
+  addMoney(s, bonus);
+  s.tokens += 5;
+  addRep(s, 5, out);
+  s.stats.projects = (s.stats.projects || 0) + 1;
+  out.push({ type: 'projectDone', name: P ? P.name : 'Proyecto', icon: P?.icon || '🏗️', bonus, earned });
+}
+
 function pickClient(s, list) {
   const ok = list.filter((c) => !clientGone(s, c));
   return pickWeighted(s, (ok.length ? ok : list).map((c) => ({ v: c, w: 1 + clientOf(s, c).trust / 40 })));
@@ -1141,6 +1230,7 @@ function completeOrder(s, o, out) {
     review = { client: o.client, stars, pref, tierUp: clientTier(c.trust).name !== clientTier(before.trust).name ? clientTier(c.trust).name : null };
   }
   out.push({ type: 'orderDone', oid: o.id, reward: o.reward, rep: o.rep, title: o.title, tpl: o.tpl, tokens: o.tokens, urgent: o.urgent, contract: o.contract, quote: o.quote, review });
+  if (o.project) advanceProject(s, o, out);
 }
 function failOrder(s, o, out) {
   s.orders.active = s.orders.active.filter((x) => x.id !== o.id);
@@ -1160,10 +1250,13 @@ function failOrder(s, o, out) {
     });
     if (gone) loseRep(s, 1);
   }
-  out.push({ type: 'orderFail', oid: o.id, pay, title: o.title, client: o.client, gone, failRep: Q.failRep });
+  out.push({ type: 'orderFail', oid: o.id, pay, title: o.title, client: o.client, gone, failRep: Q.failRep, project: o.project ? PROJECTS.find((x) => x.id === o.project.id)?.name : null });
 }
 function stepOrders(s, dt, ctx) {
   const O = s.orders;
+  for (const o of O.offers) if (o.expires <= s.time && o.project && o.project.stage > 0) {
+    ctx.out.push({ type: 'projectLost', name: PROJECTS.find((x) => x.id === o.project.id)?.name || 'Proyecto' });
+  }
   O.offers = O.offers.filter((o) => o.expires > s.time);
   for (const o of [...O.active]) if (s.time >= o.deadline) failOrder(s, o, ctx.out);
   if (s.tutorial.active && !s.tutorial.orders) return;
@@ -1178,11 +1271,20 @@ function stepOrders(s, dt, ctx) {
   // Contratos de empresa (desde Reputación 5)
   if (!s.tutorial.active && repLevel(s) >= 5) {
     O.contractT -= dt;
-    const hasContract = [...O.offers, ...O.active].some((o) => o.contract && !o.combo);
+    const hasContract = [...O.offers, ...O.active].some((o) => o.contract && !o.combo && !o.project);
     if (O.contractT <= 0 && !hasContract) {
       O.contractT = 900 + rand(s) * 600;
       const o = spawnContract(s);
       if (o) ctx.out.push({ type: 'contract', oid: o.id });
+    }
+  }
+  // Proyectos grandes de varias etapas (desde Reputación 7)
+  if (projectsUnlocked(s)) {
+    O.projectT = (O.projectT ?? 600) - dt;
+    if (O.projectT <= 0 && !projectBusy(s)) {
+      O.projectT = 1500 + rand(s) * 900;
+      const o = spawnProject(s);
+      if (o) ctx.out.push({ type: 'project', oid: o.id });
     }
   }
   // Pedidos combinados entre tecnologías (desde la Nave de producción)
@@ -1333,7 +1435,7 @@ function bulkProduce(s, t, eff, payMaterials = true) {
     const sp = machineSpeed(s, m, false);
     const b = byMat[p.mat] || (byMat[p.mat] = { v: 0, g: 0, prods: [] });
     b.v += pieceValue(s, pid, machineStars(s, m)) * sp / p.time;
-    b.g += p.use * sp / p.time;
+    b.g += p.use * modUse(m) * sp / p.time;
     b.prods.push({ pid, pcs: sp / p.time });
   }
   let earned = 0, pieces = 0, spools = 0, cost = 0;
