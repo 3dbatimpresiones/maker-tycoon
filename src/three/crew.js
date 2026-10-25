@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { buildPiece } from './pieces.js';
+import { REAL, loadCharacter } from './real.js';
 
 const mat = (color, rough = 0.85, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0, ...extra });
 const mesh = (geo, m, parent, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; parent.add(o); return o; };
@@ -53,8 +54,37 @@ export function animateCat(cat, t, k = 1) {
 
 // ---------- Sobrino ayudante ----------
 // Persona low-poly (~1,55 de alto), remera rosa 3DBAT y gorra cian. Camina por el pasillo de adelante.
+// Sobrino realista (personaje de Mixamo con animaciones de verdad). Mientras carga se ve el de siempre.
+function realSobrino(g) {
+  loadCharacter('sobrino').then((ch) => {
+    if (!ch || !g.parent) return;
+    const body = ch.scene;
+    // Alto real: del pie a la cabeza según los huesos → 1,62 m. Mira hacia +X como el resto del juego.
+    body.updateMatrixWorld(true);
+    let top = -1e9, bot = 1e9; const v = new THREE.Vector3();
+    body.traverse((n) => { if (n.isBone) { n.getWorldPosition(v); top = Math.max(top, v.y); bot = Math.min(bot, v.y); } });
+    const k = 1.62 / Math.max(0.001, top - bot);
+    body.scale.multiplyScalar(k);
+    body.rotation.y = Math.PI / 2;
+    body.updateMatrixWorld(true);
+    bot = 1e9; body.traverse((n) => { if (n.isBone) { n.getWorldPosition(v); bot = Math.min(bot, v.y); } });
+    body.position.y -= bot;
+    // Se esconde el muñeco simple (menos lo que lleva en las manos)
+    for (const c of [...g.children]) if (c !== g.userData.hands) c.visible = false;
+    g.add(body);
+    const mixer = new THREE.AnimationMixer(body);
+    const acts = {};
+    for (const c of ch.clips) acts[c.name] = mixer.clipAction(c);
+    if (acts.pickup) { acts.pickup.setLoop(THREE.LoopOnce, 1); acts.pickup.clampWhenFinished = true; acts.pickup.timeScale = 2.6; }
+    acts.idle?.play();
+    g.userData.real = { mixer, acts, cur: 'idle' };
+    g.userData.hands.position.set(0.3, 1.0, 0);
+  });
+}
+
 export function makeSobrino() {
   const g = new THREE.Group();
+  if (REAL.on) setTimeout(() => realSobrino(g), 0);
   const skin = mat('#e2b48e', 0.7), shirt = mat('#F78EB6', 0.75), jeans = mat('#2f4a7a', 0.85), shoes = mat('#f2f2f2', 0.6), cap = mat('#5DDADB', 0.6), hair = mat('#2b1d14', 0.9);
   const legs = [];
   for (const z of [-0.08, 0.08]) {
@@ -116,6 +146,7 @@ export class SobrinoBrain {
     else this.queue.push(V(to.x, to.z));
   }
   update(dt, t, w, still) {
+    this.dt = dt;
     if (this.wait > 0) { this.wait -= dt; this.pose(t, false, still); return; }
     if (!this.step) {
       if (!this.job || !this.job.steps.length) this.job = w.nextJob(this);
@@ -128,6 +159,9 @@ export class SobrinoBrain {
     const target = this.queue[0];
     if (!target) {
       this.step.then?.(this);
+      // Personaje realista: se agacha a dejar/agarrar (y espera a terminar el gesto).
+      const rl = this.g.userData.real;
+      if (rl?.acts.pickup && this.step.then) { this.play('pickup', 0.15); this.step.wait = Math.max(this.step.wait ?? 0.4, 1.25); }
       if (this.step.face != null) this.g.rotation.y = this.step.face;
       this.wait = this.step.wait ?? 0.4;
       this.step = null;
@@ -147,8 +181,25 @@ export class SobrinoBrain {
     }
     this.pose(t, true, still);
   }
+  // Cambia de animación con un fundido suave (personaje realista).
+  play(name, fade = 0.25) {
+    const rl = this.g.userData.real;
+    if (!rl || rl.cur === name || !rl.acts[name]) return;
+    const next = rl.acts[name], prev = rl.acts[rl.cur];
+    next.reset().setEffectiveWeight(1).play();
+    if (prev) next.crossFadeFrom(prev, fade, false);
+    rl.cur = name;
+  }
   pose(t, walking, still) {
     const u = this.g.userData;
+    if (u.real) {
+      const rl = u.real;
+      if (rl.cur === 'pickup' && rl.acts.pickup.isRunning() && !walking) { /* termina de agacharse */ }
+      else this.play(walking && !still ? (this.holding && rl.acts.walk2 ? 'walk2' : 'walk') : 'idle');
+      if (!still) rl.mixer.update(Math.min(0.1, this.dt || 0.016));
+      this.g.position.y = 0;
+      return;
+    }
     const sw = walking && !still ? Math.sin(t * 9) * 0.5 : 0;
     u.legs[0].rotation.z = sw; u.legs[1].rotation.z = -sw;
     const carrying = !!this.holding;

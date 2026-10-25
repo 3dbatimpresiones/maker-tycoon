@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 export const REAL = { on: true };
 const BASE = `${import.meta.env.BASE_URL || './'}assets/`;
@@ -73,6 +74,31 @@ export function placeProp(parent, name, { pos = [0, 0, 0], rotY = 0, size = null
     onLoad?.(o, holder);
   });
   return holder;
+}
+
+// ---------- Personajes animados (Mixamo) ----------
+// Devuelve { scene, clips } con una copia propia del esqueleto (se puede usar varias veces).
+const skinnedCache = new Map();
+export function loadCharacter(name) {
+  if (!skinnedCache.has(name)) {
+    skinnedCache.set(name, gltf.loadAsync(BASE + 'people/' + name + '.glb').then((g) => {
+      // Las caminatas de Mixamo avanzan solas: se les saca el avance (lo mueve el juego).
+      for (const c of g.animations) {
+        for (const tr of c.tracks) {
+          if (!/Hips\.position$/.test(tr.name)) continue;
+          const v = tr.values; const x0 = v[0], z0 = v[2];
+          for (let i = 0; i < v.length; i += 3) { v[i] = x0; v[i + 2] = z0; }
+        }
+      }
+      return g;
+    }).catch(() => null));
+  }
+  return skinnedCache.get(name).then((g) => {
+    if (!g) return null;
+    const scene = SkeletonUtils.clone(g.scene);
+    scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; } });
+    return { scene, clips: g.animations };
+  });
 }
 
 // ---------- Luz y reflejos de un taller real (HDRI "Artist Workshop") ----------
