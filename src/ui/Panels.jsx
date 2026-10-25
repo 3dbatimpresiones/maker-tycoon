@@ -64,7 +64,7 @@ function Mastery({ s, pid }) {
 }
 
 // ---------- Panel de una máquina ----------
-export function MachinePanel({ s, m, actions, onClose }) {
+export function MachinePanel({ s, m, actions, onClose, onSellUsed }) {
   const [sure, setSure] = useState(false);
   if (!m) return null;
   const M = MACHINES[m.model];
@@ -81,10 +81,12 @@ export function MachinePanel({ s, m, actions, onClose }) {
             <div><span>Velocidad</span><b>×{E.machineSpeed(s, m).toLocaleString('es-AR', { maximumFractionDigits: 2 })}</b></div>
             <div><span>Calidad</span><b>★{E.machineStars(s, m)}</b></div>
             <div><span>Cama</span><b>{SIZE_NAME[M.size]}</b></div>
-            <div><span>Fallas</span><b>{Math.round(M.fail * 1000) / 10} %</b></div>
+            <div><span>Fallas</span><b>{(Math.round(E.machineFail(s, m) * 1000) / 10).toLocaleString('es-AR')} %</b></div>
+            <div><span>Desgaste</span><b className={E.wearOf(m) >= E.WEAR_WARN ? 'c-pink' : ''}>{E.wearPct(m)} %</b></div>
             <div><span>Ganancia</span><b>{rate(E.productRate(s, m, m.product))}</b></div>
           </div>
           <div className="shop-stats mp-tags">
+            {m.used && <span>Comprada usada</span>}
             {M.enclosed && <span>Cerrada</span>}
             {E.isMulti(s, M) ? <span className="c-pink">Multicolor</span> : M.amsable && <span>Admite multicolor</span>}
             {M.autolevel && <span>Autonivelado</span>}
@@ -119,6 +121,11 @@ export function MachinePanel({ s, m, actions, onClose }) {
       <p className="hint">La <b>experiencia</b> de cada producto sube cuanto más lo fabricás y no se pierde al mudarte: cada nivel paga +12 %.</p>
       <div className="mp-sell">
         {s.settings.view !== 'lista' && <button className="chip-btn" onClick={() => { window.dispatchEvent(new CustomEvent('mt-focus', { detail: m.id })); onClose(); }}>🔍 Ver de cerca en el taller</button>}
+        {E.needsRepair(m) && (
+          <button className={'chip-btn' + (s.money >= E.repairCost(s, m) ? ' fix-ok' : '')} disabled={s.money < E.repairCost(s, m)} onClick={() => actions.repair(m.id)}
+            title="La deja al 100 %: vuelve a fallar como nueva">🔧 Reparar al 100 % · {money(E.repairCost(s, m))}</button>
+        )}
+        {onSellUsed && s.machines.length > 1 && !sure && <button className="chip-btn" onClick={onSellUsed} title="Ponela a la venta para otros makers">🏷️ Vender en Usados</button>}
         {s.machines.length > 1 && (!sure
           ? <button className="danger-btn" onClick={() => setSure(true)}><Icon name="trash" size={16} /> Vender (recuperás {money(refund)})</button>
           : <div className="confirm-row"><span>¿Seguro? La pieza en curso se pierde.</span>

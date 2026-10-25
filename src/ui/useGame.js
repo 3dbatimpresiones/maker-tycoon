@@ -171,6 +171,14 @@ export function useGame() {
           sfx.nofil();
           sayOnce('nofil_' + e.mat, `Se terminó: ${MATERIALS[e.mat].name}. Comprá más en Tienda → Materiales (o contratá a Filacolor, el proveedor oficial, y olvidate). ¿Y en tu taller real? También está Filacolor.`, { mood: 'worried', ctas: ['filacolor'] });
           break;
+        case 'worn': {
+          const wm = st.machines.find((x) => x.id === e.mid);
+          if (!wm) break;
+          const nm = fullName(MACHINES[wm.model]);
+          toast(`🔧 ${nm} gastada (${E.wearPct(wm)} %): falla más. Reparala en Tienda → Mejoras.`, 'warn', 5000);
+          sayOnce('worn1', `🔧 Tu ${nm} ya está gastada de tanto imprimir: ahora falla más seguido. En Tienda → Mejoras está el Taller de reparación: la dejás al 100 %.`, { mood: 'worried', ctas: ['reparar'] });
+          break;
+        }
         case 'mate': sfx.mate(); break;
         case 'gestor': break;
         default: break;
@@ -285,6 +293,45 @@ export function useGame() {
     resolve: (mid, opt) => act((st, ctx) => E.resolveEvent(st, mid, opt, ctx)),
     buyMachine: (model) => act((st) => { const m = E.buyMachine(st, model); if (m) { sfx.buy(); toast(`Nueva: ${fullName(MACHINES[model])}`); } return m; }),
     sellMachine: (mid) => act((st) => { const ok = E.sellMachine(st, mid); if (ok) sfx.click(); return ok; }),
+    repair: (mid) => act((st) => { const ok = E.repairMachine(st, mid); if (ok) { sfx.buy(); toast('🔧 Reparada: quedó al 100 %'); } return ok; }),
+    repairAll: () => act((st) => { const n = E.repairAll(st); if (n) { sfx.buy(); toast(`🔧 ${n === 1 ? 'Reparada' : n + ' máquinas reparadas'}: todo al 100 %`); } return n; }),
+    // Tienda de usados (ver online/useMarket.js). Cada cambio se guarda en el acto.
+    marketList: (mid, price, nonce) => act((st) => { const e = E.listUsed(st, mid, price, nonce); if (e) save(st); return e; }),
+    marketConfirm: (nonce) => act((st) => { E.listConfirmed(st, nonce); save(st); }),
+    marketReject: (nonce, why) => act((st) => {
+      const m = E.listRejected(st, nonce);
+      if (m) { save(st); toast(`No se pudo publicar${why ? ': ' + why : ''}. La máquina volvió a tu taller.`, 'err', 7000); }
+      return m;
+    }),
+    marketApply: (it) => act((st) => {
+      const M = MACHINES[it.model];
+      const nm = M ? fullName(M) : 'máquina';
+      if (it.kind === 'bought') {
+        if (E.marketDone(st, 'b' + it.id)) return 'done';
+        if (!E.receiveUsed(st, it)) return 'wait';
+        save(st); sfx.buy();
+        toast(`🛒 Compraste una ${nm} usada a ${money(it.price)}. ¡Ya está en tu taller!`, 'ok', 5000);
+        return 'applied';
+      }
+      if (it.kind === 'sold') {
+        if (!E.settleSale(st, it)) return 'done';
+        save(st); sfx.sale();
+        const who = it.who && it.who !== 'Maker anónimo' ? it.who : 'Otro maker';
+        toast(`💸 ¡Vendiste tu ${nm} usada! +${money(it.price)}`, 'ok', 6000);
+        say(`¡Vendiste tu ${nm} en Usados! ${who} te pagó ${money(it.price)} y ya está en tu caja.`, { mood: 'happy' });
+        return 'applied';
+      }
+      const r = E.takeBack(st, it);
+      if (!r) return 'wait';
+      if (r.done) return 'done';
+      save(st);
+      if (r.cash) toast(`📦 Tu ${nm} no se vendió y ya no la podés usar en esta sede: la vendí al por mayor por ${money(r.cash)}.`, 'info', 7000);
+      else {
+        const why = it.status === 'expired' ? ' (pasaron 3 días sin venderse)' : it.status === 'removed' ? ` (el equipo sacó la publicación${it.note ? ': ' + it.note : ''})` : '';
+        toast(`📦 Tu ${nm} volvió al taller${why}.`, 'info', 6000);
+      }
+      return 'applied';
+    }),
     buyUpgrade: (id) => act((st) => { const ok = E.buyUpgrade(st, id); if (ok) { sfx.buy(); toast(`Mejora: ${UPGRADES[id].name}`); } return ok; }),
     buySpace: () => act((st) => { const ok = E.buySpace(st); if (ok) { sfx.buy(); } return ok; }),
     buyMat: (mat, n) => act((st) => { const ok = E.buyMat(st, mat, n); if (ok) sfx.click(); return ok; }),

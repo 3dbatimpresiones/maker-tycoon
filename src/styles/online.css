@@ -334,3 +334,67 @@
 .sd-link { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
 .sd-link .pink-input { flex: 1; } .sd-link input { font-size: 13px; padding: 9px 12px; }
 @media (max-width: 760px) { .spotify-dock { right: 16px; bottom: 84px; } }
+
+/* ---------- Tienda de usados (mercado en vivo entre jugadores) ---------- */
+.shop-tabs .seg { padding: 7px 3px; font-size: 11.5px; }
+.mk-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #22c55e; margin-left: 5px; vertical-align: middle; animation: mkpulse 1.8s infinite; }
+@keyframes mkpulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.55); } 70% { box-shadow: 0 0 0 7px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+.fix-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #FF6B9D; margin-left: 5px; vertical-align: middle; }
+.mk-live { font-size: 12.5px; color: #cbd5e1; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+.mk-live .mk-dot { margin: 0 5px 0 0; }
+.mk-live b { color: #4ade80; }
+.mk-tabs .seg { flex: 1; }
+.mk .tech-tabs { grid-template-columns: repeat(5, 1fr); }
+.mk-ok { color: #4ade80; font-size: 13px; font-weight: 700; margin: 0; }
+.mk-recent { display: grid; gap: 4px; padding: 8px 10px; border-radius: 12px; background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.25); font-size: 12px; color: #cbd5e1; }
+.mk-recent small { color: #94a3b8; margin-left: 4px; }
+.mk-item .shop-art { position: relative; }
+.used-tag { position: absolute; left: 5px; bottom: 5px; font-size: 9px; font-weight: 900; letter-spacing: .06em; padding: 2px 6px; border-radius: 6px; background: #f59e0b; color: #1a1300; }
+.mk-item.fresh { border-color: #22c55e; animation: mkfresh 1.2s ease-out 3; }
+@keyframes mkfresh { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.6); } 100% { box-shadow: 0 0 0 12px rgba(34,197,94,0); } }
+.mk-item.mine { border-style: dashed; }
+.mk-seller { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #94a3b8; margin: 3px 0 2px; }
+.mk-seller b { color: #e2e8f0; }
+.buy-btn.sure { background: #f59e0b; border-color: #f59e0b; color: #1a1300; }
+.chip-btn.mk-own { width: 100%; margin-top: 4px; padding: 8px 10px; }
+.wear { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 700; color: #cbd5e1; }
+.wear-bar { width: 70px; height: 6px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; display: inline-block; flex: none; }
+.wear-bar i { display: block; height: 100%; background: #4ade80; border-radius: 4px; }
+.wear-bar i.mid { background: #f59e0b; }
+.wear-bar i.hi { background: #ef4444; }
+.wear.compact { font-size: 10px; gap: 4px; }
+.wear.compact .wear-bar { width: 30px; height: 5px; }
+.mk-empty, .mk-soon { text-align: center; padding: 18px 12px; border-radius: 16px; background: rgba(19,29,71,.55); border: 1px dashed var(--line); display: grid; gap: 8px; justify-items: center; color: #cbd5e1; }
+.mk-empty p, .mk-soon p { margin: 0; font-size: 13px; }
+.mk-empty .buy-btn { width: auto; padding: 9px 18px; }
+.mk-sell { display: grid; gap: 10px; }
+.mk-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.mk-pick-btn { display: grid; justify-items: center; gap: 4px; padding: 8px 6px; border-radius: 12px; background: rgba(19,29,71,.55); border: 1px solid var(--line); color: #e2e8f0; font-size: 11.5px; font-weight: 700; cursor: pointer; text-align: center; }
+.mk-pick-btn.active { border-color: var(--cyan); background: rgba(93,218,219,.14); box-shadow: 0 0 0 2px rgba(93,218,219,.25); }
+.mk-pick-btn .thumb3d { width: 56px; height: 56px; }
+.mk-price { display: grid; gap: 6px; padding: 12px; border-radius: 14px; background: rgba(19,29,71,.55); border: 1px solid var(--line); }
+.mk-price-v { font-size: 22px; color: var(--cyan); text-align: center; }
+.mk-price input { width: 100%; accent-color: var(--cyan); }
+.mk-price-ref { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8; }
+.mk-price .hint { margin: 2px 0 0; }
+.mk-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(19,29,71,.55); border: 1px solid var(--line); }
+.mk-row .thumb3d { width: 42px; height: 42px; flex: none; }
+.mk-row > span { flex: 1; display: grid; }
+.mk-row small { color: #94a3b8; font-size: 11.5px; }
+
+/* ---------- Taller de reparación (Mejoras) ---------- */
+.repair-box { display: grid; gap: 8px; padding: 12px; border-radius: 16px; background: rgba(255,107,157,.07); border: 1px solid rgba(255,107,157,.35); }
+.repair-box.ok { background: rgba(19,29,71,.55); border-color: var(--line); }
+.repair-box > small { color: #cbd5e1; font-size: 12px; }
+.repair-row { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; }
+.repair-row .thumb3d { width: 44px; height: 44px; }
+.repair-name { display: grid; gap: 3px; min-width: 0; }
+.repair-name small { color: #94a3b8; font-size: 11px; }
+.repair-row .buy-btn { width: auto; margin: 0; padding: 8px 10px; white-space: nowrap; font-size: 12px; }
+.chip-btn.fix-ok { border-color: #FF6B9D; color: #FF6B9D; background: rgba(255,107,157,.08); }
+.shop-tabs .seg .mk-dot, .shop-tabs .seg .fix-dot { position: absolute; top: 4px; right: 4px; margin: 0; width: 6px; height: 6px; }
+.repair-row { grid-template-columns: 44px 1fr; row-gap: 6px; }
+.repair-row .buy-btn { grid-column: 2; width: 100%; }
+.repair-name b { font-size: 13.5px; }
+.mk-price-ref { font-size: 10.5px; }
+.mk-price-ref span, .mk-price-ref .link-btn { white-space: nowrap; }

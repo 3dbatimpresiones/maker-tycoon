@@ -106,6 +106,8 @@ const CTA = {
   filacolor: { label: 'Filamentos en Filacolor', href: fcUrl(FILACOLOR.links.filamentos), icon: 'spool' },
   servicio: { label: 'Servicio técnico Filacolor', href: fcUrl(FILACOLOR.links.servicio), icon: 'wrench' },
   online: { label: 'Jugar online', icon: 'users', internal: true },
+  reparar: { label: 'Ir a reparar', icon: 'wrench', internal: true },
+  usados: { label: 'Ver Usados', icon: 'cart', internal: true },
   batbox: { label: 'Abrir BATBOX', href: LINKS.batbox, icon: 'box' },
   comunidad: { label: 'Comunidad Makers 3DBAT', href: LINKS.comunidad, icon: 'users' },
 };

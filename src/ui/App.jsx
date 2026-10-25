@@ -11,6 +11,7 @@ import { readyClaims } from './Header.jsx';
 import { currentMission } from '../game/progress.js';
 import { TAGLINE } from '../config.js';
 import { useOnline } from '../online/useOnline.js';
+import { useMarket } from '../online/useMarket.js';
 import { OnlineModal, ConflictModal, LockedOverlay, WelcomeGate, ProfileSetup, useGate, FeedbackModal } from './Online.jsx';
 import { VisitModal } from './Visit.jsx';
 import { SpotifyDock } from './Spotify.jsx';
@@ -23,6 +24,8 @@ export default function App() {
   const { s, actions, floats, toasts, bati, offline, locked, getState } = useGame();
   const online = useOnline({ getState, adoptSave: actions.adoptSave, toast: actions.toast, say: actions.say, isLocked: () => locked });
   const gate = useGate(online);
+  const mk = useMarket({ online, getState, actions, isLocked: () => locked });
+  const [usedPick, setUsedPick] = useState(null); // máquina elegida para vender en Usados
   const [tab, setTab] = useState('taller');
   const [shopTab, setShopTab] = useState('machines');
   const [modal, setModal] = useState(null); // { kind, mid, tab }
@@ -66,7 +69,8 @@ export default function App() {
         <Workshop s={s} actions={actions} floats={floats} glow={glow} podium={online.available === true ? online.podium : null} gifts={online.gifts}
           onMachine={(mm) => open('machine', mm.id)} onEvent={(mm) => open('event', mm.id)} goShop={goShop} open={open} />
         <div className="col col-shop" data-tab="tienda">
-          <Shop s={s} actions={actions} tab={shopTab} setTab={setShopTab} glow={glow} />
+          <Shop s={s} actions={actions} tab={shopTab} setTab={setShopTab} glow={glow} online={online} mk={mk} open={open}
+            usedPick={usedPick} clearUsedPick={() => setUsedPick(null)} />
         </div>
         <div className="col col-more" data-tab="mas">
           <MorePanel s={s} open={open} online={online} />
@@ -91,7 +95,7 @@ export default function App() {
 
       <BatiGuide tutorial={s.tutorial.active} mission={mission} queue={bati}
         onDismiss={actions.dismissBati} onSkip={actions.skipTutorial}
-        onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('comunidad'); }} onCta={(k) => k === 'online' && open('online', null, 'perfil')} />
+        onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('comunidad'); }} onCta={(k) => { if (k === 'online') open('online', null, 'perfil'); if (k === 'reparar') goShop('upgrades'); if (k === 'usados') goShop('used'); }} />
 
       <SpotifyDock s={s} actions={actions} />
 
@@ -99,7 +103,8 @@ export default function App() {
         {toasts.map((t) => <div key={t.id} className={'toast t-' + t.kind}>{t.text}</div>)}
       </div>
 
-      {modal?.kind === 'machine' && m && <MachinePanel s={s} m={m} actions={actions} onClose={close} />}
+      {modal?.kind === 'machine' && m && <MachinePanel s={s} m={m} actions={actions} onClose={close}
+        onSellUsed={online.available === true && mk.available !== false ? () => { setUsedPick(m.id); goShop('used'); close(); } : null} />}
       {modal?.kind === 'event' && m && <EventModal s={s} m={m} actions={actions} onClose={close} />}
       {modal?.kind === 'logros' && <AchievementsModal s={s} onClose={close} />}
       {modal?.kind === 'oficio' && <OficioModal s={s} actions={actions} onClose={close} />}

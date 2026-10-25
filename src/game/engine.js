@@ -35,7 +35,8 @@ function pickWeighted(s, list) {
 // ---------- Estado nuevo ----------
 function freshStats() {
   return { pieces: 0, orders: 0, ordersFailed: 0, mates: 0, events: {}, resolved: 0, urgentDone: 0, contracts: 0,
-    exposicion: 0, cortes: 0, favors: 0, spools: 0, xl: 0, maxOffline: 0, handRetrieved: 0, earned: 0, upgrades: 0 };
+    exposicion: 0, cortes: 0, favors: 0, spools: 0, xl: 0, maxOffline: 0, handRetrieved: 0, earned: 0, upgrades: 0,
+    repairs: 0, usedBought: 0, usedSold: 0 };
 }
 function freshRun() { return { pieces: 0, products: {}, mates: 0, orders: 0, spools: 0, xl: 0 }; }
 export function defaultSettings() {
@@ -84,6 +85,8 @@ export function newGame(keep = null, seed = (Date.now() ^ 0x5bd1e995) >>> 0, cha
     settings: keep?.settings || defaultSettings(),
     // Premios del juego online (solo estéticos): qué se ganó y qué se está usando.
     cosmetics: keep?.cosmetics || { unlocked: [], decor: [], skin: null, effect: null },
+    // Tienda de usados: publicaciones por confirmar (outbox) y movimientos ya aplicados (done).
+    market: keep?.market || { outbox: [], done: [] },
     rng: seed >>> 0,
     lastSeen: Date.now(),
   };
@@ -104,11 +107,11 @@ export function newGame(keep = null, seed = (Date.now() ^ 0x5bd1e995) >>> 0, cha
   return s;
 }
 
-function addMachine(s, model, paid, waitStart = false) {
+function addMachine(s, model, paid, waitStart = false, wear = 0) {
   const m = {
     id: s.nextMid++, model, product: 'llavero', orderId: null, state: 'idle',
     progress: 0, need: 0, cur: null, curOrder: null, pen: 0, ev: null, event: null,
-    pauseUntil: 0, doneAt: 0, paid, waitStart,
+    pauseUntil: 0, doneAt: 0, paid, waitStart, wear,
   };
   s.machines.push(m);
   m.product = bestProductFor(s, m) || firstProductOf(MACHINES[model].tech);
@@ -418,8 +421,10 @@ function machineEventWeights(s, m) {
 }
 function eventChance(s, m) {
   return MACHINES[m.model].fail * (perk(s, 'ojo') ? 0.75 : 1) * (s.time < s.boost.risky ? 2 : 1)
-    * (rule(s, 'lluvias') ? 3 : 1) * (mastered(s, 'lluvias') ? 0.7 : 1);
+    * (rule(s, 'lluvias') ? 3 : 1) * (mastered(s, 'lluvias') ? 0.7 : 1) * wearFailMult(m);
 }
+// Probabilidad de falla por pieza que se muestra en pantalla (con el desgaste).
+export const machineFail = (s, m) => eventChance(s, m);
 function rollEvent(s, m) {
   if (s.tutorial.force && !s.tutorial.forced) {
     s.tutorial.forced = true;
@@ -526,6 +531,9 @@ function stepMachine(s, m, dt, ctx, blackout) {
   }
   if (m.state !== 'printing') return;
   m.progress += dt * machineSpeed(s, m);
+  const w0 = m.wear || 0;
+  m.wear = Math.min(1, w0 + dt / (WEAR_HOURS * 3600));
+  if (w0 < WEAR_WARN && m.wear >= WEAR_WARN) out.push({ type: 'worn', mid: m.id });
   if (m.ev && m.progress >= m.ev.at * m.need) {
     const ev = m.ev; m.ev = null;
     if (eventAllowed(s, ctx, ev)) { triggerEvent(s, m, ev.id, out); return; }
@@ -553,6 +561,134 @@ export function sellMachine(s, mid) {
   s.machines.splice(i, 1);
   return true;
 }
+// ---------- Desgaste y reparación (idea de la comunidad: SHUNE3D) ----------
+// Cada máquina se gasta mientras imprime: llega al 100 % después de WEAR_HOURS horas
+// imprimiendo. Una máquina gastada falla más (al 100 %, 2,5 veces más).
+export const WEAR_HOURS = 20;
+export const WEAR_FAIL = 1.5;
+export const WEAR_WARN = 0.6;
+export const wearOf = (m) => Math.max(0, Math.min(1, Number(m?.wear) || 0));
+export const wearPct = (m) => Math.round(wearOf(m) * 100);
+export function wearFailMult(m) { return 1 + WEAR_FAIL * wearOf(m); }
+export const needsRepair = (m) => wearOf(m) >= 0.05;
+export function repairCost(s, m) { return Math.max(1, Math.round(MACHINES[m.model].cost * 0.3 * wearOf(m))); }
+export function repairMachine(s, mid) {
+  const m = s.machines.find((x) => x.id === mid);
+  if (!m || !needsRepair(m)) return false;
+  const c = repairCost(s, m);
+  if (s.money < c) return false;
+  s.money -= c;
+  m.wear = 0;
+  s.stats.repairs = (s.stats.repairs || 0) + 1;
+  return true;
+}
+export function repairAllCost(s) { return s.machines.filter(needsRepair).reduce((a, m) => a + repairCost(s, m), 0); }
+export function repairAll(s) {
+  const list = s.machines.filter(needsRepair);
+  const c = repairAllCost(s);
+  if (!list.length || s.money < c) return 0;
+  for (const m of list) repairMachine(s, m.id);
+  return list.length;
+}
+
+// ---------- Tienda de usados (mercado entre jugadores) ----------
+// Los topes de precio son los mismos que controla la base (migración 030).
+export const usedMax = (model, wear) => Math.floor(MACHINES[model].cost * 0.9 * (1 - 0.5 * wear));
+export const usedMin = (model) => Math.floor(MACHINES[model].cost * 0.1);
+export function usedSuggest(model, wear) {
+  const v = Math.round((MACHINES[model].cost * 0.65 * (1 - 0.5 * wear)) / 1000) * 1000;
+  return Math.max(usedMin(model), Math.min(usedMax(model, wear), v));
+}
+const wear3 = (w) => Math.round(Math.max(0, Math.min(1, Number(w) || 0)) * 1000) / 1000;
+export function marketOf(s) {
+  if (!s.market || typeof s.market !== 'object') s.market = { outbox: [], done: [] };
+  if (!Array.isArray(s.market.outbox)) s.market.outbox = [];
+  if (!Array.isArray(s.market.done)) s.market.done = [];
+  return s.market;
+}
+export const marketDone = (s, key) => marketOf(s).done.includes(key);
+function markDone(s, key) { const mk = marketOf(s); mk.done = [key, ...mk.done.filter((k) => k !== key)].slice(0, 300); }
+// Por qué no se puede vender esta máquina en Usados (o null si se puede).
+export function listReason(s, m) {
+  if (!m) return 'Esa máquina ya no está.';
+  if (s.machines.length <= 1) return 'Es tu única máquina: necesitás al menos una en el taller.';
+  if (s.tutorial?.active) return 'Terminá el tutorial primero.';
+  return null;
+}
+// Saca la máquina del taller y la deja lista para publicar (se confirma con la base).
+export function listUsed(s, mid, price, nonce) {
+  const i = s.machines.findIndex((x) => x.id === mid);
+  const m = s.machines[i];
+  if (listReason(s, m)) return null;
+  const wear = wear3(m.wear);
+  // La máquina se sigue gastando mientras elegís el precio: se ajusta al tope del momento.
+  if (!(Number(price) > 0)) return null;
+  const p = Math.max(usedMin(m.model), Math.min(usedMax(m.model, wear), Math.round(price)));
+  const entry = { nonce, model: m.model, wear, price: p, paid: m.paid || 0, at: Date.now() };
+  s.machines.splice(i, 1);
+  marketOf(s).outbox.push(entry);
+  return entry;
+}
+// La base confirmó la publicación.
+export function listConfirmed(s, nonce) {
+  const mk = marketOf(s);
+  mk.outbox = mk.outbox.filter((x) => x.nonce !== nonce);
+}
+// La base rechazó la publicación: la máquina vuelve tal cual estaba.
+export function listRejected(s, nonce) {
+  const mk = marketOf(s);
+  const e = mk.outbox.find((x) => x.nonce === nonce);
+  if (!e) return null;
+  mk.outbox = mk.outbox.filter((x) => x.nonce !== nonce);
+  return MACHINES[e.model] ? addMachine(s, e.model, e.paid || 0, false, e.wear) : null;
+}
+// ¿Se puede comprar esta usada? Devuelve el motivo si no.
+export function buyUsedReason(s, it) {
+  if (!MACHINES[it.model]) return 'Máquina desconocida';
+  if (it.mine) return 'Es tuya';
+  if (!machineUnlocked(s, it.model)) return machineLockReason(s, it.model).join(' · ') || 'Todavía no la podés usar';
+  if (s.machines.length >= slots(s)) return 'Sin lugar en el taller';
+  if (s.money < it.price) return 'Te falta plata';
+  return null;
+}
+// Entra al taller una usada que compraste (se paga acá).
+export function receiveUsed(s, it) {
+  const key = 'b' + it.id;
+  if (marketDone(s, key) || !MACHINES[it.model]) return null;
+  if (s.machines.length >= slots(s)) return null;
+  s.money = Math.max(0, s.money - it.price);
+  const m = addMachine(s, it.model, it.price, false, wear3(it.wear));
+  m.used = true;
+  markDone(s, key);
+  s.stats.usedBought = (s.stats.usedBought || 0) + 1;
+  return m;
+}
+// Vendiste una usada: entra la plata (no cuenta como "ganado": no suma puntos ni Oficio).
+export function settleSale(s, it) {
+  const key = 's' + it.id;
+  if (marketDone(s, key)) return false;
+  s.money += Math.max(0, Number(it.price) || 0);
+  markDone(s, key);
+  s.stats.usedSold = (s.stats.usedSold || 0) + 1;
+  return true;
+}
+// Vuelve una publicación que no se vendió. Si ya no la podés usar (por ejemplo,
+// después de una Mudanza), se vende al por mayor a la mitad.
+export function takeBack(s, it) {
+  const key = 's' + it.id;
+  if (marketDone(s, key)) return { done: true };
+  if (!MACHINES[it.model] || !machineUnlocked(s, it.model)) {
+    const cash = Math.round((Number(it.price) || 0) * 0.5);
+    s.money += cash;
+    markDone(s, key);
+    return { cash };
+  }
+  if (s.machines.length >= slots(s)) return null;
+  const m = addMachine(s, it.model, Number(it.price) || 0, false, wear3(it.wear));
+  markDone(s, key);
+  return { machine: m };
+}
+
 export function buyUpgrade(s, id) {
   if (!upgradeUnlocked(s, id) || upgradeMaxed(s, id)) return false;
   const c = upgradeCost(s, id);
@@ -998,6 +1134,7 @@ function keepForMove(s, prestige) {
     keptRep: Math.floor(s.rep * keepFrac),
     name: s.name, totalEarned: s.totalEarned, stats: s.stats, achievements: s.achievements, mastery: s.mastery,
     tokens: s.tokens, daily: s.daily, weekly: s.weekly, prestige, settings: s.settings, seen: s.seen, cosmetics: s.cosmetics,
+    market: s.market,
     orders: { fidelity: s.orders.fidelity },
   };
 }
@@ -1134,6 +1271,8 @@ export function migrate(obj) {
   obj.prestige = { ...base.prestige, ...obj.prestige };
   obj.cosmetics = { ...base.cosmetics, ...obj.cosmetics };
   for (const k of ['unlocked', 'decor']) if (!Array.isArray(obj.cosmetics[k])) obj.cosmetics[k] = [];
+  marketOf(obj);
+  for (const m of obj.machines) if (typeof m.wear !== 'number' || !(m.wear >= 0)) m.wear = 0;
   if (!obj.prestige.mastery) obj.prestige.mastery = {};
   if (obj.space >= SPACES.length) obj.space = SPACES.length - 1;
   if (toV3) {

@@ -317,4 +317,71 @@ t('desafío semanal cobrado suma al contador (para los puntos online)', () => {
   assert.equal(s.stats.weeklyDone, 1);
 });
 
+t('desgaste: sube imprimiendo, hace fallar más y se repara', () => {
+  const s = E.newGame(null, 12); skipTutorial(s);
+  const m = s.machines[0];
+  assert.equal(m.wear, 0);
+  const base = E.machineFail(s, m);
+  m.state = 'printing'; m.cur = 'llavero'; m.need = 1e12; m.progress = 0;
+  const ctx = { out: [], idle: true };
+  for (let i = 0; i < 100; i++) E.tick(s, E.WEAR_HOURS * 36 * 0.6 / 1, ctx); // 60 % del desgaste
+  assert.ok(m.wear >= 0.59 && m.wear <= 0.61, 'desgaste ' + m.wear);
+  assert.ok(ctx.out.some((e) => e.type === 'worn'), 'avisa que está gastada');
+  assert.ok(Math.abs(E.machineFail(s, m) / base - (1 + E.WEAR_FAIL * m.wear)) < 1e-9, 'falla más');
+  const c = E.repairCost(s, m);
+  s.money = c - 1;
+  assert.equal(E.repairMachine(s, m.id), false, 'sin plata no se repara');
+  s.money = c;
+  assert.equal(E.repairMachine(s, m.id), true);
+  assert.equal(m.wear, 0); assert.equal(s.money, 0); assert.equal(s.stats.repairs, 1);
+  const old = JSON.parse(E.serialize(E.newGame(null, 13))); delete old.machines[0].wear; delete old.market;
+  const mg = E.migrate(old);
+  assert.equal(mg.machines[0].wear, 0, 'las máquinas de antes arrancan sin desgaste');
+  assert.deepEqual(mg.market, { outbox: [], done: [] });
+});
+
+t('usados: publicar, rechazo devuelve la máquina igual, confirmación la deja afuera', () => {
+  const s = E.newGame(null, 14); skipTutorial(s);
+  assert.ok(E.listReason(s, s.machines[0]), 'no se puede vender la única');
+  s.space = 1; s.money = 1e9;
+  E.buyMachine(s, 'ender3');
+  const m = s.machines[1]; m.wear = 0.4;
+  const paid = m.paid;
+  const e = E.listUsed(s, m.id, E.usedMax('ender3', 0.4) + 5000, 'n1');
+  assert.equal(e.price, E.usedMax('ender3', 0.4), 'más caro que el tope: se ajusta al tope');
+  assert.ok(e && s.machines.length === 1 && s.market.outbox.length === 1);
+  const back = E.listRejected(s, 'n1');
+  assert.ok(back && back.wear === 0.4 && back.paid === paid && s.machines.length === 2 && s.market.outbox.length === 0);
+  E.listUsed(s, back.id, 100000, 'n2');
+  E.listConfirmed(s, 'n2');
+  assert.equal(s.machines.length, 1); assert.equal(s.market.outbox.length, 0);
+  assert.equal(E.usedMax('ender3', 0), 360000); assert.equal(E.usedMax('ender3', 1), 180000); assert.equal(E.usedMin('ender3'), 40000);
+});
+
+t('usados: comprar, cobrar y recuperar se aplican una sola vez', () => {
+  const s = E.newGame(null, 15); skipTutorial(s);
+  s.space = 1; s.money = 1e6;
+  const it = { id: 7, model: 'ender3', wear: 0.5, price: 250000 };
+  assert.equal(E.buyUsedReason(s, it), null);
+  assert.ok(E.buyUsedReason(s, { ...it, model: 'rackpro' }), 'una que todavía no desbloqueaste: no');
+  assert.ok(E.buyUsedReason(s, { ...it, mine: true }));
+  const m = E.receiveUsed(s, it);
+  assert.ok(m && m.wear === 0.5 && m.used && m.paid === 250000);
+  assert.equal(s.money, 750000);
+  assert.equal(E.receiveUsed(s, it), null, 'no se recibe dos veces');
+  assert.equal(s.machines.length, 2);
+  const earned = s.runEarned;
+  assert.equal(E.settleSale(s, { id: 9, price: 300000 }), true);
+  assert.equal(E.settleSale(s, { id: 9, price: 300000 }), false, 'no se cobra dos veces');
+  assert.equal(s.money, 1050000); assert.equal(s.runEarned, earned, 'no cuenta como ganado');
+  const r = E.takeBack(s, { id: 10, model: 'ender3', wear: 0.2, price: 200000 });
+  assert.ok(r.machine && r.machine.wear === 0.2);
+  assert.ok(E.takeBack(s, { id: 10, model: 'ender3', wear: 0.2, price: 200000 }).done);
+  const r2 = E.takeBack(s, { id: 11, model: 'rackpro', wear: 0, price: 1e7 });
+  assert.equal(r2.cash, 5e6, 'si ya no la podés usar, se vende al por mayor');
+  s.runEarned = E.OFICIO_SCALE * 4;
+  const next = E.doMove(s, null);
+  assert.ok(next.market.done.includes('b7') && next.market.done.includes('s9'), 'lo hecho sobrevive a la Mudanza');
+});
+
 console.log(`\n${n} pruebas OK`);

@@ -7,6 +7,7 @@ import { MACHINES, MACHINE_ORDER, UPGRADES, UPGRADE_ORDER, SPACES, MATERIALS, MA
 import { money, dur, kg } from '../game/format.js';
 import { FILACOLOR, fcUrl } from '../online/filacolor.js';
 import fcLogo from '../assets/filacolor-logo.png';
+import Market, { WearBar } from './Market.jsx';
 
 function eta(s, cost) {
   const r = Math.max(E.incomeRate(s), E.potentialRate(s) * 0.7);
@@ -38,7 +39,7 @@ function Machines({ s, actions, glow }) {
         ))}
       </div>
       {!E.techUnlocked(s, tech) && <p className="o-warn soft">Primero desbloqueá «{UPGRADES[TECHS[tech].upgrade].name}» en Mejoras.</p>}
-      {full && <p className="o-warn soft">El taller está lleno. Agrandalo (Taller) o vendé una máquina vieja (tocá su ⚙).</p>}
+      {full && <p className="o-warn soft">El taller está lleno. Agrandalo (Taller) o vendé una máquina vieja (tocá su ⚙ o publicala en Usados).</p>}
       {list.map((id, idx) => {
         const M = MACHINES[id];
         const unlocked = E.machineUnlocked(s, id);
@@ -72,6 +73,39 @@ function Machines({ s, actions, glow }) {
   );
 }
 
+// Taller de reparación: deja las máquinas gastadas al 100 % (fallan menos).
+function RepairShop({ s, actions }) {
+  const list = s.machines.filter(E.needsRepair).sort((a, b) => E.wearOf(b) - E.wearOf(a));
+  if (!list.length) {
+    const worst = s.machines.reduce((a, m) => Math.max(a, E.wearOf(m)), 0);
+    return (
+      <div className="repair-box ok">
+        <div className="up-top"><span className="up-cat">TALLER DE REPARACIÓN</span></div>
+        <small>Todas tus máquinas están {worst > 0 ? `casi nuevas (la más gastada: ${Math.round(worst * 100)} %)` : 'al 100 %'}. Se gastan al imprimir y, gastadas, fallan más: cuando pase, las reparás acá.</small>
+      </div>
+    );
+  }
+  const all = E.repairAllCost(s);
+  return (
+    <div className="repair-box">
+      <div className="up-top"><span className="up-cat">TALLER DE REPARACIÓN</span><span className="up-lvl">{list.length} para reparar</span></div>
+      <small>Las máquinas se gastan al imprimir y las usadas vienen gastadas: cuanto más desgaste, más fallas. Reparadas quedan al 100 %.</small>
+      {list.slice(0, 6).map((m) => {
+        const M = MACHINES[m.model];
+        return (
+          <div key={m.id} className="repair-row">
+            <MachineThumb model={m.model} />
+            <span className="repair-name"><b>{M.name}{m.used ? ' · usada' : ''}</b><WearBar wear={m.wear} /><small>Fallas {(Math.round(E.machineFail(s, m) * 1000) / 10).toLocaleString('es-AR')} % → {(Math.round(E.machineFail(s, { ...m, wear: 0 }) * 1000) / 10).toLocaleString('es-AR')} %</small></span>
+            <BuyBtn s={s} cost={E.repairCost(s, m)} label="Reparar" onClick={() => actions.repair(m.id)} />
+          </div>
+        );
+      })}
+      {list.length > 6 && <small>…y {list.length - 6} más.</small>}
+      {list.length > 1 && <BuyBtn s={s} cost={all} label={`Reparar las ${list.length}`} onClick={() => actions.repairAll()} />}
+    </div>
+  );
+}
+
 const CAT_ORDER = ['Velocidad', 'Calidad', 'Confiabilidad', 'Automatización', 'Tecnología', 'Marca', 'Materiales', 'Capacidad', 'Mate'];
 function Upgrades({ s, actions, glow }) {
   const rows = UPGRADE_ORDER.map((id) => ({ id, U: UPGRADES[id], lvl: E.lvlOf(s, id) }));
@@ -86,6 +120,7 @@ function Upgrades({ s, actions, glow }) {
   const done = rows.filter((r) => E.upgradeMaxed(s, r.id));
   return (
     <div className="shop-list">
+      <RepairShop s={s} actions={actions} />
       {shown.map(({ id, U, lvl }) => {
         const unlocked = E.upgradeUnlocked(s, id);
         return (
@@ -184,9 +219,10 @@ function Materials({ s, actions }) {
   );
 }
 
-const TABS = [['machines', 'Máquinas'], ['upgrades', 'Mejoras'], ['space', 'Taller'], ['filament', 'Materiales']];
+const TABS = [['machines', 'Máquinas'], ['used', 'Usados'], ['upgrades', 'Mejoras'], ['space', 'Taller'], ['filament', 'Materiales']];
 
-export default function Shop({ s, actions, tab, setTab, glow }) {
+export default function Shop({ s, actions, tab, setTab, glow, online, mk, open, usedPick, clearUsedPick }) {
+  const toFix = s.machines.some((m) => E.wearOf(m) >= E.WEAR_WARN);
   const glowTab = { 'shop-machines': 'machines', 'shop-upgrades': 'upgrades', 'shop-space': 'space' }[glow];
   return (
     <section className="card shop-card">
@@ -196,11 +232,14 @@ export default function Shop({ s, actions, tab, setTab, glow }) {
       </div>
       <div className="view-toggle shop-tabs">
         {TABS.map(([k, label]) => (
-          <button key={k} className={'seg' + (tab === k ? ' active' : '') + (glowTab === k && tab !== k ? ' tut-dot' : '')} onClick={() => setTab(k)}>{label}</button>
+          <button key={k} className={'seg' + (tab === k ? ' active' : '') + (glowTab === k && tab !== k ? ' tut-dot' : '') + (k === 'used' ? ' seg-used' : '')} onClick={() => setTab(k)}>
+            {label}{k === 'used' && <i className="mk-dot" aria-hidden="true" />}{k === 'upgrades' && toFix && tab !== k && <i className="fix-dot" title="Hay máquinas gastadas para reparar" />}
+          </button>
         ))}
       </div>
       <div className="shop-scroll">
         {tab === 'machines' && <Machines s={s} actions={actions} glow={glow} />}
+        {tab === 'used' && mk && <Market s={s} online={online} mk={mk} open={open} preselect={usedPick} clearPreselect={clearUsedPick} />}
         {tab === 'upgrades' && <Upgrades s={s} actions={actions} glow={glow} />}
         {tab === 'space' && <Spaces s={s} actions={actions} glow={glow} />}
         {tab === 'filament' && <Materials s={s} actions={actions} />}
