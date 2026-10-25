@@ -487,6 +487,10 @@ export function SettingsModal({ s, actions, onClose, online, open }) {
       {reset === 2 && <div className="confirm-row"><span>Última confirmación.</span><button className="danger-btn solid" onClick={() => { actions.reset(); onClose(); }}>Borrar definitivamente</button><button className="chip-btn" onClick={() => setReset(0)}>Cancelar</button></div>}
 
       <p className="hint credits">3DBAT: Maker Tycoon v{VERSION} · Un juego de <a href={LINKS.web} target="_blank" rel="noopener noreferrer">3DBAT IMPRESIONES</a> · <a href={LINKS.instagram} target="_blank" rel="noopener noreferrer">{IG_HANDLE}</a></p>
+      <details className="credits-more">
+        <summary>Créditos de gráficos</summary>
+        <p className="hint">Fotos de impresoras y filamentos: Filacolor (proveedor oficial) y las páginas oficiales de cada marca. Prusa MK4: Majkluss, y Voron 2.4: disinterpreter, vía Wikimedia Commons (CC BY-SA). Texturas, luz y objetos del taller: Poly Haven (CC0). Personaje: Mixamo (Adobe).</p>
+      </details>
       <p className="hint disclaimer">{BRAND_DISCLAIMER}</p>
     </Modal>
   );

@@ -6,7 +6,7 @@
 
 const BASE = 'https://filacolor.com.ar';
 const UTM = 'utm_source=3dbat&utm_medium=maker-tycoon&utm_campaign=proveedor-oficial';
-export const fcPhoto = (id) => (FILACOLOR.photos[id] ? `${import.meta.env.BASE_URL || './'}assets/fc/${FILACOLOR.photos[id]}.webp` : null);
+export const fcPhoto = (id) => (FILACOLOR.photos.has(id) ? `${import.meta.env.BASE_URL || './'}assets/fc/${id}.png` : null);
 export const fcUrl = (path = '/', medium = 'maker-tycoon') =>
   `${BASE}${path}${path.includes('?') ? '&' : '?'}${UTM.replace('maker-tycoon', medium)}`;
 
@@ -73,12 +73,12 @@ export const FILACOLOR = {
     k1c: '/producto/creality-k1c/',
     u1: '/producto/snapmaker-u1/',
   },
-  // Fotos reales de los productos (tomadas de filacolor.com.ar, proveedor oficial y socio de 3DBAT).
-  // Están en public/assets/fc/. Se usan en la tienda en lugar del dibujo 3D.
-  photos: {
-    ender3: 'ender3', a1mini: 'a1mini', a1: 'a1', k1c: 'k1c', u1: 'u1',
-    PLA: 'PLA', PETG: 'PETG', TPU: 'TPU', ASA: 'ASA', PACF: 'PACF',
-  },
+  // Fotos reales (PNG sin fondo) de cada máquina y filamento, en public/assets/fc/.
+  // Las de impresoras y filamentos que vende Filacolor salen de filacolor.com.ar; el resto, de las
+  // páginas oficiales de cada marca (MK4S y Voron: Wikimedia Commons, CC BY-SA, ver créditos).
+  photos: new Set(['ender3', 'a1mini', 'magna', 'a1', 'k1c', 'kobra3', 'neptune', 'p1s', 'mk4s', 'sidewinder', 'k2plus', 'h2s', 'u1',
+    'x1c', 'coreone', 'voron', 'h2d', 'prusaxl', 'giga', 'rack', 'rackpro', 'mars', 'photon', 'saturn', 'form4', 'falcon',
+    'xtools1', 'xtoolp2', 'g3018', 'artisan', 'shapeoko', 'PLA', 'PETG', 'TPU', 'ASA', 'PACF']),
   // Materiales del juego → categoría en Filacolor.
   gameMaterials: {
     PLA: '/categoria-producto/filamentos/cat-pla/',

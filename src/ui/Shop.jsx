@@ -120,7 +120,7 @@ function Machines({ s, actions, glow }) {
         const multi = E.isMulti(s, M);
         return (
           <div key={id} className={'shop-item' + (unlocked ? '' : ' locked')}>
-            <div className="shop-art"><MachineThumb model={id} />{fcPhoto(id) && <span className="fc-photo-tag">Foto Filacolor</span>}</div>
+            <div className="shop-art"><MachineThumb model={id} /></div>
             <div className="shop-txt">
               <span className="brand-tag">{M.brand}</span>
               {FILACOLOR.machines[id] && <a className="fc-tag" href={fcUrl(FILACOLOR.machines[id])} target="_blank" rel="noopener noreferrer" title="La versión real, en el proveedor oficial de la comunidad">En Filacolor ↗</a>}
@@ -270,7 +270,7 @@ function Materials({ s, actions }) {
         return (
           <div key={k} className={'fil-item' + (unlocked ? '' : ' locked')}>
             {fcPhoto(k)
-              ? <img className="fil-photo" src={fcPhoto(k)} alt="" title="Foto: Filacolor" loading="lazy" />
+              ? <img className="fil-photo" src={fcPhoto(k)} alt="" loading="lazy" />
               : <div className="fil-spool" style={{ background: M.color }} />}
             <div className="shop-txt">
               <b>{M.name}</b>

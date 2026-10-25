@@ -32,9 +32,9 @@ function useThumb(kind, id) {
 
 export function MachineThumb({ model, className = '', photo = true }) {
   const url = useThumb('m', model);
-  // Foto real del producto (Filacolor) para las impresoras que vende el proveedor oficial.
+  // Foto real del producto (PNG sin fondo).
   const ph = photo ? fcPhoto(model) : null;
-  if (ph) return <img className={'thumb3d photo ' + className} src={ph} alt="" draggable="false" title="Foto: Filacolor" loading="lazy" />;
+  if (ph) return <img className={'thumb3d photo ' + className} src={ph} alt="" draggable="false" loading="lazy" />;
   if (url) return <img className={'thumb3d ' + className} src={url} alt="" draggable="false" />;
   return <div className={'thumb3d fallback ' + className}><MachineArt m={{ id: 'sh-' + model, model, cur: null, progress: 0, need: 0, state: 'idle' }} /></div>;
 }
