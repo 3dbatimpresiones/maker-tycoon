@@ -19,7 +19,13 @@ function BuyBtn({ s, cost, onClick, disabled, label = 'Comprar', glow }) {
   const ok = s.money >= cost && !disabled;
   return (
     <button className={'buy-btn' + (ok ? ' ok' : '') + (glow ? ' tut-glow' : '')} disabled={!ok} onClick={onClick}>
-      {disabled ? label : ok ? `${label} · ${money(cost)}` : `Faltan ${money(cost - s.money)}${eta(s, cost)}`}
+      {ok ? `${label} · ${money(cost)}` : (
+        // Sin plata (o sin lugar): se ve el precio y, abajo, cuánto falta.
+        <>
+          <span className="bb-price">{disabled ? `${label} · ` : label.startsWith('×') || /^\d/.test(label) ? `${label} · ` : 'Precio '}<b>{money(cost)}</b></span>
+          {s.money < cost && <small className="bb-miss">Faltan {money(cost - s.money)}{eta(s, cost)}</small>}
+        </>
+      )}
     </button>
   );
 }

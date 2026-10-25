@@ -398,3 +398,9 @@
 .repair-name b { font-size: 13.5px; }
 .mk-price-ref { font-size: 10.5px; }
 .mk-price-ref span, .mk-price-ref .link-btn { white-space: nowrap; }
+
+/* Botón de compra sin plata: precio arriba, lo que falta abajo */
+.buy-btn .bb-price { display: block; }
+.buy-btn .bb-miss { display: block; margin-top: 2px; font-size: 11px; font-weight: 700; opacity: .75; }
+.buy-btn .bb-price { white-space: nowrap; }
+.buy-btn .bb-price b { font-size: 14px; }

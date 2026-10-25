@@ -45,7 +45,13 @@ function Item({ s, it, logged, onBuy, onCancel, onLogin, fresh, busy }) {
   let btn;
   if (it.mine) btn = <button className="chip-btn mk-own" disabled={busy} onClick={onCancel}>Es tuya · Sacarla de la venta</button>;
   else if (!logged) btn = <button className="buy-btn" onClick={onLogin}>Ingresá con Google para comprar · {money(it.price)}</button>;
-  else if (why) btn = <button className="buy-btn" disabled>{why === 'Te falta plata' ? `Faltan ${money(it.price - s.money)}` : why}</button>;
+  else if (why) btn = (
+    <button className="buy-btn" disabled>
+      {why === 'Te falta plata'
+        ? <><span className="bb-price">Precio <b>{money(it.price)}</b></span><small className="bb-miss">Faltan {money(it.price - s.money)}</small></>
+        : why}
+    </button>
+  );
   else btn = (
     <button className={'buy-btn ok' + (sure ? ' sure' : '')} disabled={busy} onClick={() => (sure ? onBuy() : setSure(true))}>
       {busy ? 'Comprando…' : sure ? `¿Seguro? Tocá de nuevo · ${money(it.price)}` : `Comprar usada · ${money(it.price)}`}
