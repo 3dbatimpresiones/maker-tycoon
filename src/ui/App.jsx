@@ -26,7 +26,8 @@ export default function App() {
   const { s, actions, floats, toasts, bati, offline, locked, getState } = useGame();
   const online = useOnline({ getState, adoptSave: actions.adoptSave, toast: actions.toast, say: actions.say, isLocked: () => locked });
   const gate = useGate(online);
-  const mk = useMarket({ online, getState, actions, isLocked: () => locked });
+  const mk = useMarket({ online, getState, actions, isLocked: () => locked,
+    notify: (txt) => { actions.toast(txt, 'info', 8000); actions.say(txt, { mood: 'happy', ctas: ['usados'] }); } });
   const chat = useChat({ online, toast: actions.toast });
   const [usedPick, setUsedPick] = useState(null); // máquina elegida para vender en Usados
   const [tab, setTab] = useState('taller');

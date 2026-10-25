@@ -566,6 +566,9 @@ export function sellMachine(s, mid) {
 // Te las toman mejor que vendiéndolas sueltas (65 % de la nueva, menos el desgaste),
 // pagás la diferencia (como mínimo el 10 % de la nueva) y liberás lugar en el taller.
 export const TRADE_MAX = 3;
+// Fichas: cada una descuenta el 3 % del precio de la nueva (hasta 10 fichas por canje).
+export const TRADE_TOKEN_PCT = 0.03;
+export const TRADE_TOKEN_MAX = 10;
 export function tradeValue(s, m) {
   const M = MACHINES[m.model];
   return Math.round(Math.max((m.paid || 0) * 0.5, M.cost * 0.65 * (1 - 0.5 * wearOf(m))));
@@ -575,29 +578,35 @@ export function tradeCandidates(s, model) {
   const C = MACHINES[model].cost;
   return s.machines.filter((m) => m.model !== model && MACHINES[m.model].cost < C);
 }
-export function tradeQuote(s, model, mids) {
+export function tradeQuote(s, model, mids, tokens = 0) {
   const price = machineCost(s, model);
   const list = s.machines.filter((m) => mids.includes(m.id));
-  const credit = Math.min(list.reduce((a, m) => a + tradeValue(s, m), 0), Math.floor(price * 0.9));
-  return { price, credit, pay: price - credit, count: list.length };
+  const tk = Math.max(0, Math.min(TRADE_TOKEN_MAX, Math.floor(tokens) || 0));
+  const machinesCredit = list.reduce((a, m) => a + tradeValue(s, m), 0);
+  const tokenCredit = Math.round(price * TRADE_TOKEN_PCT * tk);
+  const credit = Math.min(machinesCredit + tokenCredit, Math.floor(price * 0.9));
+  return { price, credit, machinesCredit, tokenCredit, tokens: tk, pay: price - credit, count: list.length };
 }
 // Motivo por el que no se puede hacer el canje (o null si se puede).
-export function tradeReason(s, model, mids) {
+export function tradeReason(s, model, mids, tokens = 0) {
   if (s.tutorial?.active) return 'Terminá el tutorial primero';
   if (!machineUnlocked(s, model)) return machineLockReason(s, model).join(' · ') || 'Todavía no la podés comprar';
-  if (!mids.length) return 'Elegí qué máquinas entregás';
+  if (!mids.length && !(tokens > 0)) return 'Elegí qué máquinas entregás';
+  if (tokens > TRADE_TOKEN_MAX) return `Hasta ${TRADE_TOKEN_MAX} fichas por canje`;
+  if (tokens > (s.tokens || 0)) return 'No tenés tantas fichas';
   if (mids.length > TRADE_MAX) return `Hasta ${TRADE_MAX} máquinas por canje`;
   const ok = new Set(tradeCandidates(s, model).map((m) => m.id));
   if (mids.some((id) => !ok.has(id))) return 'Solo se entregan máquinas más chicas';
   if (s.machines.length - mids.length + 1 > slots(s)) return 'Sin lugar en el taller';
-  if (s.money < tradeQuote(s, model, mids).pay) return 'Te falta plata';
+  if (s.money < tradeQuote(s, model, mids, tokens).pay) return 'Te falta plata';
   return null;
 }
-export function tradeIn(s, model, mids) {
+export function tradeIn(s, model, mids, tokens = 0) {
   const ids = [...new Set(mids)];
-  if (tradeReason(s, model, ids)) return null;
-  const q = tradeQuote(s, model, ids);
+  if (tradeReason(s, model, ids, tokens)) return null;
+  const q = tradeQuote(s, model, ids, tokens);
   s.money -= q.pay;
+  s.tokens -= q.tokens;
   s.machines = s.machines.filter((m) => !ids.includes(m.id));
   const m = addMachine(s, model, q.price);
   s.stats.tradeIns = (s.stats.tradeIns || 0) + 1;
@@ -691,6 +700,78 @@ export function listRejected(s, nonce) {
   mk.outbox = mk.outbox.filter((x) => x.nonce !== nonce);
   return MACHINES[e.model] ? addMachine(s, e.model, e.paid || 0, false, e.wear) : null;
 }
+// ---------- Canje entre makers: ofertas por una máquina de Usados ----------
+// Lo ofrecido (hasta 3 máquinas + plata + hasta 20 fichas) queda apartado en la partida
+// hasta que la base confirma la oferta; si el dueño no acepta, vuelve (ver offerBack).
+export const OFFER_MAX_TOKENS = 20;
+export const itemValue = (it) => Math.round((MACHINES[it.model]?.cost || 0) * 0.65 * (1 - 0.5 * (Number(it.wear) || 0)));
+export function offerReason(s, it, mids, cash, tokens) {
+  if (!MACHINES[it.model]) return 'Máquina desconocida';
+  if (it.mine) return 'Es tuya';
+  if (!machineUnlocked(s, it.model)) return machineLockReason(s, it.model).join(' · ') || 'Todavía no la podés usar';
+  if (mids.length > TRADE_MAX) return `Hasta ${TRADE_MAX} máquinas`;
+  if (mids.some((id) => !s.machines.some((m) => m.id === id))) return 'Esa máquina ya no está';
+  if (mids.length && mids.length >= s.machines.length) return 'Tenés que quedarte con al menos una máquina';
+  if (s.machines.length - mids.length + 1 > slots(s)) return 'Sin lugar en el taller';
+  if (cash > s.money) return 'Te falta plata';
+  if (cash > it.price) return 'Ofrecés más que el precio: comprala directo';
+  if (tokens > (s.tokens || 0)) return 'No tenés tantas fichas';
+  if (tokens > OFFER_MAX_TOKENS) return `Hasta ${OFFER_MAX_TOKENS} fichas`;
+  if (!mids.length && !(cash > 0) && !(tokens > 0)) return 'Ofrecé algo: máquinas, plata o fichas';
+  return null;
+}
+// Aparta lo ofrecido (sale del taller y de la caja) hasta que la base confirme la oferta.
+export function offerEscrow(s, it, mids, cash, tokens, nonce) {
+  const c = Math.max(0, Math.round(cash || 0));
+  const tk = Math.max(0, Math.floor(tokens || 0));
+  if (offerReason(s, it, mids, c, tk)) return null;
+  const items = s.machines.filter((m) => mids.includes(m.id)).map((m) => ({ model: m.model, wear: wear3(m.wear), paid: m.paid || 0 }));
+  s.machines = s.machines.filter((m) => !mids.includes(m.id));
+  s.money -= c;
+  s.tokens -= tk;
+  const entry = { kind: 'offer', nonce, listing: it.id, model: it.model, items, money: c, tokens: tk, at: Date.now() };
+  marketOf(s).outbox.push(entry);
+  return entry;
+}
+// Devuelve lo apartado: la oferta no se pudo mandar (offerRejectedLocal) o no prosperó (offerBack).
+function giveBack(s, items, cash, tokens) {
+  for (const x of items || []) if (MACHINES[x.model]) addMachine(s, x.model, x.paid || Math.round(MACHINES[x.model].cost * 0.5), false, wear3(x.wear));
+  s.money += Math.max(0, Number(cash) || 0);
+  s.tokens = (s.tokens || 0) + Math.max(0, Number(tokens) || 0);
+}
+export function offerRejectedLocal(s, nonce) {
+  const mk = marketOf(s);
+  const e = mk.outbox.find((x) => x.nonce === nonce);
+  if (!e) return null;
+  mk.outbox = mk.outbox.filter((x) => x.nonce !== nonce);
+  giveBack(s, e.items, e.money, e.tokens);
+  return e;
+}
+const fitsAll = (s, n) => s.machines.length + n <= slots(s);
+export function offerBack(s, it) {
+  const key = 'o' + it.id;
+  if (marketDone(s, key)) return { done: true };
+  const items = it.items || [];
+  if (!fitsAll(s, items.length)) return null;
+  giveBack(s, items, it.money, it.tokens);
+  markDone(s, key);
+  return { ok: true };
+}
+// Vendiste por canje: entran las máquinas, la plata (no cuenta como ganado) y las fichas.
+export function tradeGot(s, it) {
+  const key = 's' + it.id;
+  if (marketDone(s, key)) return { done: true };
+  const items = it.items || [];
+  if (!fitsAll(s, items.length)) return null;
+  for (const x of items) if (MACHINES[x.model]) { const m = addMachine(s, x.model, Math.round(MACHINES[x.model].cost * 0.5), false, wear3(x.wear)); m.used = true; }
+  s.money += Math.max(0, Number(it.money) || 0);
+  s.tokens = (s.tokens || 0) + Math.max(0, Number(it.tokens) || 0);
+  markDone(s, key);
+  s.stats.usedSold = (s.stats.usedSold || 0) + 1;
+  s.stats.tradeIns = (s.stats.tradeIns || 0) + 1;
+  return { ok: true };
+}
+
 // ¿Se puede comprar esta usada? Devuelve el motivo si no.
 export function buyUsedReason(s, it) {
   if (!MACHINES[it.model]) return 'Máquina desconocida';
@@ -705,7 +786,7 @@ export function receiveUsed(s, it) {
   const key = 'b' + it.id;
   if (marketDone(s, key) || !MACHINES[it.model]) return null;
   if (s.machines.length >= slots(s)) return null;
-  s.money = Math.max(0, s.money - it.price);
+  if (!it.prepaid) s.money = Math.max(0, s.money - it.price); // por canje ya se pagó con lo apartado
   const m = addMachine(s, it.model, it.price, false, wear3(it.wear));
   m.used = true;
   markDone(s, key);

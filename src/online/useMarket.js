@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { rpc } from './api.js';
 import * as E from '../game/engine.js';
+import { MACHINES } from '../game/data.js';
 
 const LIST_EVERY = 8000;   // con la pestaña Usados abierta
 const MINE_EVERY = 20000;  // cobrar ventas, recibir compras, recuperar publicaciones
@@ -15,16 +16,20 @@ const DEV_NO_ONLINE = import.meta.env.DEV && new URLSearchParams(window.location
 
 // Error de la base (rechazo definitivo) o de conexión (se reintenta).
 const definitive = (e) => !!(e?.missing || e?.code);
+const sendOffer = (e) => rpc('bb_mt_market_offer', {
+  p_listing: e.listing, p_nonce: e.nonce, p_items: (e.items || []).map((x) => ({ model: x.model, wear: x.wear })), p_money: e.money, p_tokens: e.tokens,
+});
 const newNonce = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 
-export function useMarket({ online, getState, actions, isLocked }) {
+export function useMarket({ online, getState, actions, isLocked, notify }) {
   const ext = useRef(null);
-  ext.current = { online, getState, actions, isLocked };
+  ext.current = { online, getState, actions, isLocked, notify };
   const [market, setMarket] = useState(null);     // { items, recent, stats, now }
   const [mine, setMine] = useState(null);         // { listed, todo, history }
   const [available, setAvailable] = useState(null);
   const [watching, setWatching] = useState(false);
   const busy = useRef(false);
+  const seenOffers = useRef(null);
   const logged = !!online.session && !!online.me?.player;
 
   const loadList = useCallback(async () => {
@@ -47,10 +52,11 @@ export function useMarket({ online, getState, actions, isLocked }) {
       // 1) Publicaciones que quedaron sin confirmar (por ejemplo, se cortó internet).
       for (const e of [...(gs()?.market?.outbox || [])]) {
         try {
-          await rpc('bb_mt_market_publish', { p_nonce: e.nonce, p_model: e.model, p_wear: e.wear, p_price: e.price });
+          if (e.kind === 'offer') await sendOffer(e);
+          else await rpc('bb_mt_market_publish', { p_nonce: e.nonce, p_model: e.model, p_wear: e.wear, p_price: e.price });
           ac.marketConfirm(e.nonce);
         } catch (err) {
-          if (definitive(err)) ac.marketReject(e.nonce, err.message);
+          if (definitive(err)) (e.kind === 'offer' ? ac.marketOfferReject : ac.marketReject)(e.nonce, err.message);
         }
       }
       // 2) Cobros, compras y devoluciones pendientes.
@@ -62,10 +68,18 @@ export function useMarket({ online, getState, actions, isLocked }) {
         const r = ac.marketApply(it);
         if (r === 'wait') { wait.push(it); continue; }
         if (r === 'applied') changed = true;
-        try { await rpc('bb_mt_market_ack', { p_id: it.id }); } catch { /* se confirma la próxima vez */ }
+        try { await rpc(it.kind === 'offer_back' ? 'bb_mt_market_offer_ack' : 'bb_mt_market_ack', it.kind === 'offer_back' ? { p_offer: it.id } : { p_id: it.id }); } catch { /* se confirma la próxima vez */ }
       }
+      // Ofertas de canje nuevas que te hicieron: aviso (la primera vez no, para no repetir viejas).
+      const ins = d?.offers_in || [];
+      if (seenOffers.current) {
+        for (const o of ins.filter((x) => !seenOffers.current.has(x.id))) {
+          ext.current.notify?.(`🔁 ${o.buyer} te ofreció un canje por tu ${MACHINES[o.model]?.name || 'máquina'}. Miralo en Tienda → Usados → Vender las mías.`);
+        }
+      }
+      seenOffers.current = new Set(ins.map((x) => x.id));
       setMine({ ...d, todo: wait });
-      if (changed) on.push?.(false);
+      if (changed) { on.push?.(false); loadList(); } // la lista se pone al día (por ejemplo, "Tu oferta está esperando")
       return d;
     } catch (e) {
       if (e.missing) setAvailable(false);
@@ -121,11 +135,44 @@ export function useMarket({ online, getState, actions, isLocked }) {
     return e;
   }, [loadList, sync]);
 
+  // Canje entre makers
+  const offer = useCallback(async (it, mids, cash, tokens) => {
+    const { actions: ac, online: on } = ext.current;
+    const nonce = newNonce();
+    const e = ac.marketOffer(it, mids, cash, tokens, nonce);
+    if (!e) throw new Error('No se pudo armar la oferta.');
+    try {
+      await sendOffer(e);
+      ac.marketConfirm(nonce);
+    } catch (err) {
+      if (definitive(err)) { ac.marketOfferReject(nonce, err.message); throw err; }
+      throw new Error('Sin conexión: mando la oferta apenas vuelva internet (lo ofrecido ya está apartado).');
+    }
+    on.push?.(false);
+    loadList();
+    sync();
+    return e;
+  }, [loadList]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cancelOffer = useCallback(async (id) => {
+    await rpc('bb_mt_market_offer_cancel', { p_offer: id });
+    if (!(await sync())) setTimeout(sync, 2500);
+    loadList();
+  }, [loadList]); // eslint-disable-line react-hooks/exhaustive-deps
+  const answer = useCallback(async (o, accept) => {
+    const s = ext.current.getState();
+    if (accept && s.machines.length + (o.items || []).length > E.slots(s)) {
+      throw new Error(`Hacé lugar en el taller: vas a recibir ${(o.items || []).length} máquina${(o.items || []).length > 1 ? 's' : ''}.`);
+    }
+    await rpc('bb_mt_market_offer_answer', { p_offer: o.id, p_accept: !!accept });
+    if (!(await sync())) setTimeout(sync, 2500);
+    loadList();
+  }, [loadList]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const cancel = useCallback(async (id) => {
     await rpc('bb_mt_market_cancel', { p_id: id });
     if (!(await sync())) setTimeout(sync, 2500);
     loadList();
   }, [loadList, sync]);
 
-  return { market, mine, available, logged, setWatching, loadList, sync, buy, publish, cancel };
+  return { market, mine, available, logged, setWatching, loadList, sync, buy, publish, cancel, offer, cancelOffer, answer };
 }

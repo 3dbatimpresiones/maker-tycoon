@@ -292,9 +292,13 @@ export function useGame() {
     retrieve: (mid) => act((st, ctx) => E.retrieve(st, mid, ctx, 'hand')),
     resolve: (mid, opt) => act((st, ctx) => E.resolveEvent(st, mid, opt, ctx)),
     buyMachine: (model) => act((st) => { const m = E.buyMachine(st, model); if (m) { sfx.buy(); toast(`Nueva: ${fullName(MACHINES[model])}`); } return m; }),
-    tradeIn: (model, mids) => act((st) => {
-      const r = E.tradeIn(st, model, mids);
-      if (r) { sfx.buy(); toast(`🔁 Canje hecho: entregaste ${r.count} y te llevaste la ${fullName(MACHINES[model])} (pagaste ${money(r.pay)})`, 'ok', 6000); save(st); }
+    tradeIn: (model, mids, tokens = 0) => act((st) => {
+      const r = E.tradeIn(st, model, mids, tokens);
+      if (r) {
+        sfx.buy(); save(st);
+        const gave = [r.count ? `${r.count} máquina${r.count > 1 ? 's' : ''}` : '', r.tokens ? `${r.tokens} ficha${r.tokens > 1 ? 's' : ''}` : ''].filter(Boolean).join(' + ');
+        toast(`🔁 Canje hecho: entregaste ${gave} y te llevaste la ${fullName(MACHINES[model])} (pagaste ${money(r.pay)})`, 'ok', 6000);
+      }
       return r;
     }),
     sellMachine: (mid) => act((st) => { const ok = E.sellMachine(st, mid); if (ok) sfx.click(); return ok; }),
@@ -308,9 +312,44 @@ export function useGame() {
       if (m) { save(st); toast(`No se pudo publicar${why ? ': ' + why : ''}. La máquina volvió a tu taller.`, 'err', 7000); }
       return m;
     }),
+    // Canje entre makers: aparta lo ofrecido / lo devuelve si no se pudo mandar.
+    marketOffer: (it, mids, cash, tokens, nonce) => act((st) => { const e = E.offerEscrow(st, it, mids, cash, tokens, nonce); if (e) save(st); return e; }),
+    marketOfferReject: (nonce, why) => act((st) => {
+      const e = E.offerRejectedLocal(st, nonce);
+      if (e) { save(st); toast(`No se pudo mandar la oferta${why ? ': ' + why : ''}. Te volvió todo.`, 'err', 7000); }
+      return e;
+    }),
     marketApply: (it) => act((st) => {
       const M = MACHINES[it.model];
       const nm = M ? fullName(M) : 'máquina';
+      const what = (x) => [(x.items || []).length ? `${x.items.length} máquina${x.items.length > 1 ? 's' : ''}` : '', Number(x.money) > 0 ? money(x.money) : '', x.tokens ? `${x.tokens} ficha${x.tokens > 1 ? 's' : ''}` : ''].filter(Boolean).join(' + ');
+      if (it.kind === 'traded') {
+        const r = E.tradeGot(st, it);
+        if (!r) return 'wait';
+        if (r.done) return 'done';
+        save(st); sfx.sale();
+        const who = it.who && it.who !== 'Maker anónimo' ? it.who : 'Otro maker';
+        toast(`🔁 ¡Canje hecho! Por tu ${nm} recibiste ${what(it)}.`, 'ok', 7000);
+        say(`¡Canjeaste tu ${nm} con ${who}! Recibiste ${what(it)}. Ya está todo en tu taller.`, { mood: 'happy' });
+        return 'applied';
+      }
+      if (it.kind === 'offer_back') {
+        const r = E.offerBack(st, it);
+        if (!r) return 'wait';
+        if (r.done) return 'done';
+        save(st);
+        const why = it.status === 'rejected' ? `${it.who || 'El dueño'} no aceptó tu canje por la ${nm}` : it.status === 'cancelled' ? 'Retiraste tu oferta' : `Tu oferta por la ${nm} venció`;
+        toast(`↩️ ${why}: te volvió todo (${what(it)}).`, 'info', 7000);
+        return 'applied';
+      }
+      if (it.kind === 'bought' && it.prepaid) {
+        if (E.marketDone(st, 'b' + it.id)) return 'done';
+        if (!E.receiveUsed(st, it)) return 'wait';
+        save(st); sfx.buy();
+        toast(`🔁 ¡${it.who || 'El dueño'} aceptó tu canje! La ${nm} ya está en tu taller.`, 'ok', 7000);
+        say(`¡Aceptaron tu canje! La ${nm} ya es tuya.`, { mood: 'happy' });
+        return 'applied';
+      }
       if (it.kind === 'bought') {
         if (E.marketDone(st, 'b' + it.id)) return 'done';
         if (!E.receiveUsed(st, it)) return 'wait';

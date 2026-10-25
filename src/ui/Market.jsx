@@ -2,6 +2,8 @@
 // Idea de la comunidad (SHUNE3D): vender las máquinas usadas a otros makers
 // más baratas que nuevas; las usadas vienen con desgaste y fallan más.
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Modal } from './Panels.jsx';
 import Icon from './Icon.jsx';
 import { MachineThumb } from './Thumb.jsx';
 import { Avatar } from './Online.jsx';
@@ -23,6 +25,104 @@ function left(iso) {
   return `quedan ${Math.floor(s / 86400)} d ${Math.floor((s % 86400) / 3600)} h`;
 }
 const pct1 = (x) => (Math.round(x * 1000) / 10).toLocaleString('es-AR');
+// Valor aproximado de una oferta de canje (para orientarse): máquinas + plata + fichas.
+const tokenValue = (model) => Math.round((MACHINES[model]?.cost || 0) * E.TRADE_TOKEN_PCT);
+const offerValue = (items, cash, tokens, model) => (items || []).reduce((a, x) => a + E.itemValue(x), 0) + (Number(cash) || 0) + (tokens || 0) * tokenValue(model);
+const offerText = (o) => [(o.items || []).map((x) => MACHINES[x.model]?.name || x.model).join(' + '), Number(o.money) > 0 ? money(o.money) : '', o.tokens ? `${o.tokens} ficha${o.tokens > 1 ? 's' : ''}` : ''].filter(Boolean).join(' + ');
+
+// Ofrecer un canje por una máquina de Usados: tus máquinas + plata + fichas.
+function OfferModal({ s, it, mk, onClose, onDone }) {
+  const M = MACHINES[it.model];
+  const [pick, setPick] = useState([]);
+  const [cash, setCash] = useState(0);
+  const [tokens, setTokens] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const maxCash = Math.max(0, Math.min(Math.floor(s.money), it.price));
+  const maxTok = Math.min(s.tokens || 0, E.OFFER_MAX_TOKENS);
+  const why = E.offerReason(s, it, pick, cash, tokens);
+  const items = s.machines.filter((m) => pick.includes(m.id)).map((m) => ({ model: m.model, wear: m.wear }));
+  const val = offerValue(items, cash, tokens, it.model);
+  const toggle = (id) => setPick((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= E.TRADE_MAX ? p : [...p, id]));
+  const send = async () => {
+    setBusy(true); setErr('');
+    try { await mk.offer(it, pick, cash, tokens); onDone(); } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+  return createPortal(
+    <Modal title={`Ofrecer canje · ${M.brand} ${M.name}`} icon="cart" onClose={onClose} wide>
+      <div className="tr-top">
+        <div className="tr-art"><MachineThumb model={it.model} /></div>
+        <div>
+          <p className="hint">Ofrecele a <b>{it.seller?.name || 'su dueño'}</b> hasta {E.TRADE_MAX} máquinas tuyas, plata y fichas a cambio de su {M.name} (desgaste {Math.round(it.wear * 100)} %). Lo que ofrecés queda <b>apartado</b>: si no acepta en 48 h, te vuelve todo.</p>
+          <div className="tr-sum">
+            <span>Pide</span><b>{money(it.price)}</b>
+            <span>Tu oferta vale aprox.</span><b className={'tr-pay' + (val >= it.price ? '' : ' low')}>{money(val)}</b>
+          </div>
+        </div>
+      </div>
+      <div className="section-label">TUS MÁQUINAS ({pick.length}/{E.TRADE_MAX})</div>
+      <div className="tr-list">
+        {s.machines.map((m) => {
+          const X = MACHINES[m.model];
+          const on = pick.includes(m.id);
+          return (
+            <button key={m.id} className={'tr-item' + (on ? ' on' : '')} onClick={() => toggle(m.id)}>
+              <span className="tr-check">{on ? '✔' : ''}</span>
+              <MachineThumb model={m.model} />
+              <span className="tr-name"><b>{X.name}</b><WearBar wear={m.wear} compact /></span>
+              <span className="tr-val">≈ {money(E.itemValue(m))}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="tr-extra">
+        <label className="tr-field"><span>Plata</span>
+          <input type="range" min={0} max={maxCash} step={Math.max(1, Math.round(maxCash / 200))} value={Math.min(cash, maxCash)} onChange={(e) => setCash(Number(e.target.value))} disabled={!maxCash} />
+          <b>{money(cash)}</b></label>
+        <div className="tr-field"><span>Fichas (tenés {s.tokens || 0})</span>
+          <div className="tr-step">
+            <button className="icon-btn sm" disabled={tokens <= 0} onClick={() => setTokens((t) => Math.max(0, t - 1))}><Icon name="minus" size={14} /></button>
+            <b>🎟️ {tokens}</b>
+            <button className="icon-btn sm" disabled={tokens >= maxTok} onClick={() => setTokens((t) => Math.min(maxTok, t + 1))}><Icon name="plus" size={14} /></button>
+          </div>
+          <small>cada ficha ≈ {money(tokenValue(it.model))}</small></div>
+      </div>
+      {err && <p className="ol-err">{err}</p>}
+      <button className={'buy-btn' + (!why ? ' ok' : '')} disabled={!!why || busy} onClick={send}>
+        {busy ? 'Mandando…' : !why ? `Mandar la oferta de canje` : why}
+      </button>
+    </Modal>,
+    document.body,
+  );
+}
+
+// Una oferta que te hicieron por una máquina tuya.
+function OfferCard({ o, s, mk, onMsg }) {
+  const [busy, setBusy] = useState(false);
+  const run = async (accept) => {
+    setBusy(true);
+    try { await mk.answer(o, accept); onMsg('ok', accept ? '¡Canje aceptado! En unos segundos te llega todo.' : 'Oferta rechazada: al otro maker le vuelve lo que ofreció.'); }
+    catch (e) { onMsg('err', e.message); } finally { setBusy(false); }
+  };
+  const val = offerValue(o.items, o.money, o.tokens, o.model);
+  return (
+    <div className="mk-offer">
+      <div className="mk-offer-head"><b>🔁 {o.buyer}</b> te ofrece <small>· {left(o.ends)}</small></div>
+      <div className="mk-offer-items">
+        {(o.items || []).map((x, i) => (
+          <span key={i} className="mk-offer-m"><MachineThumb model={x.model} /><span>{MACHINES[x.model]?.name}<WearBar wear={x.wear} compact /></span></span>
+        ))}
+        {Number(o.money) > 0 && <span className="mk-offer-x">💵 {money(o.money)}</span>}
+        {o.tokens > 0 && <span className="mk-offer-x">🎟️ {o.tokens} ficha{o.tokens > 1 ? 's' : ''}</span>}
+      </div>
+      <small className="hint">Vale aprox. <b>{money(val)}</b> · vos pedías {money(o.price)}</small>
+      <div className="mk-offer-btns">
+        <button className="buy-btn ok" disabled={busy} onClick={() => run(true)}>Aceptar el canje</button>
+        <button className="chip-btn" disabled={busy} onClick={() => run(false)}>Rechazar</button>
+      </div>
+    </div>
+  );
+}
 
 export function WearBar({ wear, compact }) {
   const p = Math.round(Math.max(0, Math.min(1, Number(wear) || 0)) * 100);
@@ -34,7 +134,7 @@ export function WearBar({ wear, compact }) {
   );
 }
 
-function Item({ s, it, logged, onBuy, onCancel, onLogin, fresh, busy }) {
+function Item({ s, it, logged, onBuy, onCancel, onLogin, onOffer, onCancelOffer, fresh, busy }) {
   const [sure, setSure] = useState(false);
   useEffect(() => { if (!sure) return undefined; const t = setTimeout(() => setSure(false), 4000); return () => clearTimeout(t); }, [sure]);
   const M = MACHINES[it.model];
@@ -74,6 +174,10 @@ function Item({ s, it, logged, onBuy, onCancel, onLogin, fresh, busy }) {
           <span><b>{it.mine ? 'Vos' : it.seller?.name || 'Un maker'}</b> · {ago(it.at)} · {left(it.ends)}</span>
         </div>
         {btn}
+        {!it.mine && logged && (it.my_offer
+          ? <button className="chip-btn tr-btn" disabled={busy} onClick={onCancelOffer}>🔁 Tu oferta de canje está esperando · Retirarla</button>
+          : <button className="chip-btn tr-btn" onClick={onOffer}>🔁 Ofrecer canje (máquinas, plata o fichas)</button>)}
+        {it.offers > 0 && <span className="mk-offers">{it.offers} oferta{it.offers > 1 ? 's' : ''} de canje</span>}
       </div>
     </div>
   );
@@ -163,6 +267,11 @@ export default function Market({ s, online, mk, open, preselect, clearPreselect 
     setBusyId(it.id);
     try { await mk.buy(it); say('ok', `¡Listo! La ${MACHINES[it.model].name} ya está en tu taller.`); } catch (e) { say('err', e.message); mk.loadList(); } finally { setBusyId(null); }
   };
+  const [offerFor, setOfferFor] = useState(null);
+  const cancelOffer = async (id) => {
+    setBusyId('o' + id);
+    try { await mk.cancelOffer(id); say('ok', 'Retiraste la oferta: te vuelve todo lo que habías ofrecido.'); } catch (e) { say('err', e.message); } finally { setBusyId(null); }
+  };
   const cancel = async (id) => {
     setBusyId(id);
     try { await mk.cancel(id); say('ok', 'Sacaste la publicación: la máquina vuelve a tu taller.'); } catch (e) { say('err', e.message); } finally { setBusyId(null); }
@@ -193,17 +302,30 @@ export default function Market({ s, online, mk, open, preselect, clearPreselect 
         </button>
       </div>
       {msg && <p className={msg.kind === 'err' ? 'ol-err' : 'mk-ok'}>{msg.text}</p>}
+      {offerFor && <OfferModal s={s} it={offerFor} mk={mk} onClose={() => setOfferFor(null)} onDone={() => { setOfferFor(null); say('ok', '¡Oferta mandada! Lo que ofreciste queda apartado hasta que te respondan.'); }} />}
       {waiting.length > 0 && (
         <p className="o-warn soft">📦 Tenés {waiting.length === 1 ? 'una máquina' : waiting.length + ' máquinas'} esperando lugar en el taller. Hacé lugar (vendé una o agrandá el taller) y entran solas.</p>
       )}
 
       {view === 'comprar' && (
         <>
-          <p className="hint">Máquinas que otros makers ponen a la venta, siempre más baratas que nuevas. Vienen con <b>desgaste</b>: fallan más hasta que las reparás en <b>Mejoras → Taller de reparación</b>.</p>
+          <p className="hint">Máquinas que otros makers ponen a la venta, siempre más baratas que nuevas. Vienen con <b>desgaste</b>: fallan más hasta que las reparás en <b>Mejoras → Taller de reparación</b>. También podés <b>ofrecer un canje</b>: tus máquinas, plata o fichas a cambio.</p>
+          {(mk.mine?.offers_out?.length || 0) > 0 && (
+            <div className="mk-myoffers">
+              <div className="section-label">TUS OFERTAS DE CANJE (ESPERANDO RESPUESTA)</div>
+              {mk.mine.offers_out.map((o) => (
+                <div key={o.id} className="mk-row">
+                  <MachineThumb model={o.model} />
+                  <span><b>{MACHINES[o.model]?.name} de {o.seller}</b><small>Ofreciste {offerText(o)} · {left(o.ends)}</small></span>
+                  <button className="chip-btn" disabled={busyId === 'o' + o.id} onClick={() => cancelOffer(o.id)}>Retirar</button>
+                </div>
+              ))}
+            </div>
+          )}
           {(mk.market?.recent?.length || 0) > 0 && (
             <div className="mk-recent">
               {mk.market.recent.slice(0, 3).map((r) => (
-                <div key={r.id}>🤝 <b>{r.buyer || 'Un maker'}</b> compró una {MACHINES[r.model]?.name || 'máquina'} a <b>{money(r.price)}</b> <small>{ago(r.at)}</small></div>
+                <div key={r.id}>{r.trade ? '🔁' : '🤝'} <b>{r.buyer || 'Un maker'}</b> {r.trade ? 'se llevó por canje' : 'compró'} una {MACHINES[r.model]?.name || 'máquina'}{r.trade ? '' : <> a <b>{money(r.price)}</b></>} <small>{ago(r.at)}</small></div>
               ))}
             </div>
           )}
@@ -220,7 +342,8 @@ export default function Market({ s, online, mk, open, preselect, clearPreselect 
           )}
           {shown.map((it) => (
             <Item key={it.id} s={s} it={it} logged={mk.logged} fresh={fresh.has(it.id)} busy={busyId === it.id}
-              onBuy={() => buy(it)} onCancel={() => cancel(it.id)} onLogin={login} />
+              onBuy={() => buy(it)} onCancel={() => cancel(it.id)} onLogin={login}
+              onOffer={() => setOfferFor(it)} onCancelOffer={() => cancelOffer(it.my_offer)} />
           ))}
         </>
       )}
@@ -244,13 +367,19 @@ export default function Market({ s, online, mk, open, preselect, clearPreselect 
                 {outbox.map((e) => (
                   <div key={e.nonce} className="mk-row"><MachineThumb model={e.model} /><span><b>{MACHINES[e.model]?.name}</b><small>{money(e.price)} · publicando… (se confirma apenas haya conexión)</small></span></div>
                 ))}
-                {mineListed.map((x) => (
-                  <div key={x.id} className="mk-row">
-                    <MachineThumb model={x.model} />
-                    <span><b>{MACHINES[x.model]?.name}</b><small>{money(x.price)} · {left(x.ends)}</small></span>
-                    <button className="chip-btn" disabled={busyId === x.id} onClick={() => cancel(x.id)}>Sacar</button>
-                  </div>
-                ))}
+                {mineListed.map((x) => {
+                  const offers = (mk.mine?.offers_in || []).filter((o) => o.listing === x.id);
+                  return (
+                    <div key={x.id} className="mk-listing">
+                      <div className="mk-row">
+                        <MachineThumb model={x.model} />
+                        <span><b>{MACHINES[x.model]?.name}</b><small>{money(x.price)} · {left(x.ends)}{offers.length ? ` · ${offers.length} oferta${offers.length > 1 ? 's' : ''} de canje` : ''}</small></span>
+                        <button className="chip-btn" disabled={busyId === x.id} onClick={() => cancel(x.id)}>Sacar</button>
+                      </div>
+                      {offers.map((o) => <OfferCard key={o.id} o={o} s={s} mk={mk} onMsg={say} />)}
+                    </div>
+                  );
+                })}
               </>
             )}
             <SellForm s={s} mk={mk} preselect={preselect} onDone={() => { clearPreselect?.(); say('ok', '¡Publicada! Ya la ven todos los que están jugando.'); }} />
@@ -259,8 +388,8 @@ export default function Market({ s, online, mk, open, preselect, clearPreselect 
                 <summary>Historial ({mk.mine.history.length})</summary>
                 {mk.mine.history.map((h) => (
                   <div key={h.id} className="done-row">
-                    {h.kind === 'venta' ? (h.status === 'sold' ? '💸 Vendiste' : '📦 Volvió') : '🛒 Compraste'} {MACHINES[h.model]?.name}
-                    {h.status === 'sold' && <> · {money(h.price)}{h.who ? ` · ${h.kind === 'venta' ? 'a' : 'de'} ${h.who}` : ''}</>}
+                    {h.trade ? '🔁 Canjeaste' : h.kind === 'venta' ? (h.status === 'sold' ? '💸 Vendiste' : '📦 Volvió') : '🛒 Compraste'} {MACHINES[h.model]?.name}
+                    {h.status === 'sold' && <> · {h.trade ? '' : money(h.price)}{h.who ? ` · ${h.kind === 'venta' ? 'con' : 'de'} ${h.who}` : ''}</>}
                   </div>
                 ))}
               </details>

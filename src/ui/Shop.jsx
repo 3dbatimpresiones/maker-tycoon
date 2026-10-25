@@ -40,8 +40,10 @@ function TradeModal({ s, model, actions, onClose }) {
   const M = MACHINES[model];
   const cands = E.tradeCandidates(s, model).sort((a, b) => E.tradeValue(s, b) - E.tradeValue(s, a));
   const [pick, setPick] = useState([]); // arranca sin nada marcado: elegís vos qué entregar
-  const q = E.tradeQuote(s, model, pick);
-  const why = E.tradeReason(s, model, pick);
+  const [tokens, setTokens] = useState(0);
+  const maxTok = Math.min(s.tokens || 0, E.TRADE_TOKEN_MAX);
+  const q = E.tradeQuote(s, model, pick, tokens);
+  const why = E.tradeReason(s, model, pick, tokens);
   const toggle = (id) => setPick((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= E.TRADE_MAX ? p : [...p, id]));
   const free = pick.length - 1;
   // Se dibuja afuera de la tienda (si no, queda encerrado en la columna).
@@ -50,10 +52,11 @@ function TradeModal({ s, model, actions, onClose }) {
       <div className="tr-top">
         <div className="tr-art"><MachineThumb model={model} /></div>
         <div>
-          <p className="hint">Entregá hasta {E.TRADE_MAX} máquinas más chicas como parte de pago. Te las tomamos mejor que si las vendés sueltas y pagás solo la diferencia. De paso, liberás lugar en el taller.</p>
+          <p className="hint">Entregá hasta {E.TRADE_MAX} máquinas más chicas y/o fichas como parte de pago. Te las tomamos mejor que si las vendés sueltas y pagás solo la diferencia. De paso, liberás lugar en el taller.</p>
           <div className="tr-sum">
             <span>Precio de la nueva</span><b>{money(q.price)}</b>
-            <span>Te tomamos tus máquinas por</span><b className="c-green">− {money(q.credit)}</b>
+            <span>Te tomamos tus máquinas por</span><b className="c-green">− {money(Math.min(q.machinesCredit, q.credit))}</b>
+            {q.tokens > 0 && <><span>Tus {q.tokens} ficha{q.tokens > 1 ? 's' : ''} descuentan</span><b className="c-green">− {money(q.credit - Math.min(q.machinesCredit, q.credit))}</b></>}
             <span>Pagás</span><b className="tr-pay">{money(q.pay)}</b>
           </div>
         </div>
@@ -74,9 +77,17 @@ function TradeModal({ s, model, actions, onClose }) {
           );
         })}
       </div>
+      <div className="tr-extra one">
+        <div className="tr-field"><span>Fichas (tenés {s.tokens || 0}) · cada una descuenta el {Math.round(E.TRADE_TOKEN_PCT * 100)} % (hasta {E.TRADE_TOKEN_MAX})</span>
+          <div className="tr-step">
+            <button className="icon-btn sm" disabled={tokens <= 0} onClick={() => setTokens((t) => Math.max(0, t - 1))}><Icon name="minus" size={14} /></button>
+            <b>🎟️ {tokens}</b>
+            <button className="icon-btn sm" disabled={tokens >= maxTok} onClick={() => setTokens((t) => Math.min(maxTok, t + 1))}><Icon name="plus" size={14} /></button>
+          </div></div>
+      </div>
       <p className="hint">{free > 0 ? `Liberás ${free} lugar${free > 1 ? 'es' : ''} en el taller.` : free === 0 ? 'Queda la misma cantidad de lugares ocupados.' : ''} La pieza que estén imprimiendo las que entregás se pierde.</p>
-      <button className={'buy-btn' + (!why ? ' ok' : '')} disabled={!!why} onClick={() => { if (actions.tradeIn(model, pick)) onClose(); }}>
-        {!why ? `Canjear y llevármela · ${money(q.pay)}` : why === 'Elegí qué máquinas entregás' ? 'Tocá las máquinas que querés entregar' : why === 'Te falta plata' ? `Faltan ${money(q.pay - s.money)}` : why}
+      <button className={'buy-btn' + (!why ? ' ok' : '')} disabled={!!why} onClick={() => { if (actions.tradeIn(model, pick, tokens)) onClose(); }}>
+        {!why ? `Canjear y llevármela · ${money(q.pay)}` : why === 'Elegí qué máquinas entregás' ? 'Elegí máquinas o fichas para entregar' : why === 'Te falta plata' ? `Faltan ${money(q.pay - s.money)}` : why}
       </button>
     </Modal>,
     document.body,
@@ -126,7 +137,7 @@ function Machines({ s, actions, glow }) {
               {unlocked
                 ? <BuyBtn s={s} cost={E.machineCost(s, id)} disabled={full} label={full ? 'Sin lugar' : 'Comprar'} onClick={() => actions.buyMachine(id)} glow={glow === 'shop-machines' && !full && s.money >= E.machineCost(s, id)} />
                 : <div className="lock-row"><Icon name="lock" size={14} /> {E.machineLockReason(s, id).join(' · ')}</div>}
-              {unlocked && !s.tutorial?.active && E.tradeCandidates(s, id).length > 0 && (
+              {unlocked && !s.tutorial?.active && (E.tradeCandidates(s, id).length > 0 || (s.tokens || 0) > 0) && (
                 <button className="chip-btn tr-btn" onClick={() => setTrade(id)} title="Entregá máquinas más chicas como parte de pago">🔁 Plan canje{full ? ' (libera lugar)' : ''}</button>
               )}
             </div>

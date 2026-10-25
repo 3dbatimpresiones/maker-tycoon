@@ -430,3 +430,29 @@
   .tr-top { grid-template-columns: 1fr; }
   .tr-art { display: none; }
 }
+
+/* ---------- Canje entre makers ---------- */
+.tr-pay.low { color: #F7C948 !important; }
+.tr-extra { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 4px 0 10px; }
+.tr-extra.one { grid-template-columns: 1fr; }
+.tr-field { display: grid; gap: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(19,29,71,.55); border: 1px solid var(--line); font-size: 12px; color: #94a3b8; }
+.tr-field > span { font-weight: 700; }
+.tr-field input[type=range] { width: 100%; accent-color: var(--cyan); }
+.tr-field > b { color: #fff; font-size: 15px; }
+.tr-field small { font-size: 11px; }
+.tr-step { display: flex; align-items: center; gap: 12px; }
+.tr-step b { color: #fff; font-size: 15px; min-width: 52px; text-align: center; }
+.mk-offers { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 800; color: #F7C948; }
+.mk-myoffers { display: grid; gap: 6px; }
+.mk-listing { display: grid; gap: 6px; }
+.mk-offer { display: grid; gap: 8px; margin-left: 18px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(247,201,72,.45); background: rgba(247,201,72,.07); }
+.mk-offer-head { font-size: 13px; }
+.mk-offer-head small { color: #94a3b8; }
+.mk-offer-items { display: flex; flex-wrap: wrap; gap: 8px; }
+.mk-offer-m { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 4px; border-radius: 12px; background: rgba(5,10,30,.45); font-size: 12px; font-weight: 700; }
+.mk-offer-m .thumb3d { width: 34px; height: 34px; }
+.mk-offer-m > span { display: grid; gap: 2px; }
+.mk-offer-x { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 12px; background: rgba(5,10,30,.45); font-size: 12.5px; font-weight: 800; }
+.mk-offer-btns { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.mk-offer-btns .buy-btn { margin: 0; }
+@media (max-width: 560px) { .tr-extra { grid-template-columns: 1fr; } .mk-offer { margin-left: 0; } }

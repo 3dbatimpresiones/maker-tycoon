@@ -419,4 +419,53 @@ t('plan canje: dos chicas + la diferencia por una más grande', () => {
   assert.ok(E.tradeQuote(g, 'k1c', ids.slice(0, 3)).pay >= Math.ceil(E.machineCost(g, 'k1c') * 0.1) - 1);
 });
 
+t('plan canje con fichas', () => {
+  const s = E.newGame(null, 19); skipTutorial(s);
+  s.space = 1; s.rep = 1e6; s.money = 1e9; s.tokens = 12;
+  const q0 = E.tradeQuote(s, 'k1c', [], 0);
+  const q5 = E.tradeQuote(s, 'k1c', [], 5);
+  assert.equal(q5.tokenCredit, Math.round(q0.price * 0.15), '5 fichas = 15 %');
+  assert.equal(E.tradeQuote(s, 'k1c', [], 50).tokens, E.TRADE_TOKEN_MAX, 'tope 10 fichas');
+  assert.equal(E.tradeReason(s, 'k1c', [], 5), null, 'se puede canjear solo con fichas');
+  assert.ok(E.tradeReason(s, 'k1c', [], 13), 'no más fichas de las que tenés');
+  const r = E.tradeIn(s, 'k1c', [s.machines[0].id], 4);
+  assert.ok(r && s.tokens === 8 && s.machines.some((m) => m.model === 'k1c'));
+});
+
+t('canje entre makers: apartar, devolver y recibir sin perder nada', () => {
+  const s = E.newGame(null, 20); skipTutorial(s);
+  s.space = 2; s.rep = 1e6; s.money = 5e6; s.tokens = 10;
+  E.buyMachine(s, 'a1mini'); E.buyMachine(s, 'a1mini');
+  const it = { id: 50, model: 'p1s', price: 1500000, wear: 0.1 };
+  let minis = s.machines.filter((m) => m.model === 'a1mini').map((m) => m.id);
+  const refresh = () => { minis = s.machines.filter((m) => m.model === 'a1mini').map((m) => m.id); };
+  assert.ok(E.offerReason(s, it, s.machines.map((m) => m.id), 0, 0), 'no podés quedarte sin máquinas');
+  assert.ok(E.offerReason(s, { ...it, mine: true }, minis, 0, 0));
+  assert.ok(E.offerReason(s, it, [], 0, 25), 'hasta 20 fichas (y las que tengas)');
+  const money0 = s.money;
+  const e = E.offerEscrow(s, it, minis, 100000, 5, 'n1');
+  assert.ok(e && e.items.length === 2 && s.machines.length === 1 && s.money === money0 - 100000 && s.tokens === 5);
+  E.offerRejectedLocal(s, 'n1');
+  assert.ok(s.machines.length === 3 && s.money === money0 && s.tokens === 10, 'si no se pudo mandar, vuelve todo');
+  refresh();
+  const e2 = E.offerEscrow(s, it, minis, 100000, 5, 'n2');
+  E.listConfirmed(s, 'n2');
+  // No prosperó: vuelve una sola vez
+  assert.ok(E.offerBack(s, { id: 7, items: e2.items, money: 100000, tokens: 5 }).ok);
+  assert.ok(E.offerBack(s, { id: 7, items: e2.items, money: 100000, tokens: 5 }).done, 'no vuelve dos veces');
+  assert.ok(s.machines.length === 3 && s.money === money0 && s.tokens === 10);
+  // Aceptada: el comprador recibe la P1S sin volver a pagar
+  refresh();
+  assert.ok(E.offerEscrow(s, it, minis, 100000, 5, 'n3')); E.listConfirmed(s, 'n3');
+  const m0 = s.money;
+  E.receiveUsed(s, { id: 50, model: 'p1s', wear: 0.1, price: 1500000, prepaid: true });
+  assert.ok(s.money === m0 && s.machines.some((m) => m.model === 'p1s'), 'por canje no se cobra de nuevo');
+  // El vendedor recibe máquinas + plata + fichas (una sola vez)
+  const v = E.newGame(null, 21); skipTutorial(v); v.space = 1;
+  const vm = v.money, ve = v.runEarned;
+  assert.ok(E.tradeGot(v, { id: 50, items: e2.items, money: 100000, tokens: 5 }).ok);
+  assert.ok(E.tradeGot(v, { id: 50, items: e2.items, money: 100000, tokens: 5 }).done);
+  assert.ok(v.machines.length === 3 && v.money === vm + 100000 && v.tokens === 5 && v.runEarned === ve);
+});
+
 console.log(`\n${n} pruebas OK`);
