@@ -18,6 +18,7 @@ import { OnlineModal, ConflictModal, LockedOverlay, WelcomeGate, ProfileSetup, u
 import { VisitModal } from './Visit.jsx';
 import NaveIntro, { naveIntroKey } from './NaveIntro.jsx';
 import CityModal from './City.jsx';
+import StatsModal from './Stats.jsx';
 import { SpotifyDock } from './Spotify.jsx';
 import { BRAND_DISCLAIMER } from '../game/data.js';
 
@@ -115,6 +116,7 @@ export default function App() {
         onSellUsed={online.available === true && mk.available !== false ? () => { setUsedPick(m.id); goShop('used'); close(); } : null} />}
       {modal?.kind === 'event' && m && <EventModal s={s} m={m} actions={actions} onClose={close} />}
       {modal?.kind === 'logros' && <AchievementsModal s={s} onClose={close} />}
+      {modal?.kind === 'stats' && <StatsModal s={s} onClose={close} />}
       {modal?.kind === 'ciudad' && <CityModal s={s} actions={actions} tab={modal.tab} onClose={close} />}
       {modal?.kind === 'oficio' && <OficioModal s={s} actions={actions} onClose={close} />}
       {modal?.kind === 'comunidad' && <CommunityModal s={s} onClose={close} />}

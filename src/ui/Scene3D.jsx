@@ -18,6 +18,22 @@ function labelStatus(s, m) {
   return { k: 'idle', t: 'Sin trabajo' };
 }
 
+// Fundido corto con el nombre del piso al cambiar de piso.
+const FLOOR_NAME = { fdm: 'PISO 1 · FDM LAB', resin: 'PISO 2 · RESIN LAB', laser: 'PISO 3 · LASER WORKSHOP', cnc: 'PISO 4 · CNC FACTORY' };
+function useFloorFade(floor) {
+  const prev = useRef(floor);
+  const [fade, setFade] = useState(null);
+  useEffect(() => {
+    if (prev.current === floor) return undefined;
+    prev.current = floor;
+    if (!floor) return undefined;
+    setFade({ floor, n: Date.now() });
+    const t = setTimeout(() => setFade(null), 950);
+    return () => clearTimeout(t);
+  }, [floor]);
+  return fade;
+}
+
 // Mientras se visita otro taller, el propio deja de dibujarse (ahorra placa de video).
 export const scenePause = { on: false };
 
@@ -116,6 +132,7 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
   // En la Nave y la Planta se ve un piso por vez: sus máquinas y sus lugares libres (de 20).
   const floor = E.hasFloors(s) ? (s.settings.floor || 'fdm') : null;
   const shown = floor ? E.floorMachines(s, floor) : s.machines;
+  const fade = useFloorFade(floor);
   const freeSlots = [];
   for (let i = shown.length; i < (floor ? E.floorCap(s) : SPACES[s.space].slots); i++) freeSlots.push(i);
 
@@ -152,6 +169,7 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
       {ready && onFeedback && <button className="scene-fb" title="Mandanos una idea o contanos si algo anda mal" onClick={onFeedback}><Icon name="message" size={16} /> Sugerencias</button>}
       {ready && <button className="icon-btn sm scene-center" title="Ver todo el taller" onClick={() => { wsRef.current?.fit(); setFocused(false); }}><Icon name="target" size={18} /></button>}
       {ready && focused && <button className="chip-btn scene-back" onClick={() => { wsRef.current?.fit(); setFocused(false); }}>← Ver todo el taller</button>}
+      {ready && fade && <div key={fade.n} className={'floor-fade f-' + fade.floor} aria-hidden="true"><b>{FLOOR_NAME[fade.floor]}</b></div>}
       {ready && <span className="scene-hint">Clic izquierdo: girar · Clic derecho: mover · Rueda: acercar</span>}
     </div>
   );

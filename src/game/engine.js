@@ -518,6 +518,7 @@ function triggerEvent(s, m, id, out) {
   if (id === 'spaghetti' && has(s, 'camara')) m.event.auto = s.time + 3;
   if (perk(s, 'manos')) m.event.auto = Math.min(m.event.auto ?? Infinity, s.time + 15);
   s.stats.events[id] = (s.stats.events[id] || 0) + 1;
+  m.fails = (m.fails || 0) + 1;
   out.push({ type: 'mevent', mid: m.id, id });
 }
 

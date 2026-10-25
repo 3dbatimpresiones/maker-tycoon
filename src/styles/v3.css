@@ -174,3 +174,36 @@
   background: rgba(167,139,250,.12); color: #e9d5ff; font: inherit; font-size: 13px; cursor: pointer; }
 .expo-strip.open { border-color: rgba(251,191,36,.7); background: rgba(251,191,36,.12); color: #fde68a; animation: mkpulse 1.8s infinite; }
 @media (max-width: 640px) { .city-map { grid-template-columns: 1fr; } .expo-stands { grid-template-columns: 1fr; } }
+
+/* Estadísticas */
+.stats-modal.modal { width: min(880px, 100%); }
+.st-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.st-cards > div { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.st-cards span { font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--cyan); text-transform: uppercase; }
+.st-cards b { font-size: 20px; color: #fff; } .st-cards small { font-size: 11.5px; color: var(--muted); }
+.st-best { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(251,191,36,.5); background: rgba(251,191,36,.07); margin-bottom: 12px; }
+.st-best .st-thumb { width: 56px; height: 56px; }
+.st-best > div { display: flex; flex-direction: column; gap: 2px; } .st-best b { color: #fff; font-size: 16px; } .st-best small { color: #cbd5e1; font-size: 12px; }
+.st-best .section-label { margin: 0; }
+.st-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+.st-bar { display: grid; grid-template-columns: 150px 1fr 48px; gap: 8px; align-items: center; font-size: 12px; color: #cbd5e1; margin-bottom: 5px; }
+.st-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-bar i { height: 8px; border-radius: 6px; background: rgba(255,255,255,.08); overflow: hidden; }
+.st-bar em { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), #a78bfa); }
+.st-bar b { text-align: right; color: #fff; }
+.st-row { display: flex; justify-content: space-between; font-size: 12.5px; color: #cbd5e1; padding: 3px 0; border-bottom: 1px dashed rgba(255,255,255,.06); }
+.st-row b { color: #fff; }
+.stats-btn { padding: 0 14px !important; font-size: 18px; }
+@media (max-width: 640px) { .st-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .st-grid { grid-template-columns: 1fr; } .st-bar { grid-template-columns: 110px 1fr 40px; } }
+
+/* Transición al cambiar de piso */
+.floor-fade { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; pointer-events: none; background: rgba(8,10,28,.85);
+  animation: floorfade .9s ease-out forwards; }
+.floor-fade b { font-size: 26px; letter-spacing: .12em; color: #fff; text-shadow: 0 0 18px currentColor; animation: floortxt .9s ease-out forwards; }
+.floor-fade.f-fdm b { color: #5DDADB; } .floor-fade.f-resin b { color: #c084fc; } .floor-fade.f-laser b { color: #f87171; } .floor-fade.f-cnc b { color: #fb923c; }
+@keyframes floorfade { 0% { opacity: 1; } 45% { opacity: .9; } 100% { opacity: 0; } }
+@keyframes floortxt { 0% { transform: scale(.92); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.04); opacity: 0; } }
+
+/* Respuesta al tocar (mejor en el celular) */
+button:not(:disabled):active, .chip-btn:not(:disabled):active, .btn-center:not(:disabled):active { transform: scale(.97); }
+@media (hover: none) { .btn-center, .chip-btn, .oq, .ft { min-height: 36px; } }

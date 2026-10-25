@@ -187,6 +187,7 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
           {s.time < s.boost.feria && <div className="trend"><span>Feria ×1,5</span><b>{clock(s.boost.feria - s.time)}</b></div>}
         </div>
         <div className="rb-actions">
+          <button className="btn-apply stats-btn" onClick={() => open('stats')} title="Estadísticas del taller">📊</button>
           <button className={'btn-apply mate-btn' + (mateOn ? ' on' : '') + (glow === 'mate' && mateReady ? ' tut-glow' : '')}
             disabled={!mateReady} onClick={actions.mate} title="Atajo: M">
             🧉 {E.rule(s, 'sinmate') ? 'Sin mate (desafío)' : mateOn ? `Mate activo · ${Math.ceil(s.mate.until - s.time)} s` : mateReady ? `Cebar mate (+${Math.round((E.mateBoost(s) - 1) * 100)} %)` : `Mate en ${clock(s.mate.ready - s.time)}`}
