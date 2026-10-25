@@ -106,6 +106,7 @@ const chord = (notes, opts = {}) => notes.forEach((f, i) => tone(f, opts.dur || 
 
 export const sfx = {
   configure(on, vol, v) { enabled = !!on; if (vol != null) master = vol; if (v) vols = { ...vols, ...v }; applyVolumes(); if (enabled) music.maybeStart(); else music.stop(); },
+  // Arranca el audio con el primer toque (los navegadores lo exigen): música y ambiente del taller. NO suena nada.
   unlock() { if (ensure()) { music.maybeStart(); ambient.start(); } },
   setDucked(on) { if (ducked === !!on) return; ducked = !!on; applyVolumes(); },
   isDucked: () => ducked,
@@ -116,6 +117,14 @@ export const sfx = {
     const b = vary(1046, 120);
     tone(b, 0.09, { type: 'triangle', gain: 0.05, wet: 0.3 });
     tone(b * 1.5, 0.16, { type: 'sine', at: 0.05, gain: 0.04, wet: 0.4 });
+  },
+  // Venta hecha por el sobrino, BATI o la expulsión automática: más suave y espaciada,
+  // para que el taller se siga escuchando sin cansar.
+  saleAuto() {
+    if (throttle('saleAuto', 1500)) return;
+    const b = vary(1046, 120);
+    tone(b, 0.08, { type: 'triangle', gain: 0.03, wet: 0.35 });
+    tone(b * 1.5, 0.14, { type: 'sine', at: 0.05, gain: 0.025, wet: 0.45 });
   },
   done() { // la melodía de "impresión completa"
     if (throttle('done', 1200)) return;
@@ -137,7 +146,7 @@ export const sfx = {
   order() { chord([523.25, 659.25, 783.99, 1046.5, 1318.5], { type: 'triangle', gain: 0.06, step: 0.07, dur: 0.35, wet: 0.5 }); },
   fail() { tone(392, 0.25, { type: 'sawtooth', gain: 0.03 }); tone(311, 0.4, { type: 'sawtooth', at: 0.2, gain: 0.03 }); },
   achievement() { chord([783.99, 987.77, 1174.66, 1567.98], { type: 'triangle', gain: 0.06, step: 0.08, dur: 0.5, wet: 0.6 }); },
-  unlock() { chord([392, 523.25, 659.25, 783.99, 1046.5], { type: 'sine', gain: 0.05, step: 0.06, dur: 0.9, wet: 0.7 }); },
+  unlockJingle() { chord([392, 523.25, 659.25, 783.99, 1046.5], { type: 'sine', gain: 0.05, step: 0.06, dur: 0.9, wet: 0.7 }); },
   power() { tone(110, 0.8, { type: 'sawtooth', gain: 0.06, to: 35, wet: 0.3 }); noise(0.5, { gain: 0.08, f1: 2000, f2: 200, type: 'lowpass', q: 0.7 }); },
   setIntensity(n) { music.intensity = n; ambient.level(n); },
   updateMachines(list) { machines.update(list); },

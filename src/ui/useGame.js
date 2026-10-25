@@ -100,7 +100,7 @@ export function useGame() {
       switch (e.type) {
         case 'sale':
           floatAt(e.mid, '+' + money(e.amount));
-          if (e.by === 'hand') sfx.sale();
+          if (e.by === 'hand') sfx.sale(); else sfx.saleAuto();
           break;
         case 'orderPiece': floatAt(e.mid, '📋 +1', 'order'); if (!E.has(st, 'expulsion')) sfx.click(); break;
         case 'done': if (!E.has(st, 'expulsion') && !E.has(st, 'sobrino')) sfx.done(); break;
