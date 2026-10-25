@@ -324,8 +324,13 @@ t('desgaste: sube imprimiendo, hace fallar más y se repara', () => {
   const base = E.machineFail(s, m);
   m.state = 'printing'; m.cur = 'llavero'; m.need = 1e12; m.progress = 0;
   const ctx = { out: [], idle: true };
-  for (let i = 0; i < 100; i++) E.tick(s, E.WEAR_HOURS * 36 * 0.6 / 1, ctx); // 60 % del desgaste
-  assert.ok(m.wear >= 0.59 && m.wear <= 0.61, 'desgaste ' + m.wear);
+  for (let i = 0; i < 24 * 6; i++) E.tick(s, 600, ctx); // 24 h imprimiendo, de a 10 min
+  assert.ok(Math.abs(m.wear - 0.05) < 1e-6, '24 h → 5 %: ' + m.wear);
+  assert.ok(!ctx.out.some((e) => e.type === 'worn'), 'todavía no avisa');
+  assert.ok(Math.abs(E.wearAfter(0, 168) - 1) < 1e-6, '7 días → 100 %');
+  assert.ok(E.wearAfter(0, 48) - E.wearAfter(0, 24) > E.wearAfter(0, 24), 'el segundo día gasta más que el primero (exponencial)');
+  for (let i = 0; i < 6 * 24 * 5; i++) E.tick(s, 600, ctx); // 5 días más: pasa el 60 %
+  assert.ok(m.wear > 0.6 && m.wear < 0.85, 'a los 6 días: ' + m.wear);
   assert.ok(ctx.out.some((e) => e.type === 'worn'), 'avisa que está gastada');
   assert.ok(Math.abs(E.machineFail(s, m) / base - (1 + E.WEAR_FAIL * m.wear)) < 1e-9, 'falla más');
   const c = E.repairCost(s, m);

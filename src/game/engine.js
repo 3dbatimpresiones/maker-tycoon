@@ -532,7 +532,7 @@ function stepMachine(s, m, dt, ctx, blackout) {
   if (m.state !== 'printing') return;
   m.progress += dt * machineSpeed(s, m);
   const w0 = m.wear || 0;
-  m.wear = Math.min(1, w0 + dt / (WEAR_HOURS * 3600));
+  m.wear = wearAfter(w0, dt / 3600);
   if (w0 < WEAR_WARN && m.wear >= WEAR_WARN) out.push({ type: 'worn', mid: m.id });
   if (m.ev && m.progress >= m.ev.at * m.need) {
     const ev = m.ev; m.ev = null;
@@ -562,9 +562,15 @@ export function sellMachine(s, mid) {
   return true;
 }
 // ---------- Desgaste y reparación (idea de la comunidad: SHUNE3D) ----------
-// Cada máquina se gasta mientras imprime: llega al 100 % después de WEAR_HOURS horas
-// imprimiendo. Una máquina gastada falla más (al 100 %, 2,5 veces más).
-export const WEAR_HOURS = 24;
+// Cada máquina se gasta mientras imprime, cada vez más rápido (curva exponencial):
+// 5 % a las 24 h de impresión, 12 % a las 48 h, 21 % a las 72 h, 49 % a los 5 días
+// y 100 % a los 7 días. Una máquina gastada falla más (al 100 %, 2,5 veces más).
+// Fórmula: desgaste(h) = A·(e^(K·h) − 1), con desgaste(24) = 5 % y desgaste(168) = 100 %.
+const WEAR_X = 1.3420418608185745; // cuánto se multiplica el ritmo cada 24 h
+export const WEAR_K = Math.log(WEAR_X) / 24;
+export const WEAR_A = 0.05 / (WEAR_X - 1);
+// Desgaste después de imprimir h horas más (exacto, sin importar el tamaño del paso).
+export function wearAfter(w, h) { return Math.min(1, (Math.max(0, w) + WEAR_A) * Math.exp(WEAR_K * h) - WEAR_A); }
 export const WEAR_FAIL = 1.5;
 export const WEAR_WARN = 0.6;
 export const wearOf = (m) => Math.max(0, Math.min(1, Number(m?.wear) || 0));
