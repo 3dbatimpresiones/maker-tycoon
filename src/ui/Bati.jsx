@@ -65,10 +65,23 @@ function Ear({ flip }) {
   );
 }
 
-export function BatiArt({ mood = 'normal', size = 80, className = '' }) {
+// Accesorio que lleva puesto BATI en todo el juego (lo elige el jugador en la ventana de BATI).
+let WORN = null;
+export function setBatiAcc(k) { WORN = k || null; }
+const ACC_ICON = { gorra: '🧢', lentes: '🥽', mate: '🧉', casco: '⛑️', antiparras: '🕶️', capa: null, mascara: '😷', corona: '👑' };
+function AccOver({ k }) {
+  if (!k) return null;
+  if (k === 'capa') return null; // la capa va detrás del cuerpo
+  const pos = { gorra: [100, 52, 74], casco: [100, 52, 74], corona: [100, 44, 66], lentes: [100, 112, 64], antiparras: [100, 112, 64], mascara: [100, 138, 54], mate: [160, 214, 54] }[k];
+  if (!pos) return null;
+  return <text x={pos[0]} y={pos[1]} fontSize={pos[2]} textAnchor="middle" dominantBaseline="middle">{ACC_ICON[k]}</text>;
+}
+export function BatiArt({ mood = 'normal', size = 80, className = '', acc }) {
+  const k = acc === undefined ? WORN : acc;
   return (
     <svg className={className} width={size} height={size * 1.3} viewBox="0 0 200 260" role="img" aria-label="BATI, la mascota de 3DBAT">
       <Wing /><Wing flip />
+      {k === 'capa' && <path d="M60 146 L140 146 L168 246 L100 232 L32 246 Z" fill="#d6336c" stroke="#1b1b2f" strokeWidth="3" strokeLinejoin="round" />}
       {/* piernas y zapatillas */}
       <rect x="74" y="216" width="18" height="22" fill={BLUE_D} stroke={INK} strokeWidth="3" />
       <rect x="108" y="216" width="18" height="22" fill={BLUE_D} stroke={INK} strokeWidth="3" />
@@ -97,6 +110,7 @@ export function BatiArt({ mood = 'normal', size = 80, className = '' }) {
       <path d="M56 56 L144 56 L162 74 L162 120 L144 138 L56 138 L38 120 L38 74 Z" fill="#5b6cf0" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
       <path d="M60 62 L140 62 L155 77 L155 116 L140 131 L60 131 L45 116 L45 77 Z" fill={SCREEN} />
       <Face mood={mood} />
+      <AccOver k={k} />
     </svg>
   );
 }

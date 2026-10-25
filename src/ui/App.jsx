@@ -19,6 +19,9 @@ import { VisitModal } from './Visit.jsx';
 import NaveIntro, { naveIntroKey } from './NaveIntro.jsx';
 import CityModal from './City.jsx';
 import StatsModal from './Stats.jsx';
+import BatiPanel from './BatiPanel.jsx';
+import { setBatiAcc } from './Bati.jsx';
+import { batiOf } from '../game/bati.js';
 import { NewsModal, UpdateBanner, newsDue, markNewsSeen } from './News.jsx';
 import { SpotifyDock } from './Spotify.jsx';
 import { BRAND_DISCLAIMER } from '../game/data.js';
@@ -39,6 +42,7 @@ export default function App() {
   const [modal, setModal] = useState(null); // { kind, mid, tab }
   const [news, setNews] = useState(() => newsDue()); // novedades: 1.ª vez del día o versión nueva
   useEffect(() => { if (news && s.tutorial.active) { markNewsSeen(); setNews(false); } }, [news, s.tutorial.active]);
+  setBatiAcc(batiOf(s).wear); // accesorio de BATI en todo el juego
   const mission = currentMission(s);
   const glow = mission.target;
   const glowTab = TAB_OF[glow];
@@ -105,10 +109,10 @@ export default function App() {
 
       <BatiGuide tutorial={s.tutorial.active} mission={mission} queue={bati}
         onDismiss={actions.dismissBati} onSkip={actions.skipTutorial}
-        onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('comunidad'); }} onCta={(k) => { if (k === 'online') open('online', null, 'perfil'); if (k === 'reparar') goShop('upgrades'); if (k === 'usados') goShop('used'); if (k === 'ciudad') open('ciudad'); if (k === 'expo') open('ciudad', null, 'expo'); }} />
+        onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('bati'); }} onCta={(k) => { if (k === 'online') open('online', null, 'perfil'); if (k === 'reparar') goShop('upgrades'); if (k === 'usados') goShop('used'); if (k === 'ciudad') open('ciudad'); if (k === 'expo') open('ciudad', null, 'expo'); }} />
 
       <SpotifyDock s={s} actions={actions} />
-      {chat.open && <ChatPanel chat={chat} online={online} open={open} />}
+      {chat.open && <ChatPanel chat={chat} online={online} open={open} s={s} />}
       <ChatButton chat={chat} online={online} />
 
       <div className="toasts" aria-live="polite">
@@ -120,6 +124,7 @@ export default function App() {
       {modal?.kind === 'event' && m && <EventModal s={s} m={m} actions={actions} onClose={close} />}
       {modal?.kind === 'logros' && <AchievementsModal s={s} onClose={close} />}
       {modal?.kind === 'stats' && <StatsModal s={s} onClose={close} />}
+      {modal?.kind === 'bati' && <BatiPanel s={s} actions={actions} tab={modal.tab} onClose={close} />}
       {modal?.kind === 'news' && <NewsModal onClose={close} />}
       {modal?.kind === 'ciudad' && <CityModal s={s} actions={actions} tab={modal.tab} onClose={close} />}
       {modal?.kind === 'oficio' && <OficioModal s={s} actions={actions} onClose={close} />}

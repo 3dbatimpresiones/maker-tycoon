@@ -228,3 +228,36 @@ button:not(:disabled):active, .chip-btn:not(:disabled):active, .btn-center:not(:
 .update-banner b { color: #fff; }
 .update-banner .btn-apply { white-space: nowrap; }
 @media (max-width: 640px) { .news-groups { grid-template-columns: 1fr; } .update-banner { flex-wrap: wrap; top: 8px; } }
+
+/* Ventana de BATI: historia, accesorios y ayuda */
+.bati-panel.modal { width: min(760px, 100%); }
+.story-steps { display: flex; gap: 6px; margin-bottom: 10px; }
+.story-steps span { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; border: 1px solid var(--line); color: var(--muted); }
+.story-steps span.ok { background: rgba(74,222,128,.15); border-color: rgba(74,222,128,.6); color: #4ade80; }
+.story-steps span.cur { border-color: var(--cyan); color: #fff; box-shadow: 0 0 8px rgba(93,218,219,.5); }
+.story-card { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.03); }
+.story-card h3 { margin: 2px 0 8px; color: #fff; font-size: 20px; }
+.story-lines p { margin: 0 0 6px; color: #cbd5e1; font-size: 14px; line-height: 1.45; }
+.story-lines b { color: var(--pink); }
+.story-goal { margin: 10px 0 6px; padding: 8px 10px; border-radius: 10px; background: rgba(93,218,219,.08); color: #e2e8f0; font-size: 13.5px; }
+.story-prize { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.story-end-line { font-style: italic; color: #e2e8f0; }
+.story-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center; }
+.story-choice b { grid-column: 1 / -1; color: #fff; }
+.story-choice .btn-center { margin: 0; }
+.story-end { display: flex; gap: 12px; align-items: center; color: #cbd5e1; }
+.wardrobe-hero { display: grid; place-items: center; margin-bottom: 8px; }
+.wardrobe { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.wardrobe .acc { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.03); color: #cbd5e1; font: inherit; cursor: pointer; }
+.wardrobe .acc span { font-size: 26px; } .wardrobe .acc b { font-size: 12px; color: #fff; } .wardrobe .acc small { font-size: 10.5px; color: var(--muted); text-align: center; }
+.wardrobe .acc.on { border-color: var(--pink); background: rgba(247,142,182,.12); }
+.wardrobe .acc.locked { opacity: .55; cursor: default; }
+.help-levels { display: flex; flex-direction: column; gap: 8px; }
+.help-lv { text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.03); color: #cbd5e1; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.help-lv b { color: #fff; } .help-lv small { font-size: 12px; }
+.help-lv.on { border-color: var(--cyan); background: rgba(93,218,219,.1); }
+.story-strip { display: block; width: 100%; text-align: left; margin: 0 0 10px; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(247,142,182,.45);
+  background: rgba(247,142,182,.08); color: #fbcfe8; font: inherit; font-size: 13px; cursor: pointer; }
+.story-strip b { color: #fff; }
+.story-strip.ready { border-color: rgba(74,222,128,.7); background: rgba(74,222,128,.1); color: #bbf7d0; animation: mkpulse 1.8s infinite; }
+@media (max-width: 640px) { .wardrobe { grid-template-columns: repeat(2, minmax(0, 1fr)); } .story-choice { grid-template-columns: 1fr; } }

@@ -2,7 +2,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Icon from './Icon.jsx';
 import { Avatar } from './Online.jsx';
-import { LINK_RE } from '../online/useChat.js';
+import { LINK_RE, REACTIONS } from '../online/useChat.js';
+import { rpc } from '../online/api.js';
+import { batiAnswer } from '../game/bati.js';
+import { BatiArt } from './Bati.jsx';
 
 const hhmm = (iso) => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 const dayOf = (iso) => new Date(iso).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -18,8 +21,45 @@ function Body({ text, staff }) {
   });
 }
 
+// Reacciones rápidas maker
+function Reacts({ m, chat }) {
+  const [pick, setPick] = useState(false);
+  const list = Object.entries(m.reacts || {});
+  if (m.deleted || m.local) return null;
+  return (
+    <div className="ch-reacts">
+      {list.map(([e, n]) => (
+        <button key={e} className={'ch-react' + ((m.my_reacts || []).includes(e) ? ' mine' : '')} onClick={() => chat.react(m.id, e).catch((x) => chat.onError?.(x.message))}>{e} {n}</button>
+      ))}
+      <span className="ch-react-add">
+        <button className="ch-react plus" onClick={() => setPick((x) => !x)} title="Reaccionar">＋</button>
+        {pick && <span className="ch-react-pick" onMouseLeave={() => setPick(false)}>{REACTIONS.map((e) => <button key={e} onClick={() => { setPick(false); chat.react(m.id, e).catch((x) => chat.onError?.(x.message)); }}>{e}</button>)}</span>}
+      </span>
+    </div>
+  );
+}
+
 function Message({ m, prev, chat, onNick, staff }) {
   const [menu, setMenu] = useState(false);
+  // Aviso automático ("Facu completó un contrato de empresa")
+  if (m.kind === 'event') {
+    return (
+      <div className="ch-event">
+        <span>{m.body}</span><time>{hhmm(m.at)}</time>
+        <Reacts m={m} chat={chat} />
+      </div>
+    );
+  }
+  // Respuesta de BATI o de un comando: solo la ves vos
+  if (m.local) {
+    return (
+      <div className="ch-msg ch-bati">
+        <span className="ch-av"><BatiArt size={24} /></span>
+        <div className="ch-bubble"><div className="ch-head"><b className="ch-nick">BATI</b><span className="ch-staff">SOLO LO VES VOS</span><time>{hhmm(m.at)}</time></div>
+          <p className="ch-text">{m.body}</p></div>
+      </div>
+    );
+  }
   const grouped = prev && !prev.deleted && prev.nick === m.nick && Date.parse(m.at) - Date.parse(prev.at) < 180000;
   const newDay = !prev || dayOf(prev.at) !== dayOf(m.at);
   return (
@@ -38,6 +78,7 @@ function Message({ m, prev, chat, onNick, staff }) {
             </div>
           )}
           {m.deleted ? <p className="ch-text del">Mensaje borrado</p> : <p className="ch-text"><Body text={m.body} staff={m.staff} /></p>}
+          <Reacts m={m} chat={chat} />
           {!m.deleted && (m.mine || staff) && (
             <button className="ch-del" onClick={() => chat.remove(m.id).catch((e) => chat.onError?.(e.message))} title="Borrar mensaje"><Icon name="trash" size={12} /></button>
           )}
@@ -46,6 +87,7 @@ function Message({ m, prev, chat, onNick, staff }) {
               <button onClick={() => { onNick(m.nick); setMenu(false); }}>@ Mencionar</button>
               <button onClick={() => { chat.onVisit?.(m.nick); setMenu(false); }}>🏭 Ver su taller</button>
               <button onClick={() => { chat.muteLocal(m.nick, true); setMenu(false); }}>🔇 No ver sus mensajes</button>
+              <button onClick={() => { setMenu(false); if (window.confirm('¿Denunciar este mensaje? Lo revisa el equipo de BATBOX.')) chat.report(m.id, 'denuncia').then(() => chat.onError?.('✔ Gracias: el equipo lo va a revisar.')).catch((x) => chat.onError?.(x.message)); }}>🚩 Denunciar</button>
             </div>
           )}
         </div>
@@ -151,7 +193,7 @@ function GroupInfo({ chat, r, onDone }) {
   );
 }
 
-export function ChatPanel({ chat, online, open }) {
+export function ChatPanel({ chat, online, open, s }) {
   const [text, setText] = useState('');
   const [caret, setCaret] = useState(0);
   const [err, setErr] = useState('');
@@ -164,7 +206,8 @@ export function ChatPanel({ chat, online, open }) {
   const nextCaret = useRef(null); // dónde dejar el cursor después de insertar un @apodo
   const cur = chat.rooms.find((x) => x.room === chat.room) || { room: 'global', kind: 'global', name: 'Global' };
   const muted = chat.prefs.muted || [];
-  const shown = chat.messages.filter((m) => m.mine || !muted.includes((m.nick || '').toLowerCase()));
+  const shown = [...chat.messages.filter((m) => (m.mine || !muted.includes((m.nick || '').toLowerCase())) && (m.kind !== 'event' || chat.prefs.showEvents !== false)),
+    ...(chat.local || []).filter((m) => m.room === chat.room)].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
   const box = useMentionBox(chat, text, caret, chat.room);
   const hasLink = !chat.info.staff && LINK_RE.test(text);
   chat.onError = setErr;
@@ -189,9 +232,48 @@ export function ChatPanel({ chat, online, open }) {
     nextCaret.current = Math.min(at.length, 500);
     setText(next.slice(0, 500));
   };
+  // Comandos rápidos (/reto, /ranking, /granja, /bati, /visitar) y preguntas a @BATI: se contestan acá.
+  const command = async (raw) => {
+    const t = raw.trim();
+    const low = t.toLowerCase();
+    const say = (txt) => chat.addLocal(txt);
+    if (/^@bati\b/.test(low)) { say(batiAnswer(s, t.replace(/^@bati[\s,:]*/i, ''))); return true; }
+    if (!t.startsWith('/')) return false;
+    const [cmd, ...rest] = t.slice(1).split(/\s+/);
+    switch (cmd.toLowerCase()) {
+      case 'ayuda': case 'help':
+        say('Comandos: /reto (el reto activo) · /ranking (top 3) · /granja (invitás a tu granja) · /bati [pregunta] · /visitar apodo. También podés escribir @BATI ¿qué hago ahora?'); return true;
+      case 'bati': say(batiAnswer(s, rest.join(' '))); return true;
+      case 'ranking': {
+        const d = await rpc('bb_mt_ranking', { p_kind: 'global', p_limit: 3 }).catch(() => null);
+        const rows = d?.rows || [];
+        say(rows.length ? `🏆 Top 3 de la temporada: ${rows.map((r, i) => `${['🥇', '🥈', '🥉'][i]} ${r.name} (${Math.round(r.points).toLocaleString('es-AR')})`).join(' · ')}` : 'Todavía no hay ranking.');
+        return true;
+      }
+      case 'reto': {
+        const l = await rpc('bb_mt_challenges_active').catch(() => null);
+        const c = (l || []).find((x) => x.featured) || (l || [])[0];
+        say(c ? `🎯 ${c.title}: ${c.description || ''}${c.community_done != null && c.target ? ` · comunidad ${Math.round((c.community_done / c.target) * 100)} %` : ''}` : 'No hay retos activos ahora.');
+        return true;
+      }
+      case 'visitar': {
+        const nick = rest.join(' ').replace(/^@/, '').trim();
+        if (!nick) { say('Escribí el apodo: /visitar Facu'); return true; }
+        open('visita', null, nick); return true;
+      }
+      case 'granja': {
+        const f = online.me?.farm;
+        if (!f) { say('Todavía no tenés granja. Armá una o sumate en Ranking → Granja.'); return true; }
+        await chat.send(`🌾 ¡Sumate a mi granja «${f.name}»! Buscala en Ranking → Granja.`);
+        return true;
+      }
+      default: say(`No conozco el comando /${cmd}. Probá /ayuda.`); return true;
+    }
+  };
   const send = async () => {
     if (!text.trim() || busy || hasLink) return;
     setBusy(true); setErr('');
+    try { if (await command(text)) { setText(''); setCaret(0); setAtBottom(true); setBusy(false); return; } } catch (e) { setErr(e.message); setBusy(false); return; }
     try { await chat.send(text); setText(''); setCaret(0); setAtBottom(true); } catch (e) { setErr(e.message); } finally { setBusy(false); inputRef.current?.focus(); }
   };
   const onKey = (e) => {
@@ -223,7 +305,7 @@ export function ChatPanel({ chat, online, open }) {
     content = (
       <>
         <div className="ch-rooms">
-          {(chat.rooms.length ? chat.rooms : [cur]).map((r) => (
+          {(chat.rooms.length ? chat.rooms : [cur]).filter((r) => !(chat.prefs.farmOnly && r.kind === 'global' && chat.rooms.some((x) => x.kind === 'farm'))).map((r) => (
             <button key={r.room} className={'ch-room' + (r.room === chat.room ? ' active' : '')} onClick={() => chat.setRoom(r.room)}>
               {ROOM_ICON[r.kind]} {r.kind === 'farm' ? 'Granja' : r.name}
               {r.room !== chat.room && r.unread > 0 && <em className={r.mentions ? 'men' : ''}>{r.mentions ? '@' : ''}{r.unread > 98 ? '99+' : r.unread}</em>}
@@ -244,13 +326,19 @@ export function ChatPanel({ chat, online, open }) {
             <p className="hint">Elegí de qué te aviso mientras jugás (aunque tengas el chat cerrado).</p>
             <div className="ch-toggles">
               {[['msgGlobal', '🌎 Cuando alguien escribe en Global'], ['msgFarm', '🏭 Cuando alguien escribe en mi granja'], ['msgGroup', '👥 Cuando alguien escribe en mis grupos'],
-                ['mentions', `@ Cuando me mencionan (@${online.me.player.nick})`], ['sound', '🔊 Con sonido']].map(([k, label]) => (
+                ['mentions', `@ Cuando me mencionan (@${online.me.player.nick})`], ['sound', '🔊 Con sonido'],
+                ['showEvents', '🏆 Ver los avisos automáticos (logros de otros)'], ['shareEvents', '📣 Compartir mis logros en Global']].map(([k, label]) => (
                 <label key={k} className="ch-toggle">
                   <input type="checkbox" checked={chat.prefs[k] !== false} onChange={(e) => chat.setPrefs({ [k]: e.target.checked })} />
                   <span>{label}</span>
                 </label>
               ))}
             </div>
+            {chat.rooms.some((r) => r.kind === 'farm') && (
+              <label className="ch-toggle"><input type="checkbox" checked={!!chat.prefs.farmOnly}
+                onChange={(e) => { chat.setPrefs({ farmOnly: e.target.checked, msgGlobal: !e.target.checked }); if (e.target.checked) { const f = chat.rooms.find((r) => r.kind === 'farm'); if (f) chat.setRoom(f.room); } }} />
+                <span>🏭 Modo solo granja (oculta Global)</span></label>
+            )}
             <p className="hint">También te puedo avisar con una notificación de la compu o el celular cuando no estás mirando el juego.</p>
             {typeof Notification === 'undefined' ? <p className="hint">Este navegador no permite avisos.</p>
               : chat.prefs.notify && Notification.permission === 'granted'
@@ -283,7 +371,7 @@ export function ChatPanel({ chat, online, open }) {
             {hasLink && <p className="ch-warn">🔒 Por seguridad no se pueden mandar links: solo el equipo de BATBOX puede.</p>}
             {err && <p className="ol-err">{err}</p>}
             <div className="ch-row">
-              <textarea ref={inputRef} rows={1} value={text} maxLength={500} placeholder={`Escribí en ${cur.kind === 'farm' ? 'tu granja' : cur.name}… (@ para mencionar)`}
+              <textarea ref={inputRef} rows={1} value={text} maxLength={500} placeholder={`Escribí en ${cur.kind === 'farm' ? 'tu granja' : cur.name}… (@ mencionar · /ayuda · @BATI)`}
                 onChange={(e) => { setText(e.target.value); setCaret(e.target.selectionStart); setErr(''); }}
                 onKeyUp={(e) => setCaret(e.currentTarget.selectionStart)} onClick={(e) => setCaret(e.currentTarget.selectionStart)} onKeyDown={onKey} />
               <button className="ch-send" disabled={busy || !text.trim() || hasLink} onClick={send} title="Mandar (Enter)"><Icon name="arrowLeft" size={18} /></button>

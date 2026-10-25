@@ -2,8 +2,9 @@
 // del motor a cosas visibles (números flotantes, toasts, mensajes de BATI, sonidos).
 import { useEffect, useReducer, useRef, useState, useCallback } from 'react';
 import * as E from '../game/engine.js';
+import * as B from '../game/bati.js';
 import { step, startMissionHooks, currentMission, skipTutorial, claimChallenge } from '../game/progress.js';
-import { PRODUCTS, MACHINES, UPGRADES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, TOKEN_SHOP, MASTERY_CHALLENGES, fullName, MODS } from '../game/data.js';
+import { PRODUCTS, MACHINES, UPGRADES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, TOKEN_SHOP, MASTERY_CHALLENGES, fullName, MODS, SPACES } from '../game/data.js';
 import { SAVE_KEY, BACKUP_KEY } from '../config.js';
 import { money, num, setCurrency, fmtText } from '../game/format.js';
 import { sfx } from './sfx.js';
@@ -79,6 +80,7 @@ export function useGame() {
     setToasts((t) => [...t.slice(-2), { id, text, kind }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), ms);
   }, []);
+  const social = (kind, data) => { try { window.dispatchEvent(new CustomEvent('mt-social', { detail: { kind, data } })); } catch { /* nada */ } };
   const say = useCallback((text, opts = {}) => {
     setBati((q) => (q.some((x) => x.text === text) ? q : [...q.slice(-4), { id: uid++, text, mood: opts.mood || 'normal', ctas: opts.ctas || null }]));
   }, []);
@@ -115,6 +117,7 @@ export function useGame() {
           sfx.order();
           toast(`✔ Pedido entregado: ${e.reward ? '+' + money(e.reward) + ' · ' : ''}+${e.rep} ⭐`);
           if (e.tokens) toast(`🎟️ +${e.tokens} fichas por el contrato`, 'info');
+          if (e.contract && e.tpl === 'contrato') social('contract', {});
           if (e.tpl === 'exposicion') say('Te pagaron con exposición… y la verdad, la reputación sirve. Pero las bobinas no se pagan con likes 😅', { mood: 'happy' });
           if (e.review) {
             const r = e.review;
@@ -182,6 +185,7 @@ export function useGame() {
         case 'projectLost': sfx.fail(); toast(`🏗️ Se cayó el proyecto «${e.name}»: no aceptaste la etapa siguiente a tiempo.`, 'err', 6000); break;
         case 'projectStage': sfx.order(); toast(`🏗️ ${e.name}: ¡ya está la etapa ${e.stage}/${e.n} en el tablero!`, 'info', 4500); break;
         case 'projectDone':
+          social('project', { name: e.name });
           sfx.achievement(); toast(`${e.icon} ¡Proyecto terminado: ${e.name}! Bonus +${money(e.bonus)} · +5 🎟️`, 'info', 6000);
           say(`¡Terminaste el proyecto «${e.name}» entero! Te llevás un bonus de ${money(e.bonus)} y 5 fichas. Eso es tener una empresa de verdad.`, { mood: 'happy' });
           break;
@@ -191,6 +195,7 @@ export function useGame() {
           break;
         case 'stolen': toast(`${e.icon} ${e.rival} se quedó con «${e.title}» porque lo dejaste esperando.`, 'warn', 5000); break;
         case 'rivalBeaten':
+          social('rival', { name: e.name });
           sfx.achievement(); toast(`🏁 ¡Superaste en fama a ${e.icon} ${e.name}! +3 🎟️`, 'info', 5000);
           sayOnce('rival1', 'En la ciudad hay talleres rivales. Cada vez que superás a uno en fama por primera vez te llevás fichas. La fama sube con pedidos, proyectos y Expos.', { mood: 'happy', ctas: ['ciudad'] });
           break;
@@ -200,9 +205,19 @@ export function useGame() {
           break;
         case 'expoMissed': toast('🎪 Se cerró la Expo Maker sin tu taller. ¡La próxima!', 'info', 4000); break;
         case 'expoDone':
+          if (e.place === 1 && B.giveAcc(st, 'mascara')) toast('😷 BATI ganó un accesorio: Máscara de resina', 'info', 5000);
+          if (e.place <= 3) social('expo', { place: e.place });
           sfx.achievement();
           toast(e.place === 1 ? `🏆 ¡Ganaste la Expo Maker! +${money(e.cash)} · +${e.tokens} 🎟️` : e.place <= 3 ? `🎪 Expo Maker: puesto ${e.place}. +${money(e.cash)} · +${e.tokens} 🎟️` : `🎪 Expo Maker: puesto ${e.place}. ¡La próxima sale mejor!`, 'info', 7000);
           say(e.place === 1 ? '¡GANAMOS LA EXPO! Toda la ciudad habla de tu taller.' : e.place <= 3 ? `¡Podio en la Expo! Puesto ${e.place}. Para ganar: stand mejor, productos caros y variedad.` : 'Esta vez no llegamos al podio. Probá con un stand mejor y poné más máquinas en los productos de la Expo.', { mood: e.place <= 3 ? 'happy' : 'worried', ctas: ['expo'] });
+          break;
+        case 'expoNarr':
+          if (e.k === 'half') say(`🎙️ ¡Señoras y señores, vamos por la mitad de la Expo! Tu taller lleva ${num(e.score)} puntos y ${e.rivalIcon} ${e.rival} viene con unos ${num(e.rivalScore)}. ${e.score >= e.rivalScore ? '¡Vamos adelante!' : 'Hay que apretar: cebá un mate y poné más máquinas en los productos de la Expo.'}`, { mood: e.score >= e.rivalScore ? 'happy' : 'worried', ctas: ['expo'] });
+          else say(`🎙️ ¡Quedan 2 minutos de Expo! ${e.score >= e.rivalScore ? `Vamos punteros contra ${e.rival}, ¡que no se corte la luz!` : `${e.rival} va adelante… ¿se viene la remontada?`}`, { mood: 'happy', ctas: ['expo'] });
+          break;
+        case 'chapterDone':
+          sfx.achievement(); toast(`📖 ¡Capítulo terminado: ${e.title}! BATI ahora tiene ${B.BATI_ACCS[e.acc]?.icon || ''} ${B.BATI_ACCS[e.acc]?.name || ''}`, 'info', 6000);
+          social('chapter', { name: e.title });
           break;
         case 'challengeDone': sfx.achievement(); say(`¡Superaste el desafío «${e.name}»! Premio para siempre: ${e.reward} (+3 fichas).`, { mood: 'happy' }); break;
         case 'newChallenges':
@@ -236,6 +251,24 @@ export function useGame() {
     setOffline(r);
     save(st);
   }, [handle]);
+
+  // BATI encargado de planta: consejos según el estado del taller y el nivel de ayuda elegido.
+  useEffect(() => {
+    const seen = {};
+    let last = Date.now();
+    const EVERY = { principiante: 120000, normal: 300000, experto: 180000 };
+    const t = setInterval(() => {
+      const st = ref.current;
+      if (st.tutorial.active || document.visibilityState !== 'visible' || lockedRef.current) return;
+      const help = st.settings.batiHelp || 'normal';
+      if (Date.now() - last < (EVERY[help] || 300000)) return;
+      const tip = B.pickTip(st, help, seen);
+      if (!tip) return;
+      last = Date.now(); seen[tip.id] = Date.now();
+      say(tip.text, { mood: tip.crit ? 'worried' : 'normal', ctas: tip.ctas });
+    }, 20000);
+    return () => clearInterval(t);
+  }, [say]);
 
   // Arranque: tiempo offline desde la última vez.
   useEffect(() => {
@@ -341,6 +374,9 @@ export function useGame() {
       return m;
     }),
     moveMachine: (mid, dir) => act((st) => { E.moveMachine(st, mid, dir); }),
+    startChapter: () => act((st) => { if (B.startChapter(st)) { sfx.accept(); const c = B.currentChapter(st); say(`📖 «${c.ch.title}»: ${c.ch.goal}`, { mood: 'happy' }); } }),
+    finishChapter: (pick) => act((st) => { const out = []; if (B.finishChapter(st, pick, out)) handle(out); }),
+    setBatiWear: (k) => act((st) => { st.bati = { ...B.batiOf(st), wear: k }; }),
     expoJoin: (picks, stand) => act((st) => { const ok = E.expoJoin(st, picks, stand); if (ok) { sfx.buy(); toast('🎪 ¡Inscripto en la Expo! Tenés 15 minutos para fabricar.', 'info', 5000); } return ok; }),
     installMod: (mid, k) => act((st) => { const ok = E.installMod(st, mid, k); if (ok) { sfx.buy(); toast(`🔧 Mod instalado: ${MODS[k].name}`); } return ok; }),
     removeMod: (mid, k) => act((st) => E.removeMod(st, mid, k)),
@@ -430,7 +466,7 @@ export function useGame() {
       return 'applied';
     }),
     buyUpgrade: (id) => act((st) => { const ok = E.buyUpgrade(st, id); if (ok) { sfx.buy(); toast(`Mejora: ${UPGRADES[id].name}`); } return ok; }),
-    buySpace: () => act((st) => { const ok = E.buySpace(st); if (ok) { sfx.buy(); } return ok; }),
+    buySpace: () => act((st) => { const ok = E.buySpace(st); if (ok) { sfx.buy(); if (st.space >= 2) social('space', { name: SPACES[st.space].name }); } return ok; }),
     buyMat: (mat, n) => act((st) => { const ok = E.buyMat(st, mat, n); if (ok) sfx.click(); return ok; }),
     claim: (which, i) => act((st) => { const r = claimChallenge(st, which, i); if (r) { sfx.order(); toast(`🎟️ +${r} ficha${r > 1 ? 's' : ''}`); } return r; }),
     buyToken: (id) => act((st) => {

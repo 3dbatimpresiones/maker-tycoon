@@ -578,6 +578,7 @@ export function retrieve(s, mid, ctx = {}, by = 'hand') {
     out.push({ type: 'sale', mid, amount: gain, pid, by });
   }
   out.push({ type: 'piece', pid, by });
+  for (const z of zonesOf(pid)) { s.stats.zone = s.stats.zone || {}; s.stats.zone[z.id] = (s.stats.zone[z.id] || 0) + 1; }
   m.state = 'idle'; m.cur = null; m.curOrder = null; m.pen = 0; m.progress = 0;
   startPiece(s, m, out);
   return true;
@@ -911,6 +912,7 @@ export function buySpace(s) {
   if (!sp || repLevel(s) < sp.rep || s.money < sp.cost) return false;
   s.money -= sp.cost;
   s.space++;
+  s.stats.maxSpace = Math.max(s.stats.maxSpace || 0, s.space);
   return true;
 }
 export function buyMat(s, mat, n = 1) {
@@ -1218,6 +1220,8 @@ function completeOrder(s, o, out) {
   s.stats.orders++; s.run.orders++;
   if (o.urgent) s.stats.urgentDone++;
   if (o.contract) s.stats.contracts = (s.stats.contracts || 0) + 1;
+  if (o.quote === 'prem') s.stats.premDone = (s.stats.premDone || 0) + 1;
+  if (o.quote === 'fast') s.stats.fastDone = (s.stats.fastDone || 0) + 1;
   if (o.tpl === 'exposicion') s.stats.exposicion++;
   s.orders.fidelity[o.tpl] = (s.orders.fidelity[o.tpl] || 0) + 1;
   // Cliente: reseña y confianza (le gusta que respetes su forma de trabajar y que llegues con tiempo).
@@ -1550,6 +1554,7 @@ function finishExpo(s, out) {
   if (prize.rep) addRep(s, prize.rep, out);
   c.expos = (c.expos || 0) + 1;
   if (place === 1) c.expoWins = (c.expoWins || 0) + 1;
+  if (place <= 3) s.stats.expoPodium = (s.stats.expoPodium || 0) + 1;
   c.lastExpo = { place, score, table, units, cash, tokens: prize.tokens, at: s.time };
   c.expo = null;
   out.push({ type: 'expoDone', place, cash, tokens: prize.tokens, score });
@@ -1564,6 +1569,18 @@ function stepCity(s, dt, ctx) {
   if (c.expo) {
     if (c.expo.state === 'open' && s.time >= c.expo.closes) { c.expo = null; ctx.out.push({ type: 'expoMissed' }); }
     else if (c.expo.state === 'joined' && s.time >= c.expo.ends) finishExpo(s, ctx.out);
+    else if (c.expo.state === 'joined') {
+      const e = c.expo, left = e.ends - s.time;
+      const narr = (k) => {
+        if (e[k]) return; e[k] = true;
+        const { score } = expoProgress(s);
+        const top = [...e.rivals].sort((a, b) => b.score - a.score)[0];
+        const sofar = (EXPO_PREP - left) / EXPO_PREP; // los rivales también van armando su stock
+        ctx.out.push({ type: 'expoNarr', k, left: Math.round(left), score, rival: top.name, rivalIcon: top.icon, rivalScore: Math.round(top.score * sofar) });
+      };
+      if (left <= EXPO_PREP / 2) narr('half');
+      if (left <= 120) narr('last2');
+    }
     return;
   }
   c.expoT = (c.expoT ?? 1800) - dt;

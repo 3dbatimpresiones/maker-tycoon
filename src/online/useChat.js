@@ -15,7 +15,8 @@ export const LINK_RE = /(https?:|ftp:|www\.|discord\.gg|t\.me\/|wa\.me\/|bit\.ly
 
 const PREFS_KEY = 'mt3dbat.chat';
 // Avisos: cada uno elige. Por defecto avisa de todo en el juego (los del navegador se activan aparte).
-export const DEFAULT_PREFS = { notify: false, muted: [], msgGlobal: true, msgFarm: true, msgGroup: true, mentions: true, sound: true };
+export const DEFAULT_PREFS = { notify: false, muted: [], msgGlobal: true, msgFarm: true, msgGroup: true, mentions: true, sound: true, showEvents: true, shareEvents: true, farmOnly: false };
+export const REACTIONS = ['🖨️', '🔥', '🧉', '⚡', '🏆', '😱'];
 const readPrefs = () => { try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch { return { ...DEFAULT_PREFS }; } };
 const roomLabel = (r) => (r.kind === 'farm' ? `la granja ${r.name}` : r.kind === 'group' ? `el grupo ${r.name}` : 'Global');
 function browserNotify(title, body, tag) {
@@ -123,11 +124,12 @@ export function useChat({ online, toast }) {
       if (r0 && r0 === roomRef.current && openRef.current) {
         const msgs = d.messages || [];
         if (after == null) setMessages(msgs);
-        else if (msgs.length || (d.deleted || []).length) {
+        else if (msgs.length || (d.deleted || []).length || (d.updated || []).length) {
           const del = new Set(d.deleted || []);
+          const upd = new Map((d.updated || []).map((m) => [m.id, m])); // reacciones nuevas en mensajes ya vistos
           setMessages((prev) => {
             const seen = new Set(prev.map((m) => m.id));
-            const next = prev.map((m) => (del.has(m.id) ? { ...m, deleted: true, body: null } : m)).concat(msgs.filter((m) => !seen.has(m.id)));
+            const next = prev.map((m) => (del.has(m.id) ? { ...m, deleted: true, body: null } : upd.get(m.id) || m)).concat(msgs.filter((m) => !seen.has(m.id)));
             return next.slice(-200);
           });
         }
@@ -192,6 +194,18 @@ export function useChat({ online, toast }) {
     return m;
   }, [info.staff]);
 
+  // Reacciones y denuncias (migración 035)
+  const react = useCallback(async (id, emoji) => {
+    const m = await rpc('bb_mt_chat_react', { p_id: id, p_emoji: emoji });
+    if (m) setMessages((prev) => prev.map((x) => (x.id === id ? m : x)));
+  }, []);
+  const report = useCallback((id, reason) => rpc('bb_mt_chat_report', { p_id: id, p_reason: reason || null }), []);
+  // Mensajes que solo ve uno (respuestas de BATI y de los comandos)
+  const [local, setLocal] = useState([]);
+  const addLocal = useCallback((body, kind = 'bati') => {
+    setLocal((l) => [...l.slice(-20), { id: 'l' + Date.now() + Math.random(), local: true, kind, body, at: new Date().toISOString(), room: roomRef.current, nick: 'BATI' }]);
+  }, []);
+
   const remove = useCallback(async (id) => {
     await rpc('bb_mt_chat_delete', { p_id: id });
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, deleted: true, body: null } : m)));
@@ -225,6 +239,17 @@ export function useChat({ online, toast }) {
     return p === 'granted';
   }, [setPrefs]);
 
+  // Avisos automáticos de logros (los manda el juego; la base arma el texto y pone topes)
+  useEffect(() => {
+    const on = (e) => {
+      const { kind, data } = e.detail || {};
+      if (!logged || readPrefs().shareEvents === false || !kind) return;
+      rpc('bb_mt_chat_event', { p_kind: kind, p_data: data || {} }).catch(() => {});
+    };
+    window.addEventListener('mt-social', on);
+    return () => window.removeEventListener('mt-social', on);
+  }, [logged]);
+
   const unread = rooms.reduce((a, x) => a + (x.unread || 0), 0);
   const mentions = rooms.reduce((a, x) => a + (x.mentions || 0), 0);
   return {
@@ -232,6 +257,6 @@ export function useChat({ online, toast }) {
     // Botón del encabezado: abre; si ya está abierto, lo achica o lo vuelve a mostrar (como Spotify).
     toggle: () => { if (!open) { setOpenRaw(true); setMin(false); } else setMin((m) => !m); },
     room, setRoom, rooms, messages, info, available, logged, unread, mentions,
-    prefs, setPrefs, muteLocal, enableNotify, send, remove, people, createGroup, groupMembers, groupAdd, groupRemove, groupRename, groupLeave,
+    prefs, setPrefs, muteLocal, enableNotify, send, remove, people, react, report, local, addLocal, createGroup, groupMembers, groupAdd, groupRemove, groupRename, groupLeave,
   };
 }

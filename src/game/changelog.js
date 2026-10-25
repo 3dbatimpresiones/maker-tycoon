@@ -2,6 +2,28 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.1', date: '2026-10-25', title: 'BATI toma el mando',
+    intro: 'BATI deja de ser solo el tutorial: ahora es tu encargado de planta. Y el chat se vuelve mucho más útil.',
+    groups: [
+      ['🦇 BATI, tu encargado de planta', [
+        'Te avisa lo importante: máquinas gastadas, pedidos que convienen más, oportunidades del mapa y rivales que te pasan.',
+        'Elegí cuánto te ayuda: principiante, normal o experto (tocá a BATI → Ayuda).',
+        'Narra la Expo Maker en vivo: mitad de tiempo, últimos 2 minutos y resultado.',
+      ]],
+      ['📖 La historia de BATI', [
+        '6 capítulos con diálogos, objetivos y una decisión al final: el cliente difícil, la feria del barrio, el pedido imposible y más.',
+        'Cada capítulo le da un accesorio a BATI: gorrita, lentes, mate, casco CNC, antiparras, capa… (y la máscara si ganás una Expo).',
+      ]],
+      ['💬 Chat más útil', [
+        'Reacciones rápidas: 🖨️ 🔥 🧉 ⚡ 🏆 😱.',
+        'Avisos automáticos cuando alguien logra algo grande (se pueden apagar).',
+        'Comandos: /reto, /ranking, /granja, /bati, /visitar apodo y /ayuda.',
+        'Preguntale a @BATI: «¿qué hago ahora?», «tip FDM», «rival», «expo»…',
+        'Modo solo granja y botón para denunciar mensajes.',
+      ]],
+    ],
+  },
+  {
     v: '1.0', date: '2026-10-25', title: '¡Maker Tycoon 1.0!',
     intro: 'La primera versión completa del juego. Esto es todo lo que se sumó en las últimas actualizaciones:',
     groups: [
