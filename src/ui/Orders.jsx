@@ -161,6 +161,8 @@ export default function Orders({ s, actions, glow }) {
         <h2>Pedidos</h2>
         <span className="slots-chip">{used}/{size}</span>
       </div>
+      {/* Los pedidos tienen su propio scroll: la página no se estira hacia abajo */}
+      <div className="orders-scroll">
       {s.orders.active.length > 0 && <div className="section-label">EN CURSO</div>}
       <div className="order-list">
         {s.orders.active.map((o) => <Active key={o.id} s={s} o={o} actions={actions} />)}
@@ -174,6 +176,7 @@ export default function Orders({ s, actions, glow }) {
           {s.tutorial.active && !s.tutorial.orders ? 'Los pedidos llegan en un ratito.' : 'Esperando clientes… llegan solos cada tanto.'}
         </div>
       )}
+      </div>
       {used >= size && s.orders.offers.length === 0 && <p className="hint">El tablero está lleno: terminá un pedido para recibir más.</p>}
       <p className="hint">Los pedidos pagan <b>×1,5 a ×5</b> y suman reputación. {E.quotesUnlocked(s) ? <>Elegí el <b>presupuesto</b> (económico, rápido o premium) y cuidá a tus <b>clientes</b>: con más confianza vuelven más seguido y pagan mejor. </> : 'Desde Reputación 3 podés elegir el presupuesto de cada pedido. '}Desde Reputación 5 llegan <b>contratos de empresa</b> que además dan fichas. Mientras no estás, se pausan.</p>
       {Object.keys(s.orders.clients || {}).length > 0 && <ClientsList s={s} />}
