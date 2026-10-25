@@ -220,8 +220,41 @@ export class CatActor {
     this.home = home.clone(); this.g.position.copy(this.home); this.g.position.y = 0.075; this.g.rotation.y = -0.6;
     this.g.scale.setScalar(1.25);
     this.state = 'sleep'; this.show('lying'); this.k = 0;
+    if (REAL.on) this.loadReal();
   }
-  show(which) { this.lying.visible = which === 'lying'; this.standing.visible = which === 'standing'; }
+  // Gato realista (Somali Cat de DreamNoms, CC BY 4.0) con sus animaciones.
+  loadReal() {
+    loadCharacter('gato').then((ch) => {
+      if (!ch || !this.g.parent) return;
+      const body = ch.scene;
+      body.updateMatrixWorld(true);
+      let top = -1e9, bot = 1e9; const v = new THREE.Vector3();
+      body.traverse((n) => { if (n.isBone) { n.getWorldPosition(v); top = Math.max(top, v.y); bot = Math.min(bot, v.y); } });
+      body.scale.multiplyScalar(0.42 / Math.max(0.001, top - bot) / 1.25); // ~42 cm con la cola parada
+      body.rotation.y = -Math.PI / 2; // el modelo mira hacia -Z; el juego, hacia +X
+      body.updateMatrixWorld(true);
+      bot = 1e9; body.traverse((n) => { if (n.isBone) { n.getWorldPosition(v); bot = Math.min(bot, v.y); } });
+      body.position.y -= bot;
+      this.g.add(body);
+      const mixer = new THREE.AnimationMixer(body);
+      const acts = {};
+      for (const c of ch.clips) acts[c.name] = mixer.clipAction(c);
+      this.real = { mixer, acts, cur: null };
+      this.lying.visible = false; this.standing.visible = false;
+      this.playReal('SittingIdle');
+    });
+  }
+  playReal(name) {
+    const r = this.real;
+    if (!r || r.cur === name || !r.acts[name]) return;
+    const next = r.acts[name].reset().play();
+    if (r.cur && r.acts[r.cur]) next.crossFadeFrom(r.acts[r.cur], 0.3, false);
+    r.cur = name;
+  }
+  show(which) {
+    if (this.real) { this.lying.visible = false; this.standing.visible = false; return; }
+    this.lying.visible = which === 'lying'; this.standing.visible = which === 'standing';
+  }
   dispose(scene) { scene.remove(this.g); }
   face(dx, dz) { this.g.rotation.y = Math.atan2(-dz, dx); }
   walkTo(to, dt, speed = 1.3) {
@@ -232,6 +265,14 @@ export class CatActor {
   }
   // target = { id, front: Vector3 (piso adelante del banco), top: Vector3 (donde se acuesta) } o null
   update(dt, t, target, anim) {
+    this.step(dt, t, target, anim);
+    if (this.real) {
+      const s = this.state;
+      this.playReal(s === 'go' || s === 'home' ? 'WalkClean' : s === 'up' || s === 'down' ? 'Idle' : 'SittingIdle');
+      if (anim) this.real.mixer.update(Math.min(0.1, dt));
+    }
+  }
+  step(dt, t, target, anim) {
     this.k += dt;
     const p = this.g.position;
     if (this.state === 'sleep') {

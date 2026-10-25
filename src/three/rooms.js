@@ -289,18 +289,18 @@ export function buildRoom(space, n) {
       P('potted_plant_01', rx - 0.35, 0, bz + 0.4, { size: space === 0 ? 0.7 : 0.9 });
       if (space === 1) {
         P('metal_stool_01', L.cols * SX / 2 + 0.55, 0, 0.75, { size: 0.62 });
-        P('plastic_crate_01', -W / 2 + 0.5, 0, fz - 0.55, { rotY: 0.3, size: 0.32 });
+        P('plastic_crate_01', -W / 2 + 0.45, 0, fz - 1.7, { rotY: 0.3, size: 0.32 }); // lejos del almohadón del gato
         P('wall_clock', rx - 1.1, wallH * 0.74, bz + 0.03, { size: 0.32, fit: 'max' });
       }
     }
     if (space === 2) {
       P('korean_fire_extinguisher_01', rx - 1.2, 0, bz + 0.18, { size: 0.55 });
-      P('plastic_crate_01', -W / 2 + 0.55, 0, fz - 0.5, { rotY: -0.2, size: 0.32 });
+      P('plastic_crate_01', -W / 2 + 0.45, 0, fz - 1.7, { rotY: -0.2, size: 0.32 }); // lejos del almohadón del gato
       P('metal_stool_01', rx - 0.45, 0, fz - 1.9, { size: 0.62 });
       P('wall_clock', -W / 2 + 0.03, wallH * 0.74, fz - 0.6, { rotY: Math.PI / 2, size: 0.32, fit: 'max' });
     }
     if (space === 3) {
-      P('potted_plant_01', -W / 2 + 0.45, 0, fz - 0.45, { size: 1.0 });
+      P('potted_plant_01', -W / 2 + 0.45, 0, fz - 1.75, { size: 1.0 }); // lejos del almohadón del gato
       P('potted_plant_01', rx - 0.4, 0, bz + 1.3, { size: 0.85, rotY: 1.2 });
       P('wall_clock', rx - 2.4, wallH * 0.78, bz + 0.03, { size: 0.34, fit: 'max' });
       P('korean_fire_extinguisher_01', rx - 0.3, 0, fz - 0.35, { size: 0.55 });
@@ -309,7 +309,7 @@ export function buildRoom(space, n) {
     if (space >= 4) {
       const shelves = space === 6 ? 3 : 2;
       for (let i = 0; i < shelves; i++) P('steel_frame_shelves_01', rx - 1.1 - i * 1.6, 0, bz + 0.38, { size: 2.0 });
-      P('metal_tool_chest', -W / 2 + 0.6, 0, fz - 0.6, { rotY: Math.PI / 2, size: 1.0 });
+      P('metal_tool_chest', -W / 2 + 0.45, 0, fz - 1.75, { rotY: Math.PI / 2, size: 1.0 }); // lejos del almohadón del gato
       P('korean_fire_extinguisher_01', -W / 2 + 0.3, 0, bz + 1.4, { size: 0.6 });
       P('korean_fire_extinguisher_01', rx - 0.3, 0, fz - 0.3, { size: 0.6 });
       for (let i = 0; i < 3; i++) P('plastic_crate_01', rx - 1.0 - i * 0.45, 0, fz - 0.35, { rotY: i * 0.2, size: 0.32 });

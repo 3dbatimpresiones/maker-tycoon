@@ -489,7 +489,7 @@ export function SettingsModal({ s, actions, onClose, online, open }) {
       <p className="hint credits">3DBAT: Maker Tycoon v{VERSION} · Un juego de <a href={LINKS.web} target="_blank" rel="noopener noreferrer">3DBAT IMPRESIONES</a> · <a href={LINKS.instagram} target="_blank" rel="noopener noreferrer">{IG_HANDLE}</a></p>
       <details className="credits-more">
         <summary>Créditos de gráficos</summary>
-        <p className="hint">Fotos de impresoras y filamentos: Filacolor (proveedor oficial) y las páginas oficiales de cada marca. Prusa MK4: Majkluss, y Voron 2.4: disinterpreter, vía Wikimedia Commons (CC BY-SA). Texturas, luz y objetos del taller: Poly Haven (CC0). Personaje: Mixamo (Adobe).</p>
+        <p className="hint">Fotos de impresoras y filamentos: Filacolor (proveedor oficial) y las páginas oficiales de cada marca. Prusa MK4: Majkluss, y Voron 2.4: disinterpreter, vía Wikimedia Commons (CC BY-SA). Texturas, luz y objetos del taller: Poly Haven (CC0). Personaje: Mixamo (Adobe). Gato: «Somali Cat Animated» de DreamNoms (Sketchfab, CC BY 4.0).</p>
       </details>
       <p className="hint disclaimer">{BRAND_DISCLAIMER}</p>
     </Modal>

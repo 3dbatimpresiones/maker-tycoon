@@ -43,6 +43,7 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFee
       try { ws = new Workshop3D(canvasRef.current, { quality: sRef.current.settings.quality }); }
       catch { onFail?.(); return; }
       wsRef.current = ws;
+      if (typeof location !== 'undefined' && /[?&]debug3d/.test(location.search)) window.__mt3d = ws; // solo para pruebas
       ws.controls.addEventListener('start', () => { ws.userMoved = true; });
       ro = new ResizeObserver(() => ws.resize());
       ro.observe(wrapRef.current);
