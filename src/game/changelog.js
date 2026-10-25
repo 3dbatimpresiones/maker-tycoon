@@ -21,6 +21,8 @@ export const CHANGELOG = [
         'Tu cartel personalizado (o el nombre de tu taller) ahora aparece en la pared de cada piso y en la recepción de la Planta, en vez de «3DBAT» fijo.',
         'El nombre del piso, el cuadro de honor y las pantallas ya no se pisan ni se cortan.',
         'Luces más ordenadas y el gato sin base blanca.',
+        'El gato ahora duerme al lado de los filamentos (ya no queda debajo de la recepción).',
+        'La página arranca más liviana: las miniaturas 3D se guardan y no se vuelven a dibujar cada vez.',
       ]],
     ],
   },

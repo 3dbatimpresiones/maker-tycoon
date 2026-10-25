@@ -6,7 +6,17 @@ import { buildMachine } from './machines.js';
 import { buildPiece } from './pieces.js';
 import { MACHINES, PRODUCTS } from '../game/data.js';
 
+// Las miniaturas se guardan en el navegador: desde la segunda vez cargan al instante (sin dibujar de nuevo).
+const STORE = 'mt3dbat.thumbs.v2';
 const cache = new Map();
+try { const o = JSON.parse(localStorage.getItem(STORE) || '{}'); for (const [k, v] of Object.entries(o)) if (typeof v === 'string') cache.set(k, v); } catch { /* sin almacenamiento */ }
+let saveT = null;
+function persist() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    try { const o = {}; for (const [k, v] of cache) if (v) o[k] = v; localStorage.setItem(STORE, JSON.stringify(o)); } catch { /* lleno: no pasa nada */ }
+  }, 1500);
+}
 const listeners = new Set();
 const queue = [];
 let ctx = null;
@@ -18,7 +28,7 @@ function setup() {
   if (ctx) return ctx;
   const canvas = document.createElement('canvas');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
-  renderer.setSize(320, 320, false);
+  renderer.setSize(192, 192, false);
   renderer.setPixelRatio(1);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -71,7 +81,7 @@ function renderOne(key) {
   root.updateMatrixWorld(true);
   frameObject(camera, root);
   renderer.render(scene, camera);
-  const url = renderer.domElement.toDataURL('image/png');
+  const url = renderer.domElement.toDataURL('image/webp', 0.86);
   scene.remove(root);
   cleanup();
   return url;
@@ -83,10 +93,10 @@ function pump() {
   if (!key) return;
   busy = true;
   const go = () => {
-    try { if (!cache.has(key)) cache.set(key, renderOne(key)); } catch { cache.set(key, null); }
+    try { if (!cache.has(key)) { cache.set(key, renderOne(key)); persist(); } } catch { cache.set(key, null); }
     listeners.forEach((fn) => fn(key));
     busy = false;
-    pump();
+    setTimeout(pump, 40); // de a una y con respiro: no traba la página
   };
   if (window.requestIdleCallback) window.requestIdleCallback(go, { timeout: 300 }); else setTimeout(go, 16);
 }

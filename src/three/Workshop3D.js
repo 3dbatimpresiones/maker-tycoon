@@ -466,7 +466,9 @@ export class Workshop3D {
     const base = new THREE.Group();
     const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.33, 0.08, 28), new THREE.MeshStandardMaterial({ color: '#3437A2', roughness: 0.95 }));
     cushion.position.y = 0.04; cushion.receiveShadow = true; cushion.castShadow = true; base.add(cushion);
-    const home = V(-W / 2 + 0.6, D / 2 - 0.65);
+    // En los pisos de la Nave y la Planta: al fondo a la izquierda, al lado de los filamentos
+    // (adelante está la barra de la recepción).
+    const home = this.floor ? V(-W / 2 + 0.55, -D / 2 + 1.05) : V(-W / 2 + 0.6, D / 2 - 0.65);
     base.position.copy(home);
     this.scene.add(base);
     this.petBase = base;
