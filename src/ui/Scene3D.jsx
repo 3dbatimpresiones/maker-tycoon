@@ -100,7 +100,8 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFee
 
   // Clic/toque sobre el canvas (distinto de arrastrar para girar)
   const down = useRef(null);
-  const onPointerDown = (e) => { down.current = { x: e.clientX, y: e.clientY, t: performance.now() }; };
+  // Solo el clic izquierdo (o un toque) elige máquinas: el derecho es para desplazar la vista.
+  const onPointerDown = (e) => { down.current = e.button === 0 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; };
   const onPointerUp = (e) => {
     const d = down.current; down.current = null;
     if (!d || !wsRef.current) return;
@@ -147,7 +148,7 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFee
       {ready && onFeedback && <button className="scene-fb" title="Mandanos una idea o contanos si algo anda mal" onClick={onFeedback}><Icon name="message" size={16} /> Sugerencias</button>}
       {ready && <button className="icon-btn sm scene-center" title="Ver todo el taller" onClick={() => { wsRef.current?.fit(); setFocused(false); }}><Icon name="target" size={18} /></button>}
       {ready && focused && <button className="chip-btn scene-back" onClick={() => { wsRef.current?.fit(); setFocused(false); }}>← Ver todo el taller</button>}
-      {ready && <span className="scene-hint">Arrastrá para girar · rueda o pellizco para acercar</span>}
+      {ready && <span className="scene-hint">Clic izquierdo: girar · Clic derecho: mover · Rueda: acercar</span>}
     </div>
   );
 }

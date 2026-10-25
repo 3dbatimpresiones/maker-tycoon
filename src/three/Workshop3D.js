@@ -78,9 +78,16 @@ export class Workshop3D {
     pmrem.dispose();
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.03, 80);
     this.controls = new OrbitControls(this.camera, canvas);
-    Object.assign(this.controls, { enablePan: false, enableDamping: true, dampingFactor: 0.08, rotateSpeed: 0.55, zoomSpeed: 0.8,
-      minPolarAngle: 0.3, maxPolarAngle: 1.36, minAzimuthAngle: -1.1, maxAzimuthAngle: 1.1 });
-    this.controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE };
+    // Cámara como en los slicers (Orca, Bambu Studio, Prusa): clic izquierdo gira, clic derecho
+    // (o la rueda apretada) desplaza, la rueda acerca hacia donde apunta el mouse.
+    // En el celular: un dedo gira, dos dedos acercan y desplazan.
+    Object.assign(this.controls, { enablePan: true, screenSpacePanning: true, panSpeed: 0.9, zoomToCursor: true,
+      enableDamping: true, dampingFactor: 0.08, rotateSpeed: 0.55, zoomSpeed: 0.9,
+      minPolarAngle: 0.12, maxPolarAngle: 1.45 });
+    this.controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.PAN };
+    this.controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+    // Si el jugador mueve la cámara, se respeta (no se re-encuadra sola) y se corta cualquier animación.
+    this.controls.addEventListener('start', () => { this.userMoved = true; this.camAnim = null; });
     // Luces: cielo suave, sol por la ventana (sombras), luz de área de ventana, techo cálido
     this.hemi = new THREE.HemisphereLight('#dfe6ff', '#2a2420', 0.55);
     this.scene.add(this.hemi);
@@ -384,7 +391,24 @@ export class Workshop3D {
       if (a.k >= 1) this.camAnim = null;
     }
     this.controls.update();
+    this.clampView();
     if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera);
+  }
+
+  // Que el desplazamiento no se lleve la vista fuera del taller (se mueven juntos cámara y punto de mira).
+  clampView() {
+    if (!this.room || this.camAnim) return;
+    const { W, D, wallH } = this.room;
+    const t = this.controls.target;
+    const cx = Math.max(-W / 2, Math.min(W / 2, t.x));
+    const cy = Math.max(0.05, Math.min((wallH || 3) * 0.9, t.y));
+    const cz = Math.max(-D / 2, Math.min(D / 2 + 0.6, t.z));
+    if (cx !== t.x || cy !== t.y || cz !== t.z) {
+      const dx = cx - t.x, dy = cy - t.y, dz = cz - t.z;
+      t.set(cx, cy, cz);
+      this.camera.position.x += dx; this.camera.position.y += dy; this.camera.position.z += dz;
+    }
+    if (this.camera.position.y < 0.08) this.camera.position.y = 0.08;
   }
 
   // Puntos del taller por donde camina el sobrino y el rincón del gato.
