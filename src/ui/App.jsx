@@ -12,6 +12,8 @@ import { currentMission } from '../game/progress.js';
 import { TAGLINE } from '../config.js';
 import { useOnline } from '../online/useOnline.js';
 import { useMarket } from '../online/useMarket.js';
+import { useChat } from '../online/useChat.js';
+import { ChatPanel } from './Chat.jsx';
 import { OnlineModal, ConflictModal, LockedOverlay, WelcomeGate, ProfileSetup, useGate, FeedbackModal } from './Online.jsx';
 import { VisitModal } from './Visit.jsx';
 import { SpotifyDock } from './Spotify.jsx';
@@ -25,6 +27,7 @@ export default function App() {
   const online = useOnline({ getState, adoptSave: actions.adoptSave, toast: actions.toast, say: actions.say, isLocked: () => locked });
   const gate = useGate(online);
   const mk = useMarket({ online, getState, actions, isLocked: () => locked });
+  const chat = useChat({ online, toast: actions.toast });
   const [usedPick, setUsedPick] = useState(null); // máquina elegida para vender en Usados
   const [tab, setTab] = useState('taller');
   const [shopTab, setShopTab] = useState('machines');
@@ -59,8 +62,8 @@ export default function App() {
   const offersCount = s.orders.offers.length;
 
   return (
-    <div className={`app anim-${s.settings.anim}`}>
-      <Header s={s} actions={actions} open={open} online={online} />
+    <div className={`app anim-${s.settings.anim}${chat.open ? ' chat-on' : ''}`}>
+      <Header s={s} actions={actions} open={open} online={online} chat={chat} />
       <Hud s={s} onFilament={() => goShop('filament')} onTokens={() => open('desafios')} />
       <main className={`layout tab-${tab}`}>
         <div className="col col-orders" data-tab="pedidos">
@@ -98,6 +101,7 @@ export default function App() {
         onPoke={() => { if (!s.tutorial.active && bati.length === 0) open('comunidad'); }} onCta={(k) => { if (k === 'online') open('online', null, 'perfil'); if (k === 'reparar') goShop('upgrades'); if (k === 'usados') goShop('used'); }} />
 
       <SpotifyDock s={s} actions={actions} />
+      {chat.open && <ChatPanel chat={chat} online={online} open={open} />}
 
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => <div key={t.id} className={'toast t-' + t.kind}>{t.text}</div>)}

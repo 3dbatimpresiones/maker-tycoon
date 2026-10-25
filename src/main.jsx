@@ -6,6 +6,7 @@ import './styles/game.css';
 import './styles/v2.css';
 import './styles/v3.css';
 import './styles/online.css';
+import './styles/chat.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
