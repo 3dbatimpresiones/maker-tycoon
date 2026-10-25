@@ -1,5 +1,6 @@
 // Tienda: máquinas (marcas reales), mejoras, taller (espacios) y materiales.
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from './Icon.jsx';
 import { MachineThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
@@ -8,6 +9,7 @@ import { money, dur, kg } from '../game/format.js';
 import { FILACOLOR, fcUrl } from '../online/filacolor.js';
 import fcLogo from '../assets/filacolor-logo.png';
 import Market, { WearBar } from './Market.jsx';
+import { Modal } from './Panels.jsx';
 
 function eta(s, cost) {
   const r = Math.max(E.incomeRate(s), E.potentialRate(s) * 0.7);
@@ -33,8 +35,57 @@ function BuyBtn({ s, cost, onClick, disabled, label = 'Comprar', glow }) {
   );
 }
 
+// Plan canje: entregás máquinas chicas como parte de pago de una más grande.
+function TradeModal({ s, model, actions, onClose }) {
+  const M = MACHINES[model];
+  const cands = E.tradeCandidates(s, model).sort((a, b) => E.tradeValue(s, b) - E.tradeValue(s, a));
+  const [pick, setPick] = useState([]); // arranca sin nada marcado: elegís vos qué entregar
+  const q = E.tradeQuote(s, model, pick);
+  const why = E.tradeReason(s, model, pick);
+  const toggle = (id) => setPick((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= E.TRADE_MAX ? p : [...p, id]));
+  const free = pick.length - 1;
+  // Se dibuja afuera de la tienda (si no, queda encerrado en la columna).
+  return createPortal(
+    <Modal title={`Plan canje · ${M.brand} ${M.name}`} icon="cart" onClose={onClose} wide>
+      <div className="tr-top">
+        <div className="tr-art"><MachineThumb model={model} /></div>
+        <div>
+          <p className="hint">Entregá hasta {E.TRADE_MAX} máquinas más chicas como parte de pago. Te las tomamos mejor que si las vendés sueltas y pagás solo la diferencia. De paso, liberás lugar en el taller.</p>
+          <div className="tr-sum">
+            <span>Precio de la nueva</span><b>{money(q.price)}</b>
+            <span>Te tomamos tus máquinas por</span><b className="c-green">− {money(q.credit)}</b>
+            <span>Pagás</span><b className="tr-pay">{money(q.pay)}</b>
+          </div>
+        </div>
+      </div>
+      <div className="section-label">¿QUÉ ENTREGÁS? ({pick.length}/{E.TRADE_MAX})</div>
+      {!cands.length && <p className="o-warn soft">No tenés máquinas más chicas que esta para entregar.</p>}
+      <div className="tr-list">
+        {cands.map((m) => {
+          const X = MACHINES[m.model];
+          const on = pick.includes(m.id);
+          return (
+            <button key={m.id} className={'tr-item' + (on ? ' on' : '')} onClick={() => toggle(m.id)}>
+              <span className="tr-check">{on ? '✔' : ''}</span>
+              <MachineThumb model={m.model} />
+              <span className="tr-name"><b>{X.name}</b><WearBar wear={m.wear} compact /></span>
+              <span className="tr-val">{money(E.tradeValue(s, m))}<small>vendida suelta: {money(Math.round((m.paid || 0) * 0.5))}</small></span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="hint">{free > 0 ? `Liberás ${free} lugar${free > 1 ? 'es' : ''} en el taller.` : free === 0 ? 'Queda la misma cantidad de lugares ocupados.' : ''} La pieza que estén imprimiendo las que entregás se pierde.</p>
+      <button className={'buy-btn' + (!why ? ' ok' : '')} disabled={!!why} onClick={() => { if (actions.tradeIn(model, pick)) onClose(); }}>
+        {!why ? `Canjear y llevármela · ${money(q.pay)}` : why === 'Elegí qué máquinas entregás' ? 'Tocá las máquinas que querés entregar' : why === 'Te falta plata' ? `Faltan ${money(q.pay - s.money)}` : why}
+      </button>
+    </Modal>,
+    document.body,
+  );
+}
+
 function Machines({ s, actions, glow }) {
   const [tech, setTech] = useState('fdm');
+  const [trade, setTrade] = useState(null);
   const full = s.machines.length >= E.slots(s);
   const list = MACHINE_ORDER.filter((id) => MACHINES[id].tech === tech);
   const nextLocked = list.findIndex((id) => !E.machineUnlocked(s, id));
@@ -48,7 +99,8 @@ function Machines({ s, actions, glow }) {
         ))}
       </div>
       {!E.techUnlocked(s, tech) && <p className="o-warn soft">Primero desbloqueá «{UPGRADES[TECHS[tech].upgrade].name}» en Mejoras.</p>}
-      {full && <p className="o-warn soft">El taller está lleno. Agrandalo (Taller) o vendé una máquina vieja (tocá su ⚙ o publicala en Usados).</p>}
+      {full && <p className="o-warn soft">El taller está lleno. Agrandalo (Taller), vendé una máquina vieja (tocá su ⚙ o publicala en Usados) o usá el <b>Plan canje</b> para cambiar chicas por una grande.</p>}
+      {trade && <TradeModal s={s} model={trade} actions={actions} onClose={() => setTrade(null)} />}
       {list.map((id, idx) => {
         const M = MACHINES[id];
         const unlocked = E.machineUnlocked(s, id);
@@ -74,6 +126,9 @@ function Machines({ s, actions, glow }) {
               {unlocked
                 ? <BuyBtn s={s} cost={E.machineCost(s, id)} disabled={full} label={full ? 'Sin lugar' : 'Comprar'} onClick={() => actions.buyMachine(id)} glow={glow === 'shop-machines' && !full && s.money >= E.machineCost(s, id)} />
                 : <div className="lock-row"><Icon name="lock" size={14} /> {E.machineLockReason(s, id).join(' · ')}</div>}
+              {unlocked && !s.tutorial?.active && E.tradeCandidates(s, id).length > 0 && (
+                <button className="chip-btn tr-btn" onClick={() => setTrade(id)} title="Entregá máquinas más chicas como parte de pago">🔁 Plan canje{full ? ' (libera lugar)' : ''}</button>
+              )}
             </div>
           </div>
         );

@@ -389,4 +389,34 @@ t('usados: comprar, cobrar y recuperar se aplican una sola vez', () => {
   assert.ok(next.market.done.includes('b7') && next.market.done.includes('s9'), 'lo hecho sobrevive a la Mudanza');
 });
 
+t('plan canje: dos chicas + la diferencia por una más grande', () => {
+  const s = E.newGame(null, 16); skipTutorial(s);
+  s.space = 1; s.rep = 1e6; s.money = 1e9;
+  E.buyMachine(s, 'a1mini');
+  s.machines[0].wear = 0.5;
+  const [ender, mini] = s.machines;
+  assert.ok(E.tradeValue(s, ender) > Math.round(ender.paid * 0.5) - 1, 'vale al menos lo que te dan vendiéndola');
+  assert.ok(E.tradeValue(s, mini) > E.tradeValue(s, { ...mini, wear: 0.9 }), 'gastada vale menos');
+  assert.ok(E.tradeReason(s, 'magna', [ender.id, mini.id]), 'la Magna no es más grande que la A1 mini');
+  assert.equal(E.tradeReason(s, 'k1c', [ender.id, mini.id]), null);
+  const q = E.tradeQuote(s, 'k1c', [ender.id, mini.id]);
+  assert.equal(q.price - q.credit, q.pay);
+  const money0 = s.money, earned0 = s.runEarned;
+  const r = E.tradeIn(s, 'k1c', [ender.id, mini.id]);
+  assert.ok(r && s.machines.length === 1 && s.machines[0].model === 'k1c');
+  assert.equal(s.money, money0 - q.pay); assert.equal(s.runEarned, earned0);
+  assert.equal(s.stats.tradeIns, 1);
+  // Taller lleno: el canje libera lugar
+  const f = E.newGame(null, 17); skipTutorial(f); f.money = 1e9; f.rep = 1e6;
+  while (f.machines.length < E.slots(f)) E.buyMachine(f, 'ender3');
+  assert.equal(E.buyMachine(f, 'a1mini'), null, 'lleno: no entra una más');
+  assert.equal(E.tradeReason(f, 'a1mini', [f.machines[0].id]), null, 'pero entregando una, sí');
+  // Siempre se paga algo
+  const g = E.newGame(null, 18); skipTutorial(g); g.space = 1; g.rep = 1e6; g.money = 1e9;
+  for (let i = 0; i < 2; i++) E.buyMachine(g, 'a1mini');
+  const ids = g.machines.map((m) => m.id);
+  assert.ok(E.tradeQuote(g, 'magna', []).pay > 0);
+  assert.ok(E.tradeQuote(g, 'k1c', ids.slice(0, 3)).pay >= Math.ceil(E.machineCost(g, 'k1c') * 0.1) - 1);
+});
+
 console.log(`\n${n} pruebas OK`);

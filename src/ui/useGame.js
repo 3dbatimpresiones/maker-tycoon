@@ -292,6 +292,11 @@ export function useGame() {
     retrieve: (mid) => act((st, ctx) => E.retrieve(st, mid, ctx, 'hand')),
     resolve: (mid, opt) => act((st, ctx) => E.resolveEvent(st, mid, opt, ctx)),
     buyMachine: (model) => act((st) => { const m = E.buyMachine(st, model); if (m) { sfx.buy(); toast(`Nueva: ${fullName(MACHINES[model])}`); } return m; }),
+    tradeIn: (model, mids) => act((st) => {
+      const r = E.tradeIn(st, model, mids);
+      if (r) { sfx.buy(); toast(`🔁 Canje hecho: entregaste ${r.count} y te llevaste la ${fullName(MACHINES[model])} (pagaste ${money(r.pay)})`, 'ok', 6000); save(st); }
+      return r;
+    }),
     sellMachine: (mid) => act((st) => { const ok = E.sellMachine(st, mid); if (ok) sfx.click(); return ok; }),
     repair: (mid) => act((st) => { const ok = E.repairMachine(st, mid); if (ok) { sfx.buy(); toast('🔧 Reparada: quedó al 100 %'); } return ok; }),
     repairAll: () => act((st) => { const n = E.repairAll(st); if (n) { sfx.buy(); toast(`🔧 ${n === 1 ? 'Reparada' : n + ' máquinas reparadas'}: todo al 100 %`); } return n; }),

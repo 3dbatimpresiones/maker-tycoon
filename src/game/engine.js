@@ -36,7 +36,7 @@ function pickWeighted(s, list) {
 function freshStats() {
   return { pieces: 0, orders: 0, ordersFailed: 0, mates: 0, events: {}, resolved: 0, urgentDone: 0, contracts: 0,
     exposicion: 0, cortes: 0, favors: 0, spools: 0, xl: 0, maxOffline: 0, handRetrieved: 0, earned: 0, upgrades: 0,
-    repairs: 0, usedBought: 0, usedSold: 0 };
+    repairs: 0, usedBought: 0, usedSold: 0, tradeIns: 0 };
 }
 function freshRun() { return { pieces: 0, products: {}, mates: 0, orders: 0, spools: 0, xl: 0 }; }
 export function defaultSettings() {
@@ -561,6 +561,49 @@ export function sellMachine(s, mid) {
   s.machines.splice(i, 1);
   return true;
 }
+// ---------- Plan canje (idea de la comunidad: Chechulina) ----------
+// Entregás hasta 3 máquinas más chicas como parte de pago de una más grande.
+// Te las toman mejor que vendiéndolas sueltas (65 % de la nueva, menos el desgaste),
+// pagás la diferencia (como mínimo el 10 % de la nueva) y liberás lugar en el taller.
+export const TRADE_MAX = 3;
+export function tradeValue(s, m) {
+  const M = MACHINES[m.model];
+  return Math.round(Math.max((m.paid || 0) * 0.5, M.cost * 0.65 * (1 - 0.5 * wearOf(m))));
+}
+// Máquinas tuyas que se pueden entregar para esta (más baratas que la nueva y de otro modelo).
+export function tradeCandidates(s, model) {
+  const C = MACHINES[model].cost;
+  return s.machines.filter((m) => m.model !== model && MACHINES[m.model].cost < C);
+}
+export function tradeQuote(s, model, mids) {
+  const price = machineCost(s, model);
+  const list = s.machines.filter((m) => mids.includes(m.id));
+  const credit = Math.min(list.reduce((a, m) => a + tradeValue(s, m), 0), Math.floor(price * 0.9));
+  return { price, credit, pay: price - credit, count: list.length };
+}
+// Motivo por el que no se puede hacer el canje (o null si se puede).
+export function tradeReason(s, model, mids) {
+  if (s.tutorial?.active) return 'Terminá el tutorial primero';
+  if (!machineUnlocked(s, model)) return machineLockReason(s, model).join(' · ') || 'Todavía no la podés comprar';
+  if (!mids.length) return 'Elegí qué máquinas entregás';
+  if (mids.length > TRADE_MAX) return `Hasta ${TRADE_MAX} máquinas por canje`;
+  const ok = new Set(tradeCandidates(s, model).map((m) => m.id));
+  if (mids.some((id) => !ok.has(id))) return 'Solo se entregan máquinas más chicas';
+  if (s.machines.length - mids.length + 1 > slots(s)) return 'Sin lugar en el taller';
+  if (s.money < tradeQuote(s, model, mids).pay) return 'Te falta plata';
+  return null;
+}
+export function tradeIn(s, model, mids) {
+  const ids = [...new Set(mids)];
+  if (tradeReason(s, model, ids)) return null;
+  const q = tradeQuote(s, model, ids);
+  s.money -= q.pay;
+  s.machines = s.machines.filter((m) => !ids.includes(m.id));
+  const m = addMachine(s, model, q.price);
+  s.stats.tradeIns = (s.stats.tradeIns || 0) + 1;
+  return { machine: m, ...q };
+}
+
 // ---------- Desgaste y reparación (idea de la comunidad: SHUNE3D) ----------
 // Cada máquina se gasta mientras imprime, cada vez más rápido (curva exponencial):
 // 5 % a las 24 h de impresión, 12 % a las 48 h, 21 % a las 72 h, 49 % a los 5 días

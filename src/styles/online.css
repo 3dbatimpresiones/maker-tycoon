@@ -408,3 +408,25 @@
 .buy-btn .bb-price { white-space: normal; overflow-wrap: anywhere; }
 .buy-btn .bb-price b { white-space: nowrap; }
 .buy-btn { max-width: 100%; overflow: hidden; }
+
+/* ---------- Plan canje ---------- */
+.tr-btn { width: 100%; margin-top: 6px; padding: 7px 10px; font-size: 12px; }
+.tr-top { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: start; margin-bottom: 12px; }
+.tr-art .thumb3d { width: 110px; height: 110px; }
+.tr-sum { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; padding: 12px; border-radius: 14px; background: rgba(19,29,71,.6); border: 1px solid var(--line); font-size: 13px; color: #cbd5e1; }
+.tr-sum b { text-align: right; color: #fff; }
+.tr-sum .tr-pay { font-size: 18px; color: var(--cyan); }
+.tr-list { display: grid; gap: 8px; margin: 8px 0 10px; max-height: 300px; overflow: auto; }
+.tr-item { display: grid; grid-template-columns: 26px 48px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 14px; border: 1px solid var(--line);
+  background: rgba(19,29,71,.55); color: #e2e8f0; cursor: pointer; text-align: left; font: inherit; }
+.tr-item.on { border-color: var(--cyan); background: rgba(93,218,219,.12); }
+.tr-item .thumb3d { width: 48px; height: 48px; }
+.tr-check { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 13px; font-weight: 900; color: var(--dark); }
+.tr-item.on .tr-check { background: var(--cyan); border-color: var(--cyan); }
+.tr-name { display: grid; gap: 3px; min-width: 0; }
+.tr-val { display: grid; text-align: right; font-weight: 800; color: #4ade80; font-size: 13px; }
+.tr-val small { color: #94a3b8; font-weight: 600; font-size: 10.5px; }
+@media (max-width: 560px) {
+  .tr-top { grid-template-columns: 1fr; }
+  .tr-art { display: none; }
+}
