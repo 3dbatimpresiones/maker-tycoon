@@ -2,6 +2,20 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.6', date: '2026-10-25', title: 'Nuevo equilibrio: más camino, mejoras más accesibles',
+    intro: 'El juego se estaba pasando muy rápido. Ahora llegar a la Planta lleva más tiempo, y mejorar tu taller rinde más en el camino.',
+    groups: [
+      ['🏭 Talleres', [
+        'Garage: AR$ 20 M · Reputación 6. Local: AR$ 450 M · Rep. 9. Taller industrial: AR$ 7.000 M · Rep. 13.',
+        'Nave de producción: AR$ 50.000 M · Rep. 17. Planta 3DBAT: AR$ 400.000 M · Rep. 22.',
+        'Si ya estabas en un taller más grande, no perdés nada: seguís donde estás.',
+      ]],
+      ['⚡ Mejoras más baratas', [
+        'Velocidad (Orca Slicer, hotend, exposición, potencia, fresas) y marca (Instagram, Marca personal) cuestan menos y suben menos de precio en cada nivel.',
+      ]],
+    ],
+  },
+  {
     v: '1.5', date: '2026-10-25', title: 'Ideas de la comunidad',
     intro: 'Varias de estas mejoras salieron del buzón de Sugerencias. ¡Gracias!',
     groups: [

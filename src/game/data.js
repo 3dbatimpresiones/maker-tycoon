@@ -39,11 +39,11 @@ export const STAR_MULT = [1, 1, 1.15, 1.3, 1.45, 1.6];
 export const SPACES = [
   { id: 'escritorio', name: 'Escritorio del cuarto', slots: 2, cost: 0, rep: 1, blurb: 'Una impresora, una lámpara y el mate al lado.' },
   { id: 'cuarto', name: 'Cuarto maker', slots: 4, cost: 600000, rep: 2, blurb: 'Estantería de bobinas y tira LED. Ya es un taller.' },
-  { id: 'garage', name: 'Garage taller', slots: 8, cost: 12e6, rep: 5, blurb: 'Panel de herramientas, zona de packing y espacio para crecer.' },
-  { id: 'local', name: 'Local con vidriera', slots: 12, cost: 150e6, rep: 7, blurb: 'Vidriera a la calle y cartel de neón. Sos un emprendimiento.' },
-  { id: 'industrial', name: 'Taller industrial', slots: 16, cost: 1.6e9, rep: 10, blurb: 'Galpón con racks, puente grúa y luz de fábrica.' },
-  { id: 'nave', name: 'Nave de producción', slots: 80, floors: true, floorSlots: 20, cost: 8e9, rep: 13, blurb: 'Cuatro pisos, uno por tecnología: FDM, Resina, Láser y CNC (20 máquinas cada uno).' },
-  { id: 'planta', name: 'Planta 3DBAT', slots: 120, floors: true, floorSlots: 30, cost: 4.8e10, rep: 16, blurb: 'La fábrica maker definitiva: cuatro pisos premium y más grandes (30 máquinas cada uno), contratos de alto valor.' },
+  { id: 'garage', name: 'Garage taller', slots: 8, cost: 20e6, rep: 6, blurb: 'Panel de herramientas, zona de packing y espacio para crecer.' },
+  { id: 'local', name: 'Local con vidriera', slots: 12, cost: 450e6, rep: 9, blurb: 'Vidriera a la calle y cartel de neón. Sos un emprendimiento.' },
+  { id: 'industrial', name: 'Taller industrial', slots: 16, cost: 7e9, rep: 13, blurb: 'Galpón con racks, puente grúa y luz de fábrica.' },
+  { id: 'nave', name: 'Nave de producción', slots: 80, floors: true, floorSlots: 20, cost: 5e10, rep: 17, blurb: 'Cuatro pisos, uno por tecnología: FDM, Resina, Láser y CNC (20 máquinas cada uno).' },
+  { id: 'planta', name: 'Planta 3DBAT', slots: 120, floors: true, floorSlots: 30, cost: 4e11, rep: 22, blurb: 'La fábrica maker definitiva: cuatro pisos premium y más grandes (30 máquinas cada uno), contratos de alto valor.' },
 ];
 
 // art: cómo se dibuja en 3D (ver src/three/machines.js)
@@ -173,7 +173,7 @@ export const MASTERY_BONUS = 1.12;
 // ---------- Mejoras ----------
 // max: niveles (sin max = infinita) · growth: multiplicador de costo por nivel
 export const UPGRADES = {
-  slicer: { name: 'Perfiles en Orca Slicer', cat: 'Velocidad', cost: 12000, growth: 3.2, desc: '+5 % de velocidad en impresión 3D por nivel.', tip: 'El slicer corta el modelo en capas y decide cómo se imprime.' },
+  slicer: { name: 'Perfiles en Orca Slicer', cat: 'Velocidad', cost: 10000, growth: 2.5, desc: '+5 % de velocidad en impresión 3D por nivel.', tip: 'El slicer corta el modelo en capas y decide cómo se imprime.' },
   pei: { name: 'Cama PEI texturada', cat: 'Confiabilidad', cost: 35000, max: 1, desc: 'Las piezas pegan mejor: la mitad de spaghetti, warping y primeras capas fallidas.' },
   sobrino: { name: 'Sobrino ayudante', cat: 'Automatización', cost: 60000, max: 1, desc: 'Retira una pieza terminada cada 8 s. Con la Expulsión automática asciende a logística.', flavor: 'Sabe de compus. Más o menos.' },
   termo: { name: 'Termo Stanley', cat: 'Mate', cost: 80000, max: 1, desc: 'El mate dura 90 s en vez de 60 s.' },
@@ -183,12 +183,12 @@ export const UPGRADES = {
   proveedor: { name: 'Proveedor oficial: Filacolor', cat: 'Automatización', cost: 300000, rep: 3, max: 1, desc: 'Te repone solo el material cuando se acaba (con 10 % de recargo por el envío).', flavor: 'Filacolor es el proveedor oficial de la Comunidad Makers 3DBAT.' },
   retraccion: { name: 'Ajuste de retracción', cat: 'Calidad', cost: 50000, rep: 3, max: 1, desc: 'Chau hilos: elimina el stringing.', tip: 'La retracción tira el filamento para atrás para que no gotee.' },
   yerba: { name: 'Yerba de la buena', cat: 'Mate', cost: 15000, rep: 3, max: 1, desc: 'El mate se recarga en 3 min en vez de 5.', flavor: 'Con palo, obvio.' },
-  instagram: { name: 'Ventas por Instagram', cat: 'Marca', cost: 200000, growth: 4, rep: 4, desc: '+10 % a la paga de los pedidos por nivel.', flavor: 'Fotos lindas, historias y respuestas rápidas.' },
-  hotend: { name: 'Hotend de alto flujo', cat: 'Velocidad', cost: 180000, growth: 4, max: 3, rep: 4, desc: '+10 % de velocidad en impresión 3D por nivel.' },
+  instagram: { name: 'Ventas por Instagram', cat: 'Marca', cost: 120000, growth: 2.6, rep: 4, desc: '+10 % a la paga de los pedidos por nivel.', flavor: 'Fotos lindas, historias y respuestas rápidas.' },
+  hotend: { name: 'Hotend de alto flujo', cat: 'Velocidad', cost: 120000, growth: 2.8, max: 3, rep: 4, desc: '+10 % de velocidad en impresión 3D por nivel.' },
   tablero: { name: 'Tablero de pedidos ampliado', cat: 'Capacidad', cost: 250000, rep: 4, max: 1, desc: 'Hasta 5 pedidos a la vez (en vez de 3).' },
   secador: { name: 'Secador de filamento', cat: 'Confiabilidad', cost: 120000, rep: 4, max: 1, desc: 'Elimina el filamento húmedo.' },
   directo: { name: 'Extrusor directo', cat: 'Tecnología', cost: 150000, rep: 4, max: 1, desc: 'Desbloquea el TPU.', flavor: 'Con bowden, ni lo intentes.' },
-  marca: { name: 'Marca personal', cat: 'Marca', cost: 500000, growth: 4, rep: 5, desc: '+8 % al precio de todo lo que vendés por nivel.' },
+  marca: { name: 'Marca personal', cat: 'Marca', cost: 250000, growth: 2.6, rep: 5, desc: '+8 % al precio de todo lo que vendés por nivel.' },
   boquilla: { name: 'Boquilla de acero endurecido', cat: 'Calidad', cost: 60000, rep: 5, max: 1, desc: '+1★ en impresión 3D y −70 % de boquillas tapadas.' },
   camara: { name: 'Cámara con detección de spaghetti', cat: 'Confiabilidad', cost: 250000, rep: 5, max: 1, desc: 'Detecta el spaghetti y limpia sola en 3 s.' },
   abs: { name: 'Extractor y gabinete: ABS/ASA', cat: 'Tecnología', cost: 450000, rep: 5, max: 1, desc: 'Desbloquea ABS/ASA (solo en impresoras cerradas).' },
@@ -200,12 +200,12 @@ export const UPGRADES = {
   resina: { name: 'Rincón de resina', cat: 'Tecnología', cost: 900000, rep: 6, space: 3, max: 1, desc: 'Estación de lavado y curado, guantes y ventilación: desbloquea la resina.' },
   ups: { name: 'UPS: recuperación ante cortes', cat: 'Confiabilidad', cost: 800000, rep: 6, max: 1, desc: 'Un corte de luz ya no reinicia las piezas.' },
   gestor: { name: 'Gestor de pedidos', cat: 'Automatización', cost: 2000000, rep: 7, max: 1, desc: 'Acepta los pedidos que podés cumplir y les asigna máquinas.' },
-  exposicion: { name: 'Exposición calibrada', cat: 'Velocidad', cost: 500000, growth: 4, rep: 7, req: 'resina', desc: '+15 % de velocidad en resina por nivel.' },
+  exposicion: { name: 'Exposición calibrada', cat: 'Velocidad', cost: 350000, growth: 2.8, rep: 7, req: 'resina', desc: '+15 % de velocidad en resina por nivel.' },
   nylon: { name: 'Kit fibra de carbono', cat: 'Tecnología', cost: 1200000, rep: 8, max: 1, desc: 'Desbloquea el nylon con fibra de carbono.' },
   laser: { name: 'Sala de láser', cat: 'Tecnología', cost: 3500000, rep: 8, space: 4, max: 1, desc: 'Extractor, gafas y matafuego: desbloquea el corte y grabado láser.' },
-  potencia: { name: 'Potencia y asistencia de aire', cat: 'Velocidad', cost: 2000000, growth: 4, rep: 8, req: 'laser', desc: '+15 % de velocidad en láser por nivel.' },
+  potencia: { name: 'Potencia y asistencia de aire', cat: 'Velocidad', cost: 1200000, growth: 2.8, rep: 8, req: 'laser', desc: '+15 % de velocidad en láser por nivel.' },
   cnc: { name: 'Taller de CNC', cat: 'Tecnología', cost: 6000000, rep: 9, space: 5, max: 1, desc: 'Aspiradora, fresas y sujeciones: desbloquea el fresado CNC.' },
-  fresas: { name: 'Fresas de metal duro', cat: 'Velocidad', cost: 3000000, growth: 4, rep: 9, req: 'cnc', desc: '+15 % de velocidad en CNC por nivel.' },
+  fresas: { name: 'Fresas de metal duro', cat: 'Velocidad', cost: 1800000, growth: 2.8, rep: 9, req: 'cnc', desc: '+15 % de velocidad en CNC por nivel.' },
   granja: { name: 'Software de granja', cat: 'Automatización', cost: 50000000, growth: 5, rep: 11, desc: '+10 % de velocidad en todas las máquinas por nivel.' },
 };
 for (const [id, u] of Object.entries(UPGRADES)) { u.id = id; u.growth = u.growth || 1; u.rep = u.rep || 1; }
