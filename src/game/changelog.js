@@ -1,0 +1,42 @@
+// Novedades de cada versión (lo más nuevo arriba). Se muestran en la ventana de "Novedades"
+// la primera vez que alguien entra en el día o cuando hay una versión nueva.
+export const CHANGELOG = [
+  {
+    v: '1.0', date: '2026-10-25', title: '¡Maker Tycoon 1.0!',
+    intro: 'La primera versión completa del juego. Esto es todo lo que se sumó en las últimas actualizaciones:',
+    groups: [
+      ['🏭 Nave de producción y Planta', [
+        'Desde el nivel 6 el taller se organiza en 4 pisos: FDM, Resina, Láser y CNC (20 máquinas cada uno, hasta 80).',
+        'Barra de pisos debajo del taller, con un puntito rojo si en otro piso hay algo para atender.',
+        'Cada piso tiene su ambiente. En la Planta 3DBAT: recepción, robots y contratos especiales que pagan ×5,5.',
+        'Botones ◀ Mover / Mover ▶ para reorganizar las máquinas dentro de su piso.',
+      ]],
+      ['📋 Pedidos con decisiones', [
+        'Presupuestos: económico, estándar, rápido o premium. Cambian la paga, el plazo, la reputación y el riesgo.',
+        'Clientes con memoria: confianza, reseñas y un presupuesto preferido. Los fieles vuelven más seguido y pagan mejor.',
+        'Proyectos grandes de varias etapas (cafetería, feria gamer, stand…), con bonus al terminar.',
+        'Pedidos combinados entre pisos en la Nave.',
+      ]],
+      ['🔧 Máquinas', [
+        'Mods por máquina: 3 ranuras con hotend, gabinete, pantalla 16K, air assist, husillo y más.',
+        'Desgaste: las máquinas se gastan con el uso y se reparan en Mejoras.',
+        'Tienda de Usados entre jugadores y Plan canje (también con fichas y entre makers).',
+      ]],
+      ['🏙️ Ciudad', [
+        'Mapa de demanda: cada 30 minutos cambian las zonas que compran más.',
+        'Talleres rivales con fama propia: superalos para ganar fichas.',
+        'Expo Maker: el gran evento. Elegí productos y stand, y competí por premios.',
+      ]],
+      ['💬 Comunidad', [
+        'Chat en vivo con menciones y avisos (el botón redondo de abajo).',
+        'El ranking muestra quién está jugando ahora, desde cuándo y cuántas horas jugó.',
+      ]],
+      ['✨ Además', [
+        'Estadísticas del taller (botón 📊): mejor máquina, producción, fallas y clientes.',
+        'Gráficos más realistas, sobrino y gato animados, y fotos reales de las máquinas.',
+        'Encabezado más compacto y lista de máquinas que se puede ocultar con el ojito.',
+      ]],
+    ],
+  },
+];
+export const latest = () => CHANGELOG[0];

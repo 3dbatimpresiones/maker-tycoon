@@ -17,7 +17,7 @@ export function Header({ s, actions, open, online, chat }) {
         <div className="brand">
           <div className="brand-logo"><Icon name="box" size={26} /></div>
           <div>
-            <h1>MAKER TYCOON <span className="c-cyan">3DBAT</span> <span className="c-cyan">v{VERSION}</span></h1>
+            <h1>MAKER TYCOON <span className="c-cyan">3DBAT</span> <button className="ver-btn c-cyan" onClick={() => open('news')} title="Ver las novedades de esta versión">v{VERSION}</button></h1>
             {/* Nombre del taller: chico, editable, debajo del título (lo ven los demás en el ranking y las visitas) */}
             <label className="name-inline" title="Nombre de tu taller: lo ven los demás en el ranking y en las visitas. Tocá para cambiarlo.">
               <span aria-hidden="true">✎</span>

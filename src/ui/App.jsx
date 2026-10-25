@@ -19,6 +19,7 @@ import { VisitModal } from './Visit.jsx';
 import NaveIntro, { naveIntroKey } from './NaveIntro.jsx';
 import CityModal from './City.jsx';
 import StatsModal from './Stats.jsx';
+import { NewsModal, UpdateBanner, newsDue, markNewsSeen } from './News.jsx';
 import { SpotifyDock } from './Spotify.jsx';
 import { BRAND_DISCLAIMER } from '../game/data.js';
 
@@ -36,6 +37,8 @@ export default function App() {
   const [tab, setTab] = useState('taller');
   const [shopTab, setShopTab] = useState('machines');
   const [modal, setModal] = useState(null); // { kind, mid, tab }
+  const [news, setNews] = useState(() => newsDue()); // novedades: 1.ª vez del día o versión nueva
+  useEffect(() => { if (news && s.tutorial.active) { markNewsSeen(); setNews(false); } }, [news, s.tutorial.active]);
   const mission = currentMission(s);
   const glow = mission.target;
   const glowTab = TAB_OF[glow];
@@ -117,6 +120,7 @@ export default function App() {
       {modal?.kind === 'event' && m && <EventModal s={s} m={m} actions={actions} onClose={close} />}
       {modal?.kind === 'logros' && <AchievementsModal s={s} onClose={close} />}
       {modal?.kind === 'stats' && <StatsModal s={s} onClose={close} />}
+      {modal?.kind === 'news' && <NewsModal onClose={close} />}
       {modal?.kind === 'ciudad' && <CityModal s={s} actions={actions} tab={modal.tab} onClose={close} />}
       {modal?.kind === 'oficio' && <OficioModal s={s} actions={actions} onClose={close} />}
       {modal?.kind === 'comunidad' && <CommunityModal s={s} onClose={close} />}
@@ -133,6 +137,9 @@ export default function App() {
       {/* Aviso grande al llegar a la Nave (nivel 6) / Planta (nivel 7) */}
       {naveIntroKey(s) && !offline && !modal && !online.conflict && !locked && !gate.login && !gate.profile && !s.tutorial.active &&
         <NaveIntro s={s} which={naveIntroKey(s)} actions={actions} onClose={() => setTab('taller')} />}
+      {news && !naveIntroKey(s) && !offline && !modal && !online.conflict && !locked && !gate.login && !gate.profile && !s.tutorial.active &&
+        <NewsModal onClose={() => setNews(false)} />}
+      <UpdateBanner />
     </div>
   );
 }
