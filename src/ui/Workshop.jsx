@@ -102,7 +102,7 @@ export default function Workshop({ s, live, actions, floats, onMachine, onEvent,
   const floors = E.hasFloors(s);
   const floor = floors ? (s.settings.floor || 'fdm') : null;
   const shown = floors ? E.floorMachines(s, floor) : s.machines;
-  const cap = floors ? FLOOR_SLOTS : sp.slots;
+  const cap = floors ? E.floorCap(s) : sp.slots;
   const free = cap - shown.length;
   const mission = currentMission(s);
   const [fail3d, setFail3d] = useState(false);

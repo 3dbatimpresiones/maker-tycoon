@@ -492,14 +492,23 @@ t('Nave de producción: un piso por tecnología con 20 lugares', () => {
   assert.equal(E.moveMachine(s, ids[1], -1), false, 'ya es la primera de su piso');
 });
 
-t('Planta con más de 20 FDM de antes: no se pierde nada, solo no se compran más', () => {
+t('Planta con más de 30 FDM: no se pierde nada, solo no se compran más', () => {
   const s = E.newGame(null, 31); skipTutorial(s);
   s.rep = 1e7; s.money = 1e15; s.space = 6;
-  for (let i = 0; i < 23; i++) s.machines.push({ ...s.machines[0], id: 1000 + i });
+  for (let i = 0; i < 33; i++) s.machines.push({ ...s.machines[0], id: 1000 + i });
   const n = s.machines.length;
   const back = E.migrate(JSON.parse(E.serialize(s)));
   assert.equal(back.machines.length, n, 'todas siguen ahí');
   assert.equal(E.buyMachine(back, 'ender3'), null, 'piso FDM excedido: no entra otra');
+});
+
+t('la Planta tiene pisos de 30 (más que la Nave)', () => {
+  const s = E.newGame(null, 52); skipTutorial(s);
+  s.space = 5; assert.equal(E.floorCap(s), 20);
+  s.space = 6; assert.equal(E.floorCap(s), 30);
+  s.rep = 1e7; s.money = 1e15;
+  while (E.floorMachines(s, 'fdm').length < 30) assert.ok(E.buyMachine(s, 'ender3'));
+  assert.equal(E.buyMachine(s, 'ender3'), null, 'con 30 se llena');
 });
 
 t('pedido combinado entre tecnologías', () => {

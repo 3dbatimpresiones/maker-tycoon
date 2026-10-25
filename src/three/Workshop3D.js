@@ -227,7 +227,7 @@ export class Workshop3D {
     this.benches = []; this.emptyMarks = [];
     for (const [, e] of this.machines) this.scene.remove(e.station);
     this.machines.clear();
-    const n = floor ? FLOOR_SLOTS : SPACES[space].slots;
+    const n = floor ? (SPACES[space].floorSlots || FLOOR_SLOTS) : SPACES[space].slots;
     this.room = buildRoom(space, n, floor);
     this.scene.add(this.room.group);
     this.space = space;

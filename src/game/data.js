@@ -42,8 +42,8 @@ export const SPACES = [
   { id: 'garage', name: 'Garage taller', slots: 8, cost: 12e6, rep: 5, blurb: 'Panel de herramientas, zona de packing y espacio para crecer.' },
   { id: 'local', name: 'Local con vidriera', slots: 12, cost: 150e6, rep: 7, blurb: 'Vidriera a la calle y cartel de neón. Sos un emprendimiento.' },
   { id: 'industrial', name: 'Taller industrial', slots: 16, cost: 1.6e9, rep: 10, blurb: 'Galpón con racks, puente grúa y luz de fábrica.' },
-  { id: 'nave', name: 'Nave de producción', slots: 80, floors: true, cost: 8e9, rep: 13, blurb: 'Cuatro pisos, uno por tecnología: FDM, Resina, Láser y CNC (20 máquinas cada uno).' },
-  { id: 'planta', name: 'Planta 3DBAT', slots: 80, floors: true, cost: 4.8e10, rep: 16, blurb: 'La fábrica maker definitiva: cuatro pisos premium y automatizados, contratos de alto valor.' },
+  { id: 'nave', name: 'Nave de producción', slots: 80, floors: true, floorSlots: 20, cost: 8e9, rep: 13, blurb: 'Cuatro pisos, uno por tecnología: FDM, Resina, Láser y CNC (20 máquinas cada uno).' },
+  { id: 'planta', name: 'Planta 3DBAT', slots: 120, floors: true, floorSlots: 30, cost: 4.8e10, rep: 16, blurb: 'La fábrica maker definitiva: cuatro pisos premium y más grandes (30 máquinas cada uno), contratos de alto valor.' },
 ];
 
 // art: cómo se dibuja en 3D (ver src/three/machines.js)
@@ -316,7 +316,7 @@ export const EXPO_STANDS = [
   { id: 2, name: 'Stand premium con luces', icon: '✨', mult: 1.6, cost: 1.2 },
 ];
 
-// Pisos de la Nave y la Planta (uno por tecnología, 20 lugares cada uno).
+// Pisos de la Nave (20 lugares cada uno) y la Planta (30 cada uno), uno por tecnología.
 export const FLOORS = [
   { id: 'fdm', name: 'FDM', long: 'FDM Lab', icon: '🖨️', blurb: 'El corazón de la granja: volumen y velocidad.' },
   { id: 'resin', name: 'Resina', long: 'Resin Lab', icon: '🧪', blurb: 'Laboratorio oscuro y prolijo: piezas premium y detalladas.' },

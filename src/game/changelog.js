@@ -31,6 +31,7 @@ export const CHANGELOG = [
         'Los desafíos ahora cuentan los mates cebados, las piezas retiradas a mano y las fallas resueltas.',
         'Botón ? al lado del mate que explica qué hace.',
         'Pedidos con scroll propio y Tienda sin espacio vacío abajo.',
+        'La Planta 3DBAT ahora tiene pisos más grandes: 30 máquinas cada uno (hasta 120, 40 más que la Nave).',
       ]],
     ],
   },

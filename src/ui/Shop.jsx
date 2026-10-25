@@ -112,8 +112,8 @@ function Machines({ s, actions, glow }) {
         ))}
       </div>
       {!E.techUnlocked(s, tech) && <p className="o-warn soft">Primero desbloqueá «{UPGRADES[TECHS[tech].upgrade].name}» en Mejoras.</p>}
-      {floors && <p className="hint">En la nave cada tecnología tiene su piso: {E.floorMachines(s, tech).length}/20 en el piso {TECHS[tech].short}.</p>}
-      {full && floors && <p className="o-warn soft">El piso {TECHS[tech].short} está lleno (20/20). Vendé una máquina vieja de este piso o usá el <b>Plan canje</b> para cambiarla por una mejor.</p>}
+      {floors && <p className="hint">En la nave cada tecnología tiene su piso: {E.floorMachines(s, tech).length}/{E.floorCap(s)} en el piso {TECHS[tech].short}.</p>}
+      {full && floors && <p className="o-warn soft">El piso {TECHS[tech].short} está lleno ({E.floorCap(s)}/{E.floorCap(s)}). Vendé una máquina vieja de este piso o usá el <b>Plan canje</b> para cambiarla por una mejor.</p>}
       {full && !floors && <p className="o-warn soft">El taller está lleno. Agrandalo (Taller), vendé una máquina vieja (tocá su ⚙ o publicala en Usados) o usá el <b>Plan canje</b> para cambiar chicas por una grande.</p>}
       {trade && <TradeModal s={s} model={trade} actions={actions} onClose={() => setTrade(null)} />}
       {list.map((id, idx) => {
@@ -238,7 +238,7 @@ function Spaces({ s, actions, glow }) {
             <div className="space-num">{i + 1}</div>
             <div className="shop-txt">
               <b>{sp.name}</b>
-              <small>{sp.blurb} · {sp.floors ? '4 pisos × 20 lugares' : `${sp.slots} lugares`}</small>
+              <small>{sp.blurb} · {sp.floors ? `4 pisos × ${sp.floorSlots} lugares` : `${sp.slots} lugares`}</small>
               {cur && <span className="own">Estás acá</span>}
               {isNext && (E.repLevel(s) >= sp.rep
                 ? <BuyBtn s={s} cost={sp.cost} label="Agrandar el taller" onClick={() => actions.buySpace()} glow={glow === 'shop-space'} />

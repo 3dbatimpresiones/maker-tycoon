@@ -90,7 +90,7 @@ export const ACHIEVEMENTS = [
   { id: 'industrial', name: 'Taller industrial', desc: 'Llegá al galpón. Desbloquea LEDs naranja checo.', check: (s) => s.space >= 4 },
   { id: 'nave', name: 'Nave de producción', desc: 'Llegá a la nave.', check: (s) => s.space >= 5 },
   { id: 'planta', name: 'Planta 3DBAT', desc: 'Abrí la planta.', check: (s) => s.space >= 6 },
-  { id: 'lleno', name: 'No entra ni un alfiler', desc: 'Ocupá todos los lugares del taller.', check: (s) => s.space >= 1 && (E.hasFloors(s) ? E.floorMachines(s, 'fdm').length >= 20 : s.machines.length >= E.slots(s)) },
+  { id: 'lleno', name: 'No entra ni un alfiler', desc: 'Ocupá todos los lugares del taller.', check: (s) => s.space >= 1 && (E.hasFloors(s) ? E.floorMachines(s, 'fdm').length >= E.floorCap(s) : s.machines.length >= E.slots(s)) },
   { id: 'nacional', name: 'Industria nacional', desc: 'Tené una Hellbot.', check: (s) => ownsBrand(s, 'Hellbot') },
   { id: 'checa', name: 'Naranja checo', desc: 'Tené una Prusa.', check: (s) => ownsBrand(s, 'Prusa') },
   { id: 'bambu', name: 'Pasado al lado verde', desc: 'Tené una Bambu Lab.', check: (s) => ownsBrand(s, 'Bambu Lab') },

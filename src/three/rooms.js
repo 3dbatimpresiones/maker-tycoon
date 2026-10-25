@@ -6,7 +6,7 @@ import { MATERIALS, MATERIAL_ORDER, UNIT } from '../game/data.js';
 import { REAL, pbr, placeProp, realSpool } from './real.js';
 import { decorateFloor, FLOOR_THEME } from './floors.js';
 
-const GRID = { 2: [2, 1], 4: [4, 1], 8: [4, 2], 12: [4, 3], 16: [4, 4], 20: [5, 4], 24: [6, 4] };
+const GRID = { 2: [2, 1], 4: [4, 1], 8: [4, 2], 12: [4, 3], 16: [4, 4], 20: [5, 4], 24: [6, 4], 30: [6, 5] };
 export const SX = 1.2, SZ = 1.45, BENCH_H = 0.76;
 
 function box(w, h, d, mat, x, y, z, parent, shadow = true) {

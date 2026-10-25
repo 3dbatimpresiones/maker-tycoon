@@ -174,7 +174,8 @@ export const hasFloors = (s) => !!SPACES[s.space]?.floors;
 export const techOfModel = (model) => MACHINES[model]?.tech || 'fdm';
 export const floorMachines = (s, tech) => s.machines.filter((m) => techOfModel(m.model) === tech);
 export const floorUsed = (s, tech) => (hasFloors(s) ? floorMachines(s, tech).length : s.machines.length);
-export const floorCap = (s) => (hasFloors(s) ? FLOOR_SLOTS : slots(s));
+export const floorSlotsOf = (space) => SPACES[space]?.floorSlots || FLOOR_SLOTS; // Nave 20 · Planta 30
+export const floorCap = (s) => (hasFloors(s) ? floorSlotsOf(s.space) : slots(s));
 // ¿Entran estas máquinas (modelos) si salen las de "removing" (ids)?
 export function fitsModels(s, models, removing = []) {
   if (!hasFloors(s)) return s.machines.length - removing.length + models.length <= slots(s);
@@ -182,12 +183,12 @@ export function fitsModels(s, models, removing = []) {
   for (const md of models) { const t = techOfModel(md); need[t] = (need[t] || 0) + 1; }
   for (const [t, n] of Object.entries(need)) {
     const out = s.machines.filter((m) => removing.includes(m.id) && techOfModel(m.model) === t).length;
-    if (floorMachines(s, t).length - out + n > FLOOR_SLOTS) return false;
+    if (floorMachines(s, t).length - out + n > floorSlotsOf(s.space)) return false;
   }
   return true;
 }
 export const roomFor = (s, model, removing = []) => fitsModels(s, [model], removing);
-export const isFull = (s) => (hasFloors(s) ? FLOORS.every((f) => floorMachines(s, f.id).length >= FLOOR_SLOTS) : s.machines.length >= slots(s));
+export const isFull = (s) => (hasFloors(s) ? FLOORS.every((f) => floorMachines(s, f.id).length >= floorSlotsOf(s.space)) : s.machines.length >= slots(s));
 // Reorganizar: cambia de lugar una máquina con la anterior/siguiente de su mismo piso.
 export function moveMachine(s, mid, dir) {
   const m = s.machines.find((x) => x.id === mid);

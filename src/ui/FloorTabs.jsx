@@ -13,9 +13,9 @@ export default function FloorTabs({ s, actions }) {
         // Punto rojo: en ese piso hay algo para atender (lista, problema o esperando arrancar)
         const alert = cur !== f.id && fm.some((m) => m.waitStart || m.state === 'done' || m.event);
         return (
-          <button key={f.id} role="tab" aria-selected={cur === f.id} className={'ft' + (cur === f.id ? ' active' : '') + (n >= FLOOR_SLOTS ? ' full' : '')}
+          <button key={f.id} role="tab" aria-selected={cur === f.id} className={'ft' + (cur === f.id ? ' active' : '') + (n >= E.floorCap(s) ? ' full' : '')}
             onClick={() => actions.setting('floor', f.id)} title={`Piso ${i + 1} · ${f.long}: ${f.blurb}`}>
-            <span className="ft-ic">{f.icon}</span><b>{f.name.toUpperCase()}</b>{alert && <i className="ft-dot" />}<small>{E.techUnlocked(s, f.id) ? `${n}/${FLOOR_SLOTS}` : '🔒'}</small>
+            <span className="ft-ic">{f.icon}</span><b>{f.name.toUpperCase()}</b>{alert && <i className="ft-dot" />}<small>{E.techUnlocked(s, f.id) ? `${n}/${E.floorCap(s)}` : '🔒'}</small>
           </button>
         );
       })}

@@ -22,7 +22,8 @@ export default function NaveIntro({ s, which, actions, onClose }) {
     onClose();
   };
   const counts = FLOORS.map((f) => ({ ...f, n: E.floorMachines(s, f.id).length, on: E.techUnlocked(s, f.id) }));
-  const over = counts.filter((f) => f.n > FLOOR_SLOTS);
+  const cap = E.floorCap(s);
+  const over = counts.filter((f) => f.n > cap);
   return (
     <Modal title={planta ? '¡Llegaste a la Planta 3DBAT! · Nivel 7' : '¡Nave de producción! · Nivel 6'} icon="factory" onClose={done} wide className="nave-intro">
       <div className="ni-hero">
@@ -30,7 +31,7 @@ export default function NaveIntro({ s, which, actions, onClose }) {
         <div>
           <h3>{planta ? 'La fábrica maker definitiva' : 'Tu taller ahora tiene 4 pisos'}</h3>
           <p>{planta
-            ? 'Los mismos 4 pisos de la Nave, pero premium y automatizados: recepción con tu marca, brazos robóticos, cartelería digital y contratos especiales que pagan mucho más.'
+            ? 'Los 4 pisos ahora son más grandes: 30 máquinas cada uno (hasta 120 en total, 40 más que en la Nave). Y premium: recepción con tu marca, brazos robóticos, cartelería digital y contratos especiales que pagan mucho más.'
             : 'Desde acá el taller deja de ser un solo salón: se organiza en cuatro pisos, uno por tecnología. Cada piso tiene su ambiente, su lugar y sus máquinas. Te cuento qué cambia.'}</p>
         </div>
       </div>
@@ -40,18 +41,18 @@ export default function NaveIntro({ s, which, actions, onClose }) {
           <div key={f.id} className={'ni-floor f-' + f.id + (f.on ? '' : ' locked')}>
             <span className="ni-ic">{f.icon}</span>
             <b>Piso {i + 1} · {f.long}</b>
-            <small>{f.on ? `${f.n}/${FLOOR_SLOTS} máquinas` : '🔒 Desbloquealo en Mejoras'}</small>
+            <small>{f.on ? `${f.n}/${cap} máquinas` : '🔒 Desbloquealo en Mejoras'}</small>
             <em>{f.blurb}</em>
           </div>
         ))}
       </div>
 
       <div className="ni-list">
-        <div><span>🏭</span><p><b>4 pisos × 20 lugares = hasta 80 máquinas.</b> Cada tecnología tiene su propio piso: FDM, Resina, Láser y CNC. Ya no compiten por el mismo espacio.</p></div>
+        <div><span>🏭</span><p><b>4 pisos × {cap} lugares = hasta {cap * 4} máquinas.</b> Cada tecnología tiene su propio piso: FDM, Resina, Láser y CNC. Ya no compiten por el mismo espacio.</p></div>
         <div><span>✅</span><p><b>No perdiste nada.</b> Cada máquina que tenías se mudó sola a su piso (las FDM al piso 1), con su producto, su desgaste y su experiencia.{over.length > 0 && <> En {over.map((f) => f.name).join(' y ')} tenés más de 20: siguen todas funcionando, solo que no vas a poder sumar otra ahí hasta bajar de 20.</>}</p></div>
-        <div><span>🔀</span><p><b>Barra de pisos, justo debajo del taller:</b> <code>FDM 12/20 · RESINA 4/20 · LÁSER 2/20 · CNC 0/20</code>. Tocá uno y el taller cambia a ese piso. Un <b>puntito rojo</b> te avisa que en otro piso hay algo para atender (una pieza lista, un problema o una máquina esperando).</p></div>
+        <div><span>🔀</span><p><b>Barra de pisos, justo debajo del taller:</b> <code>FDM 12/{cap} · RESINA 4/{cap} · LÁSER 2/{cap} · CNC 0/{cap}</code>. Tocá uno y el taller cambia a ese piso. Un <b>puntito rojo</b> te avisa que en otro piso hay algo para atender (una pieza lista, un problema o una máquina esperando).</p></div>
         <div><span>⚡</span><p><b>Todos los pisos trabajan a la vez,</b> aunque estés mirando otro. Lo que produce cada uno suma a tu plata, tu reputación, la experiencia y el ranking.</p></div>
-        <div><span>🛒</span><p><b>Comprar:</b> cada máquina va directo a su piso y el juego te lleva a verla. Si un piso está lleno (20/20), vendé una de ese piso o usá el <b>Plan canje</b> para cambiarla por una mejor.</p></div>
+        <div><span>🛒</span><p><b>Comprar:</b> cada máquina va directo a su piso y el juego te lleva a verla. Si un piso está lleno ({cap}/{cap}), vendé una de ese piso o usá el <b>Plan canje</b> para cambiarla por una mejor.</p></div>
         <div><span>↔️</span><p><b>Reorganizar:</b> en el ⚙ de cada máquina tenés <b>◀ Mover / Mover ▶</b> para acomodarla como quieras dentro de su piso. Una máquina nunca pasa a otro piso.</p></div>
         <div><span>🔀</span><p><b>Pedidos combinados:</b> clientes que necesitan trabajo de varios pisos a la vez (por ejemplo, un cartel láser + soportes FDM + una pieza CNC). Pagan <b>×3,5</b> y dan una ficha por cada tecnología.</p></div>
         {planta
