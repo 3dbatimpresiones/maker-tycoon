@@ -404,3 +404,7 @@
 .buy-btn .bb-miss { display: block; margin-top: 2px; font-size: 11px; font-weight: 700; opacity: .75; }
 .buy-btn .bb-price { white-space: nowrap; }
 .buy-btn .bb-price b { font-size: 14px; }
+/* El precio se acomoda al ancho del botón (sin salirse) */
+.buy-btn .bb-price { white-space: normal; overflow-wrap: anywhere; }
+.buy-btn .bb-price b { white-space: nowrap; }
+.buy-btn { max-width: 100%; overflow: hidden; }
