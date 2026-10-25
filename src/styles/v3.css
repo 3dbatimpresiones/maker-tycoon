@@ -73,3 +73,7 @@
   .name-inline input { max-width: 170px; }
 }
 .top-actions { margin-left: auto; justify-content: flex-end; }
+/* Ojito de la lista de máquinas */
+.machine-strip .strip-eye { color: var(--cyan); border-style: dashed; }
+.machine-strip .strip-eye:hover { color: #fff; }
+.machine-strip.hid { margin-top: 6px; }

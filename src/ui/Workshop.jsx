@@ -154,8 +154,14 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
       </div>
       <FloorTabs s={s} actions={actions} />
       {view === '3d' && shown.length > 0 && (
-        <div className="machine-strip">
-          {shown.map((m) => {
+        <div className={'machine-strip' + (s.settings.stripHidden ? ' hid' : '')}>
+          {/* Ojito: muestra u oculta todos los accesos a las máquinas de una */}
+          <button className="chip-m strip-eye" onClick={() => actions.setting('stripHidden', !s.settings.stripHidden)}
+            title={s.settings.stripHidden ? 'Mostrar la lista de máquinas' : 'Ocultar la lista de máquinas'}>
+            <Icon name={s.settings.stripHidden ? 'eyeOff' : 'eye'} size={14} />
+            {s.settings.stripHidden ? `Mostrar máquinas (${shown.length})` : 'Ocultar'}
+          </button>
+          {!s.settings.stripHidden && shown.map((m) => {
             const st = bayStatus(s, m);
             const M = MACHINES[m.model];
             return (
