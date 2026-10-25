@@ -4,7 +4,8 @@ import Icon from './Icon.jsx';
 import Scene3D from './Scene3D.jsx';
 import { MachineThumb, ProductThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
-import { MACHINES, PRODUCTS, SPACES, MACHINE_EVENTS, GLOBAL_EVENTS } from '../game/data.js';
+import { MACHINES, PRODUCTS, SPACES, MACHINE_EVENTS, GLOBAL_EVENTS, FLOORS, FLOOR_SLOTS } from '../game/data.js';
+import FloorTabs from './FloorTabs.jsx';
 import { money, rate, dur, clock, fmtText } from '../game/format.js';
 import { currentMission } from '../game/progress.js';
 
@@ -94,7 +95,11 @@ function ChallengeStrip({ s, open }) {
 
 export default function Workshop({ s, actions, floats, onMachine, onEvent, goShop, glow, open, podium, gifts }) {
   const sp = SPACES[s.space];
-  const free = sp.slots - s.machines.length;
+  const floors = E.hasFloors(s);
+  const floor = floors ? (s.settings.floor || 'fdm') : null;
+  const shown = floors ? E.floorMachines(s, floor) : s.machines;
+  const cap = floors ? FLOOR_SLOTS : sp.slots;
+  const free = cap - shown.length;
   const mission = currentMission(s);
   const [fail3d, setFail3d] = useState(false);
   const view = fail3d ? 'lista' : s.settings.view === 'lista' ? 'lista' : '3d';
@@ -117,7 +122,7 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
           <button className={'seg' + (view === '3d' ? ' active' : '')} disabled={fail3d} onClick={() => actions.setting('view', '3d')}>3D</button>
           <button className={'seg' + (view === 'lista' ? ' active' : '')} onClick={() => actions.setting('view', 'lista')}>Lista</button>
         </div>
-        <span className="slots-chip">{s.machines.length}/{sp.slots}</span>
+        <span className="slots-chip" title={floors ? `Piso ${FLOORS.find((f) => f.id === floor).long} · ${s.machines.length} máquinas en toda la nave` : ''}>{shown.length}/{cap}</span>
       </div>
       <ChallengeStrip s={s} open={open} />
       {mission.id !== 'libre' && (
@@ -129,12 +134,12 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
       <div className="scene-wrap">
         <GlobalBanner s={s} actions={actions} />
         {view === '3d' ? (
-          <Scene3D s={s} floats={floats} onTap={onTap} onEmpty={() => goShop('machines')} onFail={() => setFail3d(true)} glow={glow} onFeedback={() => open('sugerencias')} podium={podium} gifts={gifts} />
+          <Scene3D s={s} actions={actions} floats={floats} onTap={onTap} onEmpty={() => goShop('machines')} onFail={() => setFail3d(true)} glow={glow} onFeedback={() => open('sugerencias')} podium={podium} gifts={gifts} />
         ) : (
           <>
           <button className="scene-fb static" title="Mandanos una idea o contanos si algo anda mal" onClick={() => open('sugerencias')}><Icon name="message" size={16} /> Sugerencias</button>
           <div className="bays">
-            {s.machines.map((m) => (
+            {shown.map((m) => (
               <Bay key={m.id} s={s} m={m} floats={floats.filter((f) => f.mid === m.id)} onTap={onTap} onGear={onMachine}
                 glow={glow === 'machine' && (m.waitStart || m.state === 'done' || m.event)} />
             ))}
@@ -144,12 +149,13 @@ export default function Workshop({ s, actions, floats, onMachine, onEvent, goSho
               </button>
             ))}
           </div>
+          <FloorTabs s={s} actions={actions} />
           </>
         )}
       </div>
-      {view === '3d' && s.machines.length > 0 && (
+      {view === '3d' && shown.length > 0 && (
         <div className="machine-strip">
-          {s.machines.map((m) => {
+          {shown.map((m) => {
             const st = bayStatus(s, m);
             const M = MACHINES[m.model];
             return (

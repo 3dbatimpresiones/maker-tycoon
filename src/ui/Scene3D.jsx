@@ -6,6 +6,7 @@ import { MACHINES, MACHINE_EVENTS, PRODUCTS, SPACES } from '../game/data.js';
 import * as E from '../game/engine.js';
 import { dur } from '../game/format.js';
 import { sfx } from './sfx.js';
+import FloorTabs from './FloorTabs.jsx';
 
 function labelStatus(s, m) {
   if (m.waitStart) return { k: 'start', t: '▶ Imprimir' };
@@ -21,7 +22,7 @@ function labelStatus(s, m) {
 // Mientras se visita otro taller, el propio deja de dibujarse (ahorra placa de video).
 export const scenePause = { on: false };
 
-export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFeedback, podium, gifts }) {
+export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, glow, onFeedback, podium, gifts }) {
   const podiumRef = useRef(podium);
   podiumRef.current = podium;
   const giftsRef = useRef(gifts);
@@ -113,24 +114,27 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFee
     else onEmpty();
   };
 
+  // En la Nave y la Planta se ve un piso por vez: sus máquinas y sus lugares libres (de 20).
+  const floor = E.hasFloors(s) ? (s.settings.floor || 'fdm') : null;
+  const shown = floor ? E.floorMachines(s, floor) : s.machines;
   const freeSlots = [];
-  for (let i = s.machines.length; i < SPACES[s.space].slots; i++) freeSlots.push(i);
+  for (let i = shown.length; i < (floor ? E.floorCap(s) : SPACES[s.space].slots); i++) freeSlots.push(i);
 
   return (
     <div className="scene3d" ref={wrapRef}>
       <canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp} aria-label="Taller en 3D: tocá una máquina para usarla, arrastrá para girar" />
       {!ready && <div className="busy"><div className="spinner" /><span>Armando el taller 3D…</span></div>}
       <div className="labels" aria-hidden={!ready}>
-        {ready && s.machines.map((m) => {
+        {ready && shown.map((m) => {
           const st = labelStatus(s, m);
           // Con muchas máquinas, las que trabajan solas muestran un cartel mínimo (barra y segundos) para no taparse.
-          const mini = s.machines.length > 8 && (st.k === 'print' || st.k === 'idle' || st.k === 'pause');
+          const mini = shown.length > 8 && (st.k === 'print' || st.k === 'idle' || st.k === 'pause');
           const M = MACHINES[m.model];
           const p = m.state === 'done' ? 1 : m.need ? m.progress / m.need : 0;
           const order = !!m.orderId;
           return (
             <button key={m.id} ref={(el) => { if (el) labels.current.set(m.id, el); else labels.current.delete(m.id); }}
-              className={`ml ml-${st.k}` + (mini ? ' mini' : s.machines.length > 6 ? ' compact' : '') + (glow === 'machine' && (st.k === 'start' || st.k === 'done' || st.k === 'event') ? ' tut-glow' : '')}
+              className={`ml ml-${st.k}` + (mini ? ' mini' : shown.length > 6 ? ' compact' : '') + (glow === 'machine' && (st.k === 'start' || st.k === 'done' || st.k === 'event') ? ' tut-glow' : '')}
               onClick={() => onTap(m)} title={`${M.brand} ${M.name}`}>
               <span className="ml-name">{order && <em>📋</em>}{M.brand === 'Bambu Lab' ? 'Bambu' : M.brand} {M.name}</span>
               <span className="ml-st">{st.t}</span>
@@ -141,15 +145,16 @@ export default function Scene3D({ s, floats, onTap, onEmpty, onFail, glow, onFee
         })}
         {ready && freeSlots.map((i) => (
           <button key={'slot' + i} ref={(el) => { if (el) slotLabels.current.set(i, el); else slotLabels.current.delete(i); }}
-            className={'ml ml-free' + (glow === 'shop-machines' && i === s.machines.length ? ' tut-glow' : '')} onClick={onEmpty}>
-            <Icon name="plus" size={14} /> Lugar libre
+            className={'ml ml-free' + (freeSlots.length > 4 && i !== shown.length ? ' dot' : '') + (glow === 'shop-machines' && i === shown.length ? ' tut-glow' : '')} onClick={onEmpty} title="Lugar libre: comprar máquina">
+            <Icon name="plus" size={14} />{(freeSlots.length <= 4 || i === shown.length) && ' Lugar libre'}
           </button>
         ))}
       </div>
       {ready && onFeedback && <button className="scene-fb" title="Mandanos una idea o contanos si algo anda mal" onClick={onFeedback}><Icon name="message" size={16} /> Sugerencias</button>}
       {ready && <button className="icon-btn sm scene-center" title="Ver todo el taller" onClick={() => { wsRef.current?.fit(); setFocused(false); }}><Icon name="target" size={18} /></button>}
       {ready && focused && <button className="chip-btn scene-back" onClick={() => { wsRef.current?.fit(); setFocused(false); }}>← Ver todo el taller</button>}
-      {ready && <span className="scene-hint">Clic izquierdo: girar · Clic derecho: mover · Rueda: acercar</span>}
+      {ready && actions && <FloorTabs s={s} actions={actions} />}
+      {ready && <span className={'scene-hint' + (floor ? ' up' : '')}>Clic izquierdo: girar · Clic derecho: mover · Rueda: acercar</span>}
     </div>
   );
 }

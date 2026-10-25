@@ -163,6 +163,10 @@ export function useGame() {
           sfx.alert(); toast('🏢 ¡Llegó un contrato de empresa! Paga ×4 y da fichas.', 'warn', 4500);
           sayOnce('contract1', 'Los contratos de empresa son pedidos grandes: llevan más tiempo pero pagan ×4, suman mucha reputación y dan fichas para la tienda de fichas.', { mood: 'happy' });
           break;
+        case 'combo':
+          sfx.alert(); toast('🔀 ¡Pedido combinado! Necesita trabajo de varios pisos. Paga ×3,5 y da fichas.', 'warn', 4500);
+          sayOnce('combo1', 'Los pedidos combinados mezclan tecnologías: por ejemplo, un cartel láser con soportes FDM y una pieza CNC. Cada piso hace su parte y cobrás todo junto.', { mood: 'happy' });
+          break;
         case 'challengeDone': sfx.achievement(); say(`¡Superaste el desafío «${e.name}»! Premio para siempre: ${e.reward} (+3 fichas).`, { mood: 'happy' }); break;
         case 'newChallenges':
           if (!st.seen.daily1) { st.seen.daily1 = 1; say('Hay desafíos nuevos todos los días (y uno semanal). Dan fichas para canjear por turbos, saltos de tiempo y más. Están en el botón 🎯 Desafíos.'); }
@@ -291,7 +295,15 @@ export function useGame() {
     start: (mid) => act((st, ctx) => { sfx.click(); E.startMachine(st, mid, ctx); }),
     retrieve: (mid) => act((st, ctx) => E.retrieve(st, mid, ctx, 'hand')),
     resolve: (mid, opt) => act((st, ctx) => E.resolveEvent(st, mid, opt, ctx)),
-    buyMachine: (model) => act((st) => { const m = E.buyMachine(st, model); if (m) { sfx.buy(); toast(`Nueva: ${fullName(MACHINES[model])}`); } return m; }),
+    buyMachine: (model) => act((st) => {
+      const m = E.buyMachine(st, model);
+      if (m) {
+        sfx.buy(); toast(`Nueva: ${fullName(MACHINES[model])}`);
+        if (E.hasFloors(st)) st.settings.floor = E.techOfModel(model); // te lleva al piso donde quedó
+      }
+      return m;
+    }),
+    moveMachine: (mid, dir) => act((st) => { E.moveMachine(st, mid, dir); }),
     tradeIn: (model, mids, tokens = 0) => act((st) => {
       const r = E.tradeIn(st, model, mids, tokens);
       if (r) {

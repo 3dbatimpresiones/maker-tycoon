@@ -4,6 +4,7 @@ import { M, std, TEX } from './materials.js';
 import { buildPiece } from './pieces.js';
 import { MATERIALS, MATERIAL_ORDER, UNIT } from '../game/data.js';
 import { REAL, pbr, placeProp, realSpool } from './real.js';
+import { decorateFloor, FLOOR_THEME } from './floors.js';
 
 const GRID = { 2: [2, 1], 4: [4, 1], 8: [4, 2], 12: [4, 3], 16: [4, 4], 20: [5, 4], 24: [6, 4] };
 export const SX = 1.2, SZ = 1.45, BENCH_H = 0.76;
@@ -57,7 +58,7 @@ function spoolMesh(color) {
   return g;
 }
 
-export function buildRoom(space, n) {
+export function buildRoom(space, n, floorId = null) {
   const L = slotLayout(n);
   const g = new THREE.Group();
   const W = L.W, D = L.D;
@@ -88,7 +89,10 @@ export function buildRoom(space, n) {
     () => pbr('metal_wall', [W / 2, wallH / 2], { tint: '#9aa4b8', metal: 0.5, rough: 0.6 }),
     () => pbr('metal_wall', [W / 2, wallH / 2], { tint: '#a9b3c8', metal: 0.5, rough: 0.6 }),
   ][space];
-  const wallMat = REAL.on && realWall ? realWall() : std(wallColor, 0.9, 0);
+  const theme = floorId ? FLOOR_THEME[floorId] : null;
+  const wallMat = theme
+    ? (REAL.on ? pbr(floorId === 'resin' ? 'plaster' : 'metal_wall', [W / 2, wallH / 2], { tint: theme.wall, metal: floorId === 'resin' ? 0 : 0.5, rough: 0.6 }) : std(theme.wall, 0.8, 0.2))
+    : REAL.on && realWall ? realWall() : std(wallColor, 0.9, 0);
   const back = plane(W, wallH, wallMat, g); back.position.set(0, wallH / 2, -D / 2);
   const left = plane(D, wallH, wallMat, g); left.position.set(-W / 2, wallH / 2, 0); left.rotation.y = Math.PI / 2;
   box(W, 0.1, 0.03, std('#15182e', 0.6, 0), 0, 0.05, -D / 2 + 0.015, g);
@@ -315,7 +319,9 @@ export function buildRoom(space, n) {
       for (let i = 0; i < 3; i++) P('plastic_crate_01', rx - 1.0 - i * 0.45, 0, fz - 0.35, { rotY: i * 0.2, size: 0.32 });
     }
   }
-  room.setLed = (color) => led.emissive.set(color);
+  room.floor = floorId;
+  if (floorId) decorateFloor(room, floorId, space);
+  room.setLed = (color) => led.emissive.set(theme ? theme.led : color);
   room.setVitrina = (list) => {
     if (!room.vitrinaPos) return;
     const key = list.map((v) => v.p).join(',');
@@ -396,6 +402,7 @@ export function buildRoom(space, n) {
   // ---------- Zonas que aparecen al desbloquear cada tecnología ----------
   const zones = new THREE.Group(); g.add(zones);
   room.setZones = (s) => {
+    if (floorId) return; // en la Nave y la Planta cada tecnología tiene su propio piso
     const key = ['resina', 'laser', 'cnc'].map((k) => (s.upgrades[k] ? 1 : 0)).join('');
     if (room.zoneKey === key) return;
     room.zoneKey = key;

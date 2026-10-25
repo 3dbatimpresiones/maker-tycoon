@@ -13,8 +13,8 @@ import { buildMachine } from './machines.js';
 import { buildRoom, buildBench, BENCH_H, SX } from './rooms.js';
 import { REAL, loadWorkshopEnv } from './real.js';
 import { makeSobrino, SobrinoBrain, CatActor, makeGift, giftLabel } from './crew.js';
-import { MACHINES, SPACES, LED_COLORS } from '../game/data.js';
-import { isMulti, has } from '../game/engine.js';
+import { MACHINES, SPACES, LED_COLORS, FLOOR_SLOTS } from '../game/data.js';
+import { isMulti, has, hasFloors, floorMachines } from '../game/engine.js';
 
 // alta = "Calidad" (PC) · media = "Equilibrado" · baja = "Rendimiento" (celulares humildes)
 export function resolveQuality(q) {
@@ -220,21 +220,23 @@ export class Workshop3D {
     return true;
   }
 
-  buildSpace(space) {
+  buildSpace(space, floor = null) {
     if (this.room) this.scene.remove(this.room.group);
     for (const b of this.benches) this.scene.remove(b);
     for (const m of this.emptyMarks) this.scene.remove(m);
     this.benches = []; this.emptyMarks = [];
     for (const [, e] of this.machines) this.scene.remove(e.station);
     this.machines.clear();
-    const n = SPACES[space].slots;
-    this.room = buildRoom(space, n);
+    const n = floor ? FLOOR_SLOTS : SPACES[space].slots;
+    this.room = buildRoom(space, n, floor);
     this.scene.add(this.room.group);
     this.space = space;
+    this.floor = floor;
     this.buildCrew();
     this.podiumKey = null;
     this.giftKey = null;
     const style = space === 0 ? 'desk' : space >= 4 ? 'steel' : 'wood';
+    this.userMoved = false;
     this.room.layout.pos.forEach((p, i) => {
       const b = buildBench(style);
       b.position.copy(p);
@@ -265,9 +267,12 @@ export class Workshop3D {
   }
 
   sync(s) {
-    if (s.space !== this.space) this.buildSpace(s.space);
+    // Nave y Planta: se ve un piso por vez (el que eligió el jugador en la barra de pisos).
+    const floor = hasFloors(s) ? (s.settings.floor || 'fdm') : null;
+    if (s.space !== this.space || floor !== this.floor) { this.buildSpace(s.space, floor); this.fit(true); }
+    const list = floor ? floorMachines(s, floor) : s.machines;
     const seen = new Set();
-    s.machines.forEach((m, i) => {
+    list.forEach((m, i) => {
       seen.add(m.id);
       let e = this.machines.get(m.id);
       if (!e || e.model !== m.model) {

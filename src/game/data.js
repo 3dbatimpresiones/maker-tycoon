@@ -42,8 +42,8 @@ export const SPACES = [
   { id: 'garage', name: 'Garage taller', slots: 8, cost: 12e6, rep: 5, blurb: 'Panel de herramientas, zona de packing y espacio para crecer.' },
   { id: 'local', name: 'Local con vidriera', slots: 12, cost: 150e6, rep: 7, blurb: 'Vidriera a la calle y cartel de neón. Sos un emprendimiento.' },
   { id: 'industrial', name: 'Taller industrial', slots: 16, cost: 1.6e9, rep: 10, blurb: 'Galpón con racks, puente grúa y luz de fábrica.' },
-  { id: 'nave', name: 'Nave de producción', slots: 20, cost: 8e9, rep: 13, blurb: 'Una nave entera de máquinas trabajando las 24 horas.' },
-  { id: 'planta', name: 'Planta 3DBAT', slots: 24, cost: 4.8e10, rep: 16, blurb: 'La fábrica maker más grande del país.' },
+  { id: 'nave', name: 'Nave de producción', slots: 80, floors: true, cost: 8e9, rep: 13, blurb: 'Cuatro pisos, uno por tecnología: FDM, Resina, Láser y CNC (20 máquinas cada uno).' },
+  { id: 'planta', name: 'Planta 3DBAT', slots: 80, floors: true, cost: 4.8e10, rep: 16, blurb: 'La fábrica maker definitiva: cuatro pisos premium y automatizados, contratos de alto valor.' },
 ];
 
 // art: cómo se dibuja en 3D (ver src/three/machines.js)
@@ -254,6 +254,15 @@ export const ORDER_OFFER_LIFE = 240;
 export const ORDER_SPAWN_EVERY = 40;
 
 // Contratos de empresa: pedidos grandes que además dan fichas.
+// Pisos de la Nave y la Planta (uno por tecnología, 20 lugares cada uno).
+export const FLOORS = [
+  { id: 'fdm', name: 'FDM', long: 'FDM Lab', icon: '🖨️', blurb: 'El corazón de la granja: volumen y velocidad.' },
+  { id: 'resin', name: 'Resina', long: 'Resin Lab', icon: '🧪', blurb: 'Laboratorio oscuro y prolijo: piezas premium y detalladas.' },
+  { id: 'laser', name: 'Láser', long: 'Laser Workshop', icon: '🔥', blurb: 'Trabajos rápidos y personalizados, de alta rotación.' },
+  { id: 'cnc', name: 'CNC', long: 'CNC Factory', icon: '⚙️', blurb: 'Lo más pesado: piezas grandes y contratos industriales.' },
+];
+export const FLOOR_SLOTS = 20;
+export const COMBO_CLIENTS = ['Estudio de arquitectura', 'Agencia de eventos', 'Marca de indumentaria', 'Museo interactivo', 'Cervecería artesanal', 'Escuela técnica'];
 export const CONTRACT_CLIENTS = [
   'Municipalidad', 'Estudio de diseño', 'Cadena de jugueterías', 'Museo de ciencias', 'Feria de la Comunidad Makers',
   'Fábrica de electrodomésticos', 'Escuela de arquitectura', 'Productora de eventos', 'Universidad tecnológica', 'Club de fútbol',

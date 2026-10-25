@@ -12,3 +12,27 @@
 .cur-toggle .seg { display: inline-flex; align-items: center; gap: 5px; }
 .flag { display: block; flex: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
 .scene-back { position: absolute; left: 10px; top: 10px; z-index: 3; background: rgba(13,20,51,.85); }
+
+/* Pisos de la Nave de producción y la Planta 3DBAT */
+.floor-tabs { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.scene3d .floor-tabs { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 3; padding: 4px;
+  background: rgba(8,12,32,.72); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; backdrop-filter: blur(6px); max-width: calc(100% - 20px); flex-wrap: nowrap; }
+.scene-wrap > .floor-tabs { margin-top: 12px; }
+.floor-tabs .ft { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 10px; border: 1px solid transparent;
+  background: transparent; color: #cbd5e1; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.floor-tabs .ft b { font-weight: 700; letter-spacing: .04em; }
+.floor-tabs .ft small { font-size: 11px; opacity: .75; font-variant-numeric: tabular-nums; }
+.floor-tabs .ft:hover { color: #fff; background: rgba(255,255,255,.06); }
+.floor-tabs .ft.active { color: #fff; background: rgba(0,212,255,.16); border-color: rgba(0,212,255,.55); }
+.floor-tabs .ft.full small { color: #fbbf24; opacity: 1; }
+.scene-wrap > .floor-tabs .ft { background: var(--card2, rgba(255,255,255,.04)); border-color: var(--line); }
+.scene-hint.up { bottom: 60px; }
+.mp-move { display: inline-flex; gap: 6px; }
+@media (max-width: 640px) {
+  .floor-tabs .ft { padding: 0 8px; gap: 4px; height: 32px; font-size: 11px; }
+  .floor-tabs .ft-ic { display: none; }
+}
+.floor-tabs .ft { position: relative; }
+.floor-tabs .ft-dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: #ff4d6d; box-shadow: 0 0 6px #ff4d6d; }
+.ml.ml-free.dot { padding: 3px; min-width: 0; width: 24px; height: 24px; border-radius: 50%; justify-content: center; opacity: .75; }
+.ml.ml-free.dot:hover { opacity: 1; }

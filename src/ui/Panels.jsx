@@ -120,6 +120,12 @@ export function MachinePanel({ s, m, actions, onClose, onSellUsed }) {
       </div>
       <p className="hint">La <b>experiencia</b> de cada producto sube cuanto más lo fabricás y no se pierde al mudarte: cada nivel paga +12 %.</p>
       <div className="mp-sell">
+        {(E.hasFloors(s) ? E.floorMachines(s, E.techOfModel(m.model)).length : s.machines.length) > 1 && (
+          <span className="mp-move" title="Reordená las máquinas de este piso">
+            <button className="chip-btn" onClick={() => actions.moveMachine(m.id, -1)}>◀ Mover</button>
+            <button className="chip-btn" onClick={() => actions.moveMachine(m.id, 1)}>Mover ▶</button>
+          </span>
+        )}
         {s.settings.view !== 'lista' && <button className="chip-btn" onClick={() => { window.dispatchEvent(new CustomEvent('mt-focus', { detail: m.id })); onClose(); }}>🔍 Ver de cerca en el taller</button>}
         {E.needsRepair(m) && (
           <button className={'chip-btn' + (s.money >= E.repairCost(s, m) ? ' fix-ok' : '')} disabled={s.money < E.repairCost(s, m)} onClick={() => actions.repair(m.id)}

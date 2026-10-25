@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import * as E from '../src/game/engine.js';
 import { step, skipTutorial, MISSIONS, ensureChallenges, claimChallenge } from '../src/game/progress.js';
-import { PERKS, TOKEN_SHOP, PRODUCTS } from '../src/game/data.js';
+import { PERKS, TOKEN_SHOP, PRODUCTS, UPGRADES } from '../src/game/data.js';
 import { money, dur, num, setCurrency } from '../src/game/format.js';
 import { decideSync, summaryOf, isFreshSave } from '../src/online/api.js';
 
@@ -466,6 +466,52 @@ t('canje entre makers: apartar, devolver y recibir sin perder nada', () => {
   assert.ok(E.tradeGot(v, { id: 50, items: e2.items, money: 100000, tokens: 5 }).ok);
   assert.ok(E.tradeGot(v, { id: 50, items: e2.items, money: 100000, tokens: 5 }).done);
   assert.ok(v.machines.length === 3 && v.money === vm + 100000 && v.tokens === 5 && v.runEarned === ve);
+});
+
+t('Nave de producción: un piso por tecnología con 20 lugares', () => {
+  const s = E.newGame(null, 30); skipTutorial(s);
+  s.rep = 1e7; s.money = 1e15; s.space = 4;
+  for (const id of ['laser', 'resina', 'cnc', 'saberlaser', 'saberresina', 'sabercnc']) if (UPGRADES[id]) s.upgrades[id] = 1;
+  while (s.machines.length < E.slots(s)) E.buyMachine(s, 'ender3');
+  assert.equal(E.buyMachine(s, 'ender3'), null, 'taller industrial lleno');
+  s.space = 5;
+  assert.ok(E.hasFloors(s));
+  assert.equal(E.floorUsed(s, 'fdm'), 16, 'las FDM que había pasan al piso 1 sin perder nada');
+  for (let i = 0; i < 4; i++) assert.ok(E.buyMachine(s, 'ender3'));
+  assert.equal(E.floorUsed(s, 'fdm'), 20);
+  assert.equal(E.buyMachine(s, 'ender3'), null, 'piso FDM lleno (20/20)');
+  assert.ok(E.buyMachine(s, 'mars'), 'pero el piso de resina tiene su lugar');
+  assert.equal(E.floorUsed(s, 'resin'), 1);
+  // canje: entregar una FDM libera lugar en el piso FDM
+  const fdm = s.machines.find((m) => m.model === 'ender3');
+  assert.equal(E.tradeReason(s, 'a1mini', [fdm.id]), null);
+  // reorganizar: solo con las de su mismo piso
+  const ids = E.floorMachines(s, 'fdm').map((m) => m.id);
+  assert.ok(E.moveMachine(s, ids[1], -1));
+  assert.deepEqual(E.floorMachines(s, 'fdm').map((m) => m.id).slice(0, 2), [ids[1], ids[0]]);
+  assert.equal(E.moveMachine(s, ids[1], -1), false, 'ya es la primera de su piso');
+});
+
+t('Planta con más de 20 FDM de antes: no se pierde nada, solo no se compran más', () => {
+  const s = E.newGame(null, 31); skipTutorial(s);
+  s.rep = 1e7; s.money = 1e15; s.space = 6;
+  for (let i = 0; i < 23; i++) s.machines.push({ ...s.machines[0], id: 1000 + i });
+  const n = s.machines.length;
+  const back = E.migrate(JSON.parse(E.serialize(s)));
+  assert.equal(back.machines.length, n, 'todas siguen ahí');
+  assert.equal(E.buyMachine(back, 'ender3'), null, 'piso FDM excedido: no entra otra');
+});
+
+t('pedido combinado entre tecnologías', () => {
+  const s = E.newGame(null, 32); skipTutorial(s);
+  s.rep = 1e7; s.money = 1e15; s.space = 5;
+  for (const id of ['laser', 'resina', 'cnc', 'saberlaser', 'saberresina', 'sabercnc']) if (UPGRADES[id]) s.upgrades[id] = 1;
+  assert.equal(E.spawnCombo(s), null, 'con una sola tecnología no hay combinado');
+  E.buyMachine(s, 'falcon');
+  const o = E.spawnCombo(s);
+  assert.ok(o && o.combo && o.items.length === 2 && o.tokens === 2, JSON.stringify(o));
+  const techs = o.items.map((it) => PRODUCTS[it.p].tech).sort();
+  assert.deepEqual(techs, ['fdm', 'laser']);
 });
 
 console.log(`\n${n} pruebas OK`);

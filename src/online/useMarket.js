@@ -160,7 +160,7 @@ export function useMarket({ online, getState, actions, isLocked, notify }) {
   }, [loadList]); // eslint-disable-line react-hooks/exhaustive-deps
   const answer = useCallback(async (o, accept) => {
     const s = ext.current.getState();
-    if (accept && s.machines.length + (o.items || []).length > E.slots(s)) {
+    if (accept && !E.fitsModels(s, (o.items || []).map((x) => x.model))) {
       throw new Error(`Hacé lugar en el taller: vas a recibir ${(o.items || []).length} máquina${(o.items || []).length > 1 ? 's' : ''}.`);
     }
     await rpc('bb_mt_market_offer_answer', { p_offer: o.id, p_accept: !!accept });

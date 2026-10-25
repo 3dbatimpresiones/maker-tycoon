@@ -8,7 +8,7 @@ import {
   UNIT, MATERIALS, MATERIAL_ORDER, STAR_MULT, SPACES, MACHINES, MACHINE_ORDER, PRODUCTS, PRODUCT_ORDER, SIZES,
   UPGRADES, repNeeded, REP_PRICE_BONUS, ORDER_TEMPLATES, ORDER_OFFER_LIFE, ORDER_SPAWN_EVERY, CONTRACT_CLIENTS,
   MACHINE_EVENTS, GLOBAL_EVENTS, MAKER_TITLES, MASTERY_BASE, MASTERY_GROWTH, MASTERY_BONUS,
-  MASTERY_CHALLENGES, TECHS,
+  MASTERY_CHALLENGES, TECHS, FLOORS, FLOOR_SLOTS, COMBO_CLIENTS,
 } from './data.js';
 
 export const SAVE_VERSION = 3;
@@ -165,6 +165,38 @@ export function masteryInfo(s, pid) {
 }
 
 export const slots = (s) => SPACES[s.space].slots;
+// ---------- Pisos por tecnología (Nave de producción y Planta 3DBAT) ----------
+export const hasFloors = (s) => !!SPACES[s.space]?.floors;
+export const techOfModel = (model) => MACHINES[model]?.tech || 'fdm';
+export const floorMachines = (s, tech) => s.machines.filter((m) => techOfModel(m.model) === tech);
+export const floorUsed = (s, tech) => (hasFloors(s) ? floorMachines(s, tech).length : s.machines.length);
+export const floorCap = (s) => (hasFloors(s) ? FLOOR_SLOTS : slots(s));
+// ¿Entran estas máquinas (modelos) si salen las de "removing" (ids)?
+export function fitsModels(s, models, removing = []) {
+  if (!hasFloors(s)) return s.machines.length - removing.length + models.length <= slots(s);
+  const need = {};
+  for (const md of models) { const t = techOfModel(md); need[t] = (need[t] || 0) + 1; }
+  for (const [t, n] of Object.entries(need)) {
+    const out = s.machines.filter((m) => removing.includes(m.id) && techOfModel(m.model) === t).length;
+    if (floorMachines(s, t).length - out + n > FLOOR_SLOTS) return false;
+  }
+  return true;
+}
+export const roomFor = (s, model, removing = []) => fitsModels(s, [model], removing);
+export const isFull = (s) => (hasFloors(s) ? FLOORS.every((f) => floorMachines(s, f.id).length >= FLOOR_SLOTS) : s.machines.length >= slots(s));
+// Reorganizar: cambia de lugar una máquina con la anterior/siguiente de su mismo piso.
+export function moveMachine(s, mid, dir) {
+  const m = s.machines.find((x) => x.id === mid);
+  if (!m) return false;
+  const tech = techOfModel(m.model);
+  const same = s.machines.map((x, i) => [x, i]).filter(([x]) => !hasFloors(s) || techOfModel(x.model) === tech);
+  const k = same.findIndex(([x]) => x.id === mid);
+  const j = k + (dir < 0 ? -1 : 1);
+  if (j < 0 || j >= same.length) return false;
+  const a = same[k][1], b = same[j][1];
+  [s.machines[a], s.machines[b]] = [s.machines[b], s.machines[a]];
+  return true;
+}
 export const machineDef = (m) => MACHINES[m.model];
 
 export function machineStars(s, m) {
@@ -547,7 +579,7 @@ function stepMachine(s, m, dt, ctx, blackout) {
 
 // ---------- Compras ----------
 export function buyMachine(s, model) {
-  if (!machineUnlocked(s, model) || s.machines.length >= slots(s)) return null;
+  if (!machineUnlocked(s, model) || !roomFor(s, model)) return null;
   const c = machineCost(s, model);
   if (s.money < c) return null;
   s.money -= c;
@@ -597,7 +629,7 @@ export function tradeReason(s, model, mids, tokens = 0) {
   if (mids.length > TRADE_MAX) return `Hasta ${TRADE_MAX} máquinas por canje`;
   const ok = new Set(tradeCandidates(s, model).map((m) => m.id));
   if (mids.some((id) => !ok.has(id))) return 'Solo se entregan máquinas más chicas';
-  if (s.machines.length - mids.length + 1 > slots(s)) return 'Sin lugar en el taller';
+  if (!roomFor(s, model, mids)) return hasFloors(s) ? 'Sin lugar en ese piso' : 'Sin lugar en el taller';
   if (s.money < tradeQuote(s, model, mids, tokens).pay) return 'Te falta plata';
   return null;
 }
@@ -712,7 +744,7 @@ export function offerReason(s, it, mids, cash, tokens) {
   if (mids.length > TRADE_MAX) return `Hasta ${TRADE_MAX} máquinas`;
   if (mids.some((id) => !s.machines.some((m) => m.id === id))) return 'Esa máquina ya no está';
   if (mids.length && mids.length >= s.machines.length) return 'Tenés que quedarte con al menos una máquina';
-  if (s.machines.length - mids.length + 1 > slots(s)) return 'Sin lugar en el taller';
+  if (!roomFor(s, it.model, mids)) return hasFloors(s) ? 'Sin lugar en ese piso' : 'Sin lugar en el taller';
   if (cash > s.money) return 'Te falta plata';
   if (cash > it.price) return 'Ofrecés más que el precio: comprala directo';
   if (tokens > (s.tokens || 0)) return 'No tenés tantas fichas';
@@ -747,12 +779,12 @@ export function offerRejectedLocal(s, nonce) {
   giveBack(s, e.items, e.money, e.tokens);
   return e;
 }
-const fitsAll = (s, n) => s.machines.length + n <= slots(s);
+const fitsAll = (s, items) => fitsModels(s, (items || []).map((x) => x.model).filter((md) => MACHINES[md]));
 export function offerBack(s, it) {
   const key = 'o' + it.id;
   if (marketDone(s, key)) return { done: true };
   const items = it.items || [];
-  if (!fitsAll(s, items.length)) return null;
+  if (!fitsAll(s, items)) return null;
   giveBack(s, items, it.money, it.tokens);
   markDone(s, key);
   return { ok: true };
@@ -762,7 +794,7 @@ export function tradeGot(s, it) {
   const key = 's' + it.id;
   if (marketDone(s, key)) return { done: true };
   const items = it.items || [];
-  if (!fitsAll(s, items.length)) return null;
+  if (!fitsAll(s, items)) return null;
   for (const x of items) if (MACHINES[x.model]) { const m = addMachine(s, x.model, Math.round(MACHINES[x.model].cost * 0.5), false, wear3(x.wear)); m.used = true; }
   s.money += Math.max(0, Number(it.money) || 0);
   s.tokens = (s.tokens || 0) + Math.max(0, Number(it.tokens) || 0);
@@ -777,7 +809,7 @@ export function buyUsedReason(s, it) {
   if (!MACHINES[it.model]) return 'Máquina desconocida';
   if (it.mine) return 'Es tuya';
   if (!machineUnlocked(s, it.model)) return machineLockReason(s, it.model).join(' · ') || 'Todavía no la podés usar';
-  if (s.machines.length >= slots(s)) return 'Sin lugar en el taller';
+  if (!roomFor(s, it.model)) return hasFloors(s) ? 'Sin lugar en ese piso' : 'Sin lugar en el taller';
   if (s.money < it.price) return 'Te falta plata';
   return null;
 }
@@ -785,7 +817,7 @@ export function buyUsedReason(s, it) {
 export function receiveUsed(s, it) {
   const key = 'b' + it.id;
   if (marketDone(s, key) || !MACHINES[it.model]) return null;
-  if (s.machines.length >= slots(s)) return null;
+  if (!roomFor(s, it.model)) return null;
   if (!it.prepaid) s.money = Math.max(0, s.money - it.price); // por canje ya se pagó con lo apartado
   const m = addMachine(s, it.model, it.price, false, wear3(it.wear));
   m.used = true;
@@ -813,7 +845,7 @@ export function takeBack(s, it) {
     markDone(s, key);
     return { cash };
   }
-  if (s.machines.length >= slots(s)) return null;
+  if (!roomFor(s, it.model)) return null;
   const m = addMachine(s, it.model, Number(it.price) || 0, false, wear3(it.wear));
   markDone(s, key);
   return { machine: m };
@@ -921,6 +953,28 @@ export function spawnUrgent(s) {
   s.orders.offers.unshift(o);
   return o;
 }
+// Pedido combinado (Nave y Planta): una pieza de cada tecnología que tengas (por ejemplo,
+// placa láser + soporte FDM + pieza CNC). Paga ×3,5 y da una ficha por tecnología.
+export function spawnCombo(s) {
+  if (!hasFloors(s)) return null;
+  const byTech = FLOORS.map((f) => feasibleProducts(s, (p) => p.tech === f.id)).map((l, i) => [FLOORS[i], l]).filter(([, l]) => l.length);
+  if (byTech.length < 2) return null;
+  const picks = byTech.slice(0, 4).map(([f, l]) => [f, l.sort((a, b) => PRODUCTS[b].price - PRODUCTS[a].price)[Math.floor(rand(s) * Math.min(3, l.length))]]);
+  const duration = 1500 + Math.round(rand(s) * 3) * 300;
+  const items = picks.map(([f, pid]) => {
+    const fm = floorMachines(s, f.id).filter((m) => canPrint(s, m, pid));
+    const speed = fm.reduce((a, m) => a + machineSpeed(s, m, false), 0) || 1;
+    return [pid, Math.max(2, Math.round((speed * duration * 0.18) / PRODUCTS[pid].time))];
+  });
+  const client = COMBO_CLIENTS[Math.floor(rand(s) * COMBO_CLIENTS.length)];
+  const names = picks.map(([f]) => f.name).join(' + ');
+  const tpl = { id: 'combinado', client, title: `Combinado ${names}: ${client}`, items, time: duration, mult: 3.5, rep: 3 + picks.length };
+  const o = makeOffer(s, tpl, { contract: true, life: 600, tokens: picks.length,
+    flavor: `Pedido combinado: necesita trabajo de ${names}. Paga ×3,5 y da ${picks.length} fichas.` });
+  o.combo = true;
+  s.orders.offers.unshift(o);
+  return o;
+}
 // Contrato de empresa: 2 o 3 productos, plazo largo, paga ×4 y da fichas.
 export function spawnContract(s) {
   const prods = feasibleProducts(s);
@@ -935,8 +989,10 @@ export function spawnContract(s) {
   const client = CONTRACT_CLIENTS[Math.floor(rand(s) * CONTRACT_CLIENTS.length)];
   const lvl = repLevel(s);
   const tokens = 2 + (n === 3 ? 1 : 0) + (lvl >= 10 ? 1 : 0);
-  const tpl = { id: 'contrato', client, title: `Contrato: ${client}`, items, time: duration, mult: 4, rep: 4 + Math.floor(lvl / 2) };
-  const o = makeOffer(s, tpl, { contract: true, life: 600, tokens, flavor: 'Contrato de empresa: paga ×4, suma mucha reputación y fichas.' });
+  const premium = s.space >= 6; // Planta 3DBAT: contratos especiales de alto valor
+  const tpl = { id: 'contrato', client, title: `${premium ? 'Contrato especial' : 'Contrato'}: ${client}`, items, time: duration, mult: premium ? 5.5 : 4, rep: 4 + Math.floor(lvl / 2) };
+  const o = makeOffer(s, tpl, { contract: true, life: 600, tokens: tokens + (premium ? 2 : 0),
+    flavor: premium ? 'Contrato especial de la Planta 3DBAT: paga ×5,5, mucha reputación y fichas.' : 'Contrato de empresa: paga ×4, suma mucha reputación y fichas.' });
   s.orders.offers.unshift(o);
   return o;
 }
@@ -1032,11 +1088,20 @@ function stepOrders(s, dt, ctx) {
   // Contratos de empresa (desde Reputación 5)
   if (!s.tutorial.active && repLevel(s) >= 5) {
     O.contractT -= dt;
-    const hasContract = [...O.offers, ...O.active].some((o) => o.contract);
+    const hasContract = [...O.offers, ...O.active].some((o) => o.contract && !o.combo);
     if (O.contractT <= 0 && !hasContract) {
       O.contractT = 900 + rand(s) * 600;
       const o = spawnContract(s);
       if (o) ctx.out.push({ type: 'contract', oid: o.id });
+    }
+  }
+  // Pedidos combinados entre tecnologías (desde la Nave de producción)
+  if (!s.tutorial.active && hasFloors(s)) {
+    O.comboT = (O.comboT ?? 420) - dt;
+    if (O.comboT <= 0 && ![...O.offers, ...O.active].some((o) => o.combo)) {
+      O.comboT = 1100 + rand(s) * 700;
+      const o = spawnCombo(s);
+      if (o) ctx.out.push({ type: 'combo', oid: o.id });
     }
   }
   if (has(s, 'gestor')) {
