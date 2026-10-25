@@ -60,7 +60,7 @@ export function newGame(keep = null, seed = (Date.now() ^ 0x5bd1e995) >>> 0, cha
     machines: [],
     nextMid: 1,
     upgrades: {},
-    orders: { offers: [], active: [], spawnT: ORDER_SPAWN_EVERY - 8, nextId: 1, fidelity: keep?.orders?.fidelity || {}, gestorT: 0, contractT: 600 },
+    orders: { offers: [], active: [], spawnT: ORDER_SPAWN_EVERY - 8, nextId: 1, fidelity: keep?.orders?.fidelity || {}, clients: keep?.orders?.clients || {}, gestorT: 0, contractT: 600 },
     mate: { until: 0, ready: 0 },
     trend: { p: null, until: 0, next: 600 },
     boost: { viral: 0, risky: 0, turbo: 0, feria: 0 },
@@ -911,14 +911,68 @@ const tplStars = (s, tpl) => Math.max(tpl.minStars || 1, rule(s, 'exigente') ? 3
 function templateFeasible(s, tpl) {
   return tpl.items.every(([pid]) => productFeasible(s, pid, Math.max(tplStars(s, tpl), PRODUCTS[pid].minStars || 1)));
 }
+// ---------- Clientes con memoria ----------
+// Cada cliente (por nombre) recuerda cómo lo atendiste: confianza 0-100, entregas, fallas y reseñas.
+// Con más confianza vuelve más seguido, con pedidos más grandes y pagando mejor. Si le fallás
+// mucho, te deja una mala reseña y se va un rato con otro taller.
+export const CLIENT_TIERS = [
+  { min: 0, name: 'Nuevo', pay: 1, qty: 1 },
+  { min: 20, name: 'Conocido', pay: 1.05, qty: 1.1 },
+  { min: 50, name: 'Habitual', pay: 1.12, qty: 1.25 },
+  { min: 80, name: 'Fiel', pay: 1.2, qty: 1.4 },
+];
+const PREFS = ['eco', 'fast', 'prem'];
+const nameHash = (t) => { let h = 7; for (const ch of String(t)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+export function clientOf(s, name) {
+  const c = (s.orders.clients || {})[name];
+  return { trust: 0, done: 0, failed: 0, stars: 0, reviews: 0, gone: 0, last: null, ...(c || {}), pref: PREFS[nameHash(name) % PREFS.length] };
+}
+export const clientTier = (trust) => [...CLIENT_TIERS].reverse().find((t) => trust >= t.min);
+export const clientGone = (s, name) => clientOf(s, name).gone > s.time;
+export const clientKnown = (s, name) => clientOf(s, name).trust >= 20; // ya sabés qué le gusta
+function touchClient(s, name, fn) {
+  s.orders.clients = s.orders.clients || {};
+  const { pref, ...c } = clientOf(s, name); // eslint-disable-line no-unused-vars
+  fn(c);
+  c.trust = Math.max(0, Math.min(100, Math.round(c.trust)));
+  s.orders.clients[name] = c;
+  return c;
+}
+
+// ---------- Presupuestos ----------
+// Al aceptar un pedido elegís cómo lo presupuestás: cambia la paga, el plazo, la reputación y el riesgo.
+export const QUOTES = {
+  eco: { id: 'eco', name: 'Económico', icon: '💸', pay: 0.8, time: 1.3, rep: 1, trust: 1.5, failRep: 1, blurb: 'Más barato y con más plazo. El cliente queda muy contento.' },
+  std: { id: 'std', name: 'Estándar', icon: '📋', pay: 1, time: 1, rep: 1, trust: 1, failRep: 1, blurb: 'El precio y el plazo de siempre.' },
+  fast: { id: 'fast', name: 'Rápido', icon: '⚡', pay: 1.35, time: 0.7, rep: 1, trust: 1, failRep: 2, blurb: 'Cobrás más, pero el plazo es corto. Si no llegás, la reputación cae el doble.' },
+  prem: { id: 'prem', name: 'Premium', icon: '💎', pay: 1.7, time: 1.15, rep: 2, trust: 1.25, failRep: 3, stars: 1, blurb: 'Calidad un escalón más alta: paga mucho y duplica la reputación, pero fallar sale caro.' },
+};
+export const QUOTE_ORDER = ['eco', 'std', 'fast', 'prem'];
+export const quotesUnlocked = (s) => !s.tutorial.active && repLevel(s) >= 3;
+export const quotable = (s, o) => quotesUnlocked(s) && !o.urgent && o.tpl !== 'exposicion';
+// Cómo queda el pedido con ese presupuesto (o por qué no se puede).
+export function quoteFor(s, o, qid = 'std') {
+  const Q = QUOTES[qid] || QUOTES.std;
+  const minStars = Math.min(5, o.minStars + (Q.stars || 0));
+  let why = null;
+  if (Q.stars) {
+    if (o.minStars >= 5) why = 'Ya es calidad máxima';
+    else if (!o.items.every((it) => s.machines.some((m) => canPrint(s, m, it.p) && machineStars(s, m) >= Math.max(minStars, PRODUCTS[it.p].minStars || 1))))
+      why = `Necesitás máquinas de calidad ★${minStars}`;
+  }
+  return { q: Q, reward: Math.round(o.reward * Q.pay), time: Math.round(o.time * Q.time), rep: Math.max(1, Math.round(o.rep * Q.rep)), minStars, why };
+}
+
 function makeOffer(s, tpl, opts = {}) {
   const fid = s.orders.fidelity[tpl.id] || 0;
   const frequent = tpl.frequent && fid > 0;
   const minStars = tplStars(s, tpl);
-  const items = tpl.items.map(([p, q]) => ({ p, qty: Math.max(1, Math.round(q * (opts.qtyMult || 1))), done: 0 }));
+  const client = opts.client || tpl.client;
+  const tier = opts.urgent || tpl.id === 'exposicion' ? CLIENT_TIERS[0] : clientTier(clientOf(s, client).trust);
+  const items = tpl.items.map(([p, q]) => ({ p, qty: Math.max(1, Math.round(q * (opts.qtyMult || 1) * tier.qty)), done: 0 }));
   let base = 0;
   for (const it of items) base += it.qty * pieceValue(s, it.p, Math.max(minStars, PRODUCTS[it.p].minStars || 1));
-  const mult = (opts.mult ?? tpl.mult) * orderMult(s) * (frequent ? 1 + 0.1 * Math.min(5, fid) : 1);
+  const mult = (opts.mult ?? tpl.mult) * orderMult(s) * (frequent ? 1 + 0.1 * Math.min(5, fid) : 1) * tier.pay;
   return {
     id: s.orders.nextId++, tpl: tpl.id, client: tpl.client, title: opts.title || tpl.title, flavor: opts.flavor ?? tpl.flavor,
     items, time: Math.round((opts.time || tpl.time) * (rule(s, 'exigente') ? 0.7 : 1)), reward: Math.round(base * mult), rep: tpl.rep, minStars,
@@ -930,9 +984,9 @@ function spawnOffer(s, forceTpl) {
   let tpl = forceTpl ? ORDER_TEMPLATES.find((t) => t.id === forceTpl) : null;
   if (!tpl) {
     // Los pedidos de nivel más alto que podés hacer salen más seguido.
-    const list = ORDER_TEMPLATES.map((t, i) => ({ t, i })).filter(({ t }) => !busy.has(t.id) && templateFeasible(s, t));
+    const list = ORDER_TEMPLATES.map((t, i) => ({ t, i })).filter(({ t }) => !busy.has(t.id) && templateFeasible(s, t) && !clientGone(s, t.client));
     const maxI = list.length ? Math.max(...list.map((x) => x.i)) : 0;
-    tpl = pickWeighted(s, list.map(({ t, i }) => ({ v: t, w: t.weight * (t.frequent && s.orders.fidelity[t.id] ? 2 : 1) * (i >= maxI - 6 ? 2 : 1) })));
+    tpl = pickWeighted(s, list.map(({ t, i }) => ({ v: t, w: t.weight * (t.frequent && s.orders.fidelity[t.id] ? 2 : 1) * (i >= maxI - 6 ? 2 : 1) * (1 + clientOf(s, t.client).trust / 50) })));
   }
   if (!tpl) return null;
   const o = makeOffer(s, tpl);
@@ -966,7 +1020,7 @@ export function spawnCombo(s) {
     const speed = fm.reduce((a, m) => a + machineSpeed(s, m, false), 0) || 1;
     return [pid, Math.max(2, Math.round((speed * duration * 0.18) / PRODUCTS[pid].time))];
   });
-  const client = COMBO_CLIENTS[Math.floor(rand(s) * COMBO_CLIENTS.length)];
+  const client = pickClient(s, COMBO_CLIENTS);
   const names = picks.map(([f]) => f.name).join(' + ');
   const tpl = { id: 'combinado', client, title: `Combinado ${names}: ${client}`, items, time: duration, mult: 3.5, rep: 3 + picks.length };
   const o = makeOffer(s, tpl, { contract: true, life: 600, tokens: picks.length,
@@ -974,6 +1028,10 @@ export function spawnCombo(s) {
   o.combo = true;
   s.orders.offers.unshift(o);
   return o;
+}
+function pickClient(s, list) {
+  const ok = list.filter((c) => !clientGone(s, c));
+  return pickWeighted(s, (ok.length ? ok : list).map((c) => ({ v: c, w: 1 + clientOf(s, c).trust / 40 })));
 }
 // Contrato de empresa: 2 o 3 productos, plazo largo, paga ×4 y da fichas.
 export function spawnContract(s) {
@@ -986,7 +1044,7 @@ export function spawnContract(s) {
   const duration = 1800 + Math.round(rand(s) * 4) * 300; // 30 a 50 min
   const capacity = s.machines.reduce((a, m) => a + machineSpeed(s, m, false), 0) * duration * 0.22;
   const items = chosen.map((pid) => [pid, Math.max(2, Math.round(capacity / chosen.length / PRODUCTS[pid].time))]);
-  const client = CONTRACT_CLIENTS[Math.floor(rand(s) * CONTRACT_CLIENTS.length)];
+  const client = pickClient(s, CONTRACT_CLIENTS);
   const lvl = repLevel(s);
   const tokens = 2 + (n === 3 ? 1 : 0) + (lvl >= 10 ? 1 : 0);
   const premium = s.space >= 6; // Planta 3DBAT: contratos especiales de alto valor
@@ -1020,10 +1078,17 @@ export function suggestAssign(s, o, timeLeft = o.time) {
   }
   return { machines: pick, enough: cap >= work };
 }
-export function acceptOrder(s, oid) {
+export function acceptOrder(s, oid, qid = 'std') {
   const i = s.orders.offers.findIndex((x) => x.id === oid);
   if (i < 0) return false;
   const o = s.orders.offers[i];
+  if (qid !== 'std' && quotable(s, o)) {
+    const qf = quoteFor(s, o, qid);
+    if (qf.why) return false;
+    const trial = { ...o, minStars: qf.minStars };
+    if (!suggestAssign(s, trial).machines.length) return false;
+    Object.assign(o, { reward: qf.reward, time: qf.time, rep: qf.rep, minStars: qf.minStars, quote: qid });
+  }
   const { machines } = suggestAssign(s, o);
   if (!machines.length) return false;
   s.orders.offers.splice(i, 1);
@@ -1060,7 +1125,22 @@ function completeOrder(s, o, out) {
   if (o.contract) s.stats.contracts = (s.stats.contracts || 0) + 1;
   if (o.tpl === 'exposicion') s.stats.exposicion++;
   s.orders.fidelity[o.tpl] = (s.orders.fidelity[o.tpl] || 0) + 1;
-  out.push({ type: 'orderDone', oid: o.id, reward: o.reward, rep: o.rep, title: o.title, tpl: o.tpl, tokens: o.tokens, urgent: o.urgent, contract: o.contract });
+  // Cliente: reseña y confianza (le gusta que respetes su forma de trabajar y que llegues con tiempo).
+  let review = null;
+  if (o.tpl !== 'exposicion' && !o.urgent) {
+    const Q = QUOTES[o.quote || 'std'];
+    const pref = clientOf(s, o.client).pref === (o.quote || 'std');
+    const early = o.deadline ? (o.deadline - s.time) / o.time : 0;
+    const stars = Math.min(5, 3 + (early > 0.3 ? 1 : 0) + (pref ? 1 : 0) + (o.quote === 'prem' ? 1 : 0));
+    const before = clientOf(s, o.client);
+    const c = touchClient(s, o.client, (c) => {
+      c.trust += 10 * Q.trust * (pref ? 1.5 : 1) * (early > 0.4 ? 1.2 : 1);
+      c.done++; c.stars += stars; c.reviews++; c.last = stars;
+    });
+    if (stars === 5 && o.quote === 'prem') addRep(s, 1, out);
+    review = { client: o.client, stars, pref, tierUp: clientTier(c.trust).name !== clientTier(before.trust).name ? clientTier(c.trust).name : null };
+  }
+  out.push({ type: 'orderDone', oid: o.id, reward: o.reward, rep: o.rep, title: o.title, tpl: o.tpl, tokens: o.tokens, urgent: o.urgent, contract: o.contract, quote: o.quote, review });
 }
 function failOrder(s, o, out) {
   s.orders.active = s.orders.active.filter((x) => x.id !== o.id);
@@ -1068,9 +1148,19 @@ function failOrder(s, o, out) {
   let pay = 0;
   for (const it of o.items) pay += it.done * pieceValue(s, it.p, 1);
   addMoney(s, pay);
-  loseRep(s, 1);
+  const Q = QUOTES[o.quote || 'std'];
+  loseRep(s, Q.failRep);
   s.stats.ordersFailed++;
-  out.push({ type: 'orderFail', oid: o.id, pay, title: o.title });
+  let gone = false;
+  if (o.tpl !== 'exposicion' && !o.urgent) {
+    touchClient(s, o.client, (c) => {
+      c.trust -= 25; c.failed++; c.stars += 1; c.reviews++; c.last = 1;
+      // Dos fallas y sin confianza: se va con otro taller por media hora.
+      if (c.trust <= 0 && c.failed >= 2) { c.gone = s.time + 1800; c.failed = 0; gone = true; }
+    });
+    if (gone) loseRep(s, 1);
+  }
+  out.push({ type: 'orderFail', oid: o.id, pay, title: o.title, client: o.client, gone, failRep: Q.failRep });
 }
 function stepOrders(s, dt, ctx) {
   const O = s.orders;
@@ -1331,7 +1421,7 @@ function keepForMove(s, prestige) {
     name: s.name, totalEarned: s.totalEarned, stats: s.stats, achievements: s.achievements, mastery: s.mastery,
     tokens: s.tokens, daily: s.daily, weekly: s.weekly, prestige, settings: s.settings, seen: s.seen, cosmetics: s.cosmetics,
     market: s.market,
-    orders: { fidelity: s.orders.fidelity },
+    orders: { fidelity: s.orders.fidelity, clients: s.orders.clients },
   };
 }
 function clonePrestige(s) {

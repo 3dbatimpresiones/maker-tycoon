@@ -116,10 +116,17 @@ export function useGame() {
           toast(`✔ Pedido entregado: ${e.reward ? '+' + money(e.reward) + ' · ' : ''}+${e.rep} ⭐`);
           if (e.tokens) toast(`🎟️ +${e.tokens} fichas por el contrato`, 'info');
           if (e.tpl === 'exposicion') say('Te pagaron con exposición… y la verdad, la reputación sirve. Pero las bobinas no se pagan con likes 😅', { mood: 'happy' });
+          if (e.review) {
+            const r = e.review;
+            toast(`${'⭐'.repeat(r.stars)} ${r.client}: ${r.stars === 5 ? '«¡Impecable! Vuelvo seguro.»' : r.stars === 4 ? '«Muy bien, gracias.»' : '«Cumpliste.»'}`, 'info', 4000);
+            if (r.tierUp) toast(`🤝 ${r.client} ahora es cliente ${r.tierUp}: vuelve más seguido y paga mejor.`, 'info', 5000);
+            if (r.pref) sayOnce('pref1', `A ${r.client} le encantó el presupuesto que elegiste: cada cliente tiene su forma preferida (económico, rápido o premium). Si la respetás, la confianza sube más rápido.`, { mood: 'happy' });
+          }
           break;
         case 'orderFail':
           sfx.fail();
-          toast(`⏰ Venció «${e.title}». Cobraste lo entregado (${money(e.pay)}).`, 'err', 5000);
+          toast(`⏰ Venció «${e.title}». Cobraste lo entregado (${money(e.pay)}).${e.failRep > 1 ? ` −${e.failRep} de reputación por el presupuesto.` : ''}`, 'err', 5000);
+          if (e.gone) toast(`😠 ${e.client} te dejó una mala reseña y se fue con otro taller por un rato.`, 'err', 6000);
           sayOnce('orderfail', 'Un pedido venció. No pasa nada: cobrás lo que entregaste y perdés un poquito de reputación, nunca un nivel. Asignale más impresoras la próxima.', { mood: 'worried' });
           break;
         case 'offer':
@@ -408,7 +415,7 @@ export function useGame() {
     abandonChallenge: () => act((st) => { E.abandonChallenge(st); toast('Desafío abandonado: seguís jugando sin las reglas.', 'info'); }),
     setProduct: (mid, pid) => act((st) => E.setProduct(st, mid, pid)),
     mate: () => act((st, ctx) => E.useMate(st, ctx)),
-    accept: (oid) => act((st) => { const ok = E.acceptOrder(st, oid); if (ok) sfx.accept(); return ok; }),
+    accept: (oid, quote = 'std') => act((st) => { const ok = E.acceptOrder(st, oid, quote); if (ok) sfx.accept(); return ok; }),
     decline: (oid) => act((st) => E.declineOrder(st, oid)),
     assign: (oid, d) => act((st) => E.assignMore(st, oid, d)),
     resolveGlobal: (opt) => act((st, ctx) => E.resolveGlobal(st, opt, ctx)),

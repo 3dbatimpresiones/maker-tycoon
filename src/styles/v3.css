@@ -77,3 +77,27 @@
 .machine-strip .strip-eye { color: var(--cyan); border-style: dashed; }
 .machine-strip .strip-eye:hover { color: #fff; }
 .machine-strip.hid { margin-top: 6px; }
+
+/* Presupuestos y clientes */
+.o-quotes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 8px 0 4px; }
+.o-quotes .oq { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 2px; border-radius: 10px; border: 1px solid var(--line);
+  background: rgba(255,255,255,.03); color: #cbd5e1; font: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer; }
+.o-quotes .oq span { font-size: 15px; line-height: 1; }
+.o-quotes .oq:hover { border-color: rgba(93,218,219,.5); color: #fff; }
+.o-quotes .oq.on { border-color: var(--cyan); background: rgba(93,218,219,.14); color: #fff; }
+.o-quotes .oq.no { opacity: .45; }
+.o-quotes .oq.pref { border-color: rgba(247,142,182,.6); }
+.o-quotes .oq i { position: absolute; top: 1px; right: 4px; font-style: normal; color: var(--pink); font-size: 10px; }
+.o-qnote { margin: 0 0 4px; font-size: 11px; color: var(--muted); line-height: 1.35; }
+.cl-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.cl-line b { font-weight: 700; color: #cbd5e1; }
+.cl-line.t-conocido b { color: var(--cyan); } .cl-line.t-habitual b { color: #a78bfa; } .cl-line.t-fiel b { color: var(--pink); }
+.cl-bar { display: inline-block; width: 38px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; }
+.cl-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--pink)); }
+.cl-rev { color: #fbbf24; letter-spacing: -1px; font-size: 10px; } .cl-rev em { font-style: normal; color: rgba(255,255,255,.18); }
+.cl-pref { color: var(--pink); font-size: 10.5px; }
+.cl-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.cl-list > .chip-btn { align-self: flex-start; }
+.cl-row { padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.cl-row .cl-line { font-size: 12px; color: #fff; }
+.cl-stats { color: var(--muted); font-size: 11px; }

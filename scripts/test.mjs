@@ -514,4 +514,45 @@ t('pedido combinado entre tecnologías', () => {
   assert.deepEqual(techs, ['fdm', 'laser']);
 });
 
+t('presupuestos: rápido paga más con menos plazo; premium pide más calidad', () => {
+  const s = E.newGame(null, 40); skipTutorial(s);
+  s.rep = 50; s.orders.spawnT = 999; run(s, 0.2);
+  const o = s.orders.offers.find((x) => E.quotable(s, x));
+  assert.ok(o, 'hay pedido presupuestable');
+  const std = { reward: o.reward, time: o.time };
+  const f = E.quoteFor(s, o, 'fast');
+  assert.ok(f.reward > std.reward && f.time < std.time);
+  const p = E.quoteFor(s, o, 'prem');
+  assert.equal(p.minStars, Math.min(5, o.minStars + 1));
+  if (p.why) assert.equal(E.acceptOrder(s, o.id, 'prem'), false, 'sin calidad no se acepta premium');
+  assert.ok(E.acceptOrder(s, o.id, 'fast'));
+  const a = s.orders.active[0];
+  assert.equal(a.quote, 'fast'); assert.equal(a.reward, f.reward); assert.equal(a.time, f.time);
+});
+
+t('clientes: entregar sube la confianza; fallar dos veces lo aleja un rato', () => {
+  const s = E.newGame(null, 41); skipTutorial(s);
+  s.rep = 50; s.orders.spawnT = 999; run(s, 0.2);
+  const o = s.orders.offers.find((x) => E.quotable(s, x));
+  const who = o.client;
+  E.acceptOrder(s, o.id, 'eco');
+  for (let i = 0; i < 40000 && s.orders.active.length; i++) {
+    step(s, 0.1, { out: [] });
+    for (const m of s.machines) { if (m.event) E.resolveEvent(s, m.id, 0); if (m.state === 'done') E.retrieve(s, m.id); }
+  }
+  const c = E.clientOf(s, who);
+  assert.ok(c.trust >= 15 && c.done === 1 && c.last >= 3, JSON.stringify(c));
+  s.orders.clients[who].trust = 20;
+  for (let k = 0; k < 2; k++) {
+    const fake = { ...o, id: 900 + k, items: o.items.map((it) => ({ ...it, done: 0 })), quote: 'std' };
+    s.orders.active.push({ ...fake, deadline: s.time + 1 });
+    run(s, 2);
+  }
+  assert.ok(E.clientGone(s, who), 'se fue con otro taller');
+  const back = E.migrate(JSON.parse(E.serialize(s)));
+  assert.ok(E.clientGone(back, who), 'se guarda');
+  const moved = E.newGame({ orders: { clients: back.orders.clients, fidelity: {} } }, 1);
+  assert.ok(E.clientOf(moved, who).reviews >= 3, 'los clientes sobreviven a la mudanza');
+});
+
 console.log(`\n${n} pruebas OK`);
