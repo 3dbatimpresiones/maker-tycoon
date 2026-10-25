@@ -416,14 +416,18 @@ function addRep(s, n, out) {
 function loseRep(s, n) { s.rep = Math.max(repNeeded(repLevel(s)), s.rep - n); }
 
 // ---------- Materiales ----------
-function consume(s, mat, amount, out) {
+// Envío urgente para pedidos: si falta material para una pieza de un pedido, se compra solo
+// (aunque no tengas proveedor), con un recargo. Así ningún pedido queda trabado sin material.
+export const URGENT_SPOOL = 1.25;
+function consume(s, mat, amount, out, forOrder = false) {
   if (s.mat[mat] >= amount) { s.mat[mat] -= amount; return true; }
-  if (hasProveedor(s) && materialUnlocked(s, mat)) {
-    const price = matPrice(s, mat) * 1.1;
+  const prov = hasProveedor(s);
+  if ((prov || forOrder) && materialUnlocked(s, mat)) {
+    const price = matPrice(s, mat) * (prov ? 1.1 : URGENT_SPOOL);
     const n = Math.max(1, Math.ceil((amount - s.mat[mat]) / UNIT));
     if (s.money >= price * n) {
       s.money -= price * n; s.mat[mat] += UNIT * n; s.stats.spools += n; s.run.spools += n;
-      out.push({ type: 'autoSpool', mat });
+      out.push({ type: 'autoSpool', mat, urgent: !prov });
       s.mat[mat] -= amount;
       return true;
     }
@@ -457,7 +461,7 @@ function startPiece(s, m, out) {
   const job = pickJob(s, m);
   if (!job) { m.state = 'idle'; return; }
   const p = PRODUCTS[job.pid];
-  if (!consume(s, p.mat, p.use * modUse(m), out)) {
+  if (!consume(s, p.mat, p.use * modUse(m), out, !!job.oid)) {
     if (m.state !== 'nofil') out.push({ type: 'nofil', mid: m.id, mat: p.mat });
     m.state = 'nofil'; m.cur = null; m.curOrder = null;
     return;
@@ -539,7 +543,7 @@ export function resolveEvent(s, mid, opt = 0, ctx = {}) {
       m.progress = 0;
       if (!o.free && m.cur) {
         const p = PRODUCTS[m.cur];
-        if (!consume(s, p.mat, p.use * modUse(m), out)) { m.state = 'nofil'; m.cur = null; m.curOrder = null; }
+        if (!consume(s, p.mat, p.use * modUse(m), out, !!m.curOrder)) { m.state = 'nofil'; m.cur = null; m.curOrder = null; }
       }
       break;
     case 'penalty': m.pen++; break;

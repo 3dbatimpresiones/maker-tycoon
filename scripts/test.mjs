@@ -1,7 +1,7 @@
 // Pruebas rápidas del motor: node scripts/test.mjs
 import assert from 'node:assert/strict';
 import * as E from '../src/game/engine.js';
-import { step, skipTutorial, MISSIONS, ensureChallenges, claimChallenge } from '../src/game/progress.js';
+import { step, skipTutorial, MISSIONS, ensureChallenges, claimChallenge, trackChallenges } from '../src/game/progress.js';
 import { PERKS, TOKEN_SHOP, PRODUCTS, UPGRADES, ZONES, EXPO_PREP } from '../src/game/data.js';
 import { money, dur, num, setCurrency } from '../src/game/format.js';
 import { decideSync, summaryOf, isFreshSave } from '../src/online/api.js';
@@ -689,6 +689,31 @@ t('lotes: apartar, devolver si falla, comprar y cobrar una sola vez', () => {
   assert.ok(E.lotPaid(s, { id: 10, price: 50000 })); assert.equal(E.lotPaid(s, { id: 10, price: 50000 }), false);
   const back = E.migrate(JSON.parse(E.serialize(s)));
   assert.ok(back.lots.done.b9 && back.lots.done.p10, 'se guarda lo cobrado');
+});
+
+t('desafío de mates: cebar con el botón cuenta', () => {
+  const s = E.newGame(null, 48); skipTutorial(s);
+  s.daily = { key: 'x', list: [{ type: 'mates', target: 3, prog: 0, claimed: false, reward: 1 }] };
+  for (let i = 0; i < 3; i++) { const ctx = { out: [] }; s.mate.ready = 0; E.useMate(s, ctx); trackChallenges(s, ctx.out); }
+  assert.equal(s.daily.list[0].prog, 3);
+});
+
+t('pedidos: si falta material se compra solo con envío urgente (no se traba)', () => {
+  const s = E.newGame(null, 49); skipTutorial(s);
+  s.orders.spawnT = 999; run(s, 0.2);
+  const o = s.orders.offers[0];
+  assert.ok(E.acceptOrder(s, o.id));
+  s.mat.PLA = 0; s.money = 1e7;
+  const before = s.money;
+  for (let i = 0; i < 20000 && s.orders.active.length; i++) {
+    step(s, 0.1, { out: [] });
+    for (const m of s.machines) { if (m.event) E.resolveEvent(s, m.id, 0); if (m.state === 'done') E.retrieve(s, m.id); }
+  }
+  assert.equal(s.orders.active.length, 0, 'el pedido se terminó');
+  assert.ok(s.stats.spools > 0 && s.money !== before, 'compró material');
+  const s2 = E.newGame(null, 50); skipTutorial(s2); s2.mat.PLA = 0; s2.money = 1e7;
+  run(s2, 5);
+  assert.equal(s2.stats.spools, 0, 'sin pedido no compra solo');
 });
 
 console.log(`\n${n} pruebas OK`);

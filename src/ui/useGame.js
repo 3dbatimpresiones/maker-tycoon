@@ -4,7 +4,7 @@ import { useEffect, useReducer, useRef, useState, useCallback } from 'react';
 import * as E from '../game/engine.js';
 import * as B from '../game/bati.js';
 import { rpc } from '../online/api.js';
-import { step, startMissionHooks, currentMission, skipTutorial, claimChallenge } from '../game/progress.js';
+import { step, startMissionHooks, currentMission, skipTutorial, claimChallenge, trackChallenges } from '../game/progress.js';
 import { PRODUCTS, MACHINES, UPGRADES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, TOKEN_SHOP, MASTERY_CHALLENGES, fullName, MODS, SPACES } from '../game/data.js';
 import { SAVE_KEY, BACKUP_KEY } from '../config.js';
 import { money, num, setCurrency, fmtText } from '../game/format.js';
@@ -225,6 +225,9 @@ export function useGame() {
           else say(`🎙️ ¡Último minuto del duelo! ${e.score} % y subiendo… ¡que no se corte la luz!`, { mood: 'happy' });
           break;
         case 'duelDone': sfx.achievement(); toast(`⚔️ Terminó el duelo: rendiste ${e.score} %. Mandando el resultado…`, 'info', 4000); break;
+        case 'autoSpool':
+          if (e.urgent) sayOnce('urgentspool', `Faltaba ${MATERIALS[e.mat]?.name || 'material'} para un pedido y lo compré con envío urgente (+25 %), así no se traba. Para pagar menos, dejá stock en Tienda → Materiales o contratá a Filacolor en Mejoras.`, { mood: 'normal', ctas: ['filacolor'] });
+          break;
         case 'challengeDone': sfx.achievement(); say(`¡Superaste el desafío «${e.name}»! Premio para siempre: ${e.reward} (+3 fichas).`, { mood: 'happy' }); break;
         case 'newChallenges':
           if (!st.seen.daily1) { st.seen.daily1 = 1; say('Hay desafíos nuevos todos los días (y uno semanal). Dan fichas para canjear por turbos, saltos de tiempo y más. Están en el botón 🎯 Desafíos.'); }
@@ -374,7 +377,8 @@ export function useGame() {
   const act = useCallback((fn) => {
     const ctx = { out: [] };
     const r = fn(ref.current, ctx);
-    if (ctx.out.length) handle(ctx.out);
+    // Lo que pasa al tocar un botón (cebar mate, retirar una pieza, resolver una falla…) también cuenta para los desafíos.
+    if (ctx.out.length) { trackChallenges(ref.current, ctx.out); handle(ctx.out); }
     lastInput.current = Date.now();
     force();
     return r;

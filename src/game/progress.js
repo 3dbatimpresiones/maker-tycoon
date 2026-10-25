@@ -189,7 +189,7 @@ export function ensureChallenges(s, now) {
   }
   return changed;
 }
-function trackChallenges(s, out) {
+export function trackChallenges(s, out) {
   const sets = [s.daily, s.weekly].filter(Boolean);
   if (!sets.length) return;
   for (const e of out) {

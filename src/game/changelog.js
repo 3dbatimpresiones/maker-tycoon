@@ -27,6 +27,10 @@ export const CHANGELOG = [
       ]],
       ['🔧 Arreglos', [
         'Los accesorios de BATI y la historia ya no se pierden al hacer la Mudanza.',
+        'Si falta material para un pedido, se compra solo con envío urgente (+25 %): los pedidos ya no se traban.',
+        'Los desafíos ahora cuentan los mates cebados, las piezas retiradas a mano y las fallas resueltas.',
+        'Botón ? al lado del mate que explica qué hace.',
+        'Pedidos con scroll propio y Tienda sin espacio vacío abajo.',
       ]],
     ],
   },

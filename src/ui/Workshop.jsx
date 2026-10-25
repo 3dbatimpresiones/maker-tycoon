@@ -106,6 +106,7 @@ export default function Workshop({ s, live, actions, floats, onMachine, onEvent,
   const free = cap - shown.length;
   const mission = currentMission(s);
   const [fail3d, setFail3d] = useState(false);
+  const [mateInfo, setMateInfo] = useState(false);
   const view = fail3d ? 'lista' : s.settings.view === 'lista' ? 'lista' : '3d';
   const mateReady = s.time >= s.mate.ready && !E.rule(s, 'sinmate');
   const mateOn = E.mateActive(s);
@@ -194,6 +195,19 @@ export default function Workshop({ s, live, actions, floats, onMachine, onEvent,
         </div>
         <div className="rb-actions">
           <button className="btn-apply stats-btn" onClick={() => open('stats')} title="Estadísticas del taller">📊</button>
+          <span className="mate-help">
+            <button className="mate-q" onClick={() => setMateInfo((v) => !v)} aria-label="¿Qué hace el mate?"
+              title={`El mate acelera todas tus máquinas un ${Math.round((E.mateBoost(s) - 1) * 100)} % durante ${dur(E.mateDuration(s))}. Después hay que esperar ${dur(E.mateCooldown(s))} para cebar otro.`}>?</button>
+            {mateInfo && (
+              <span className="mate-pop" role="dialog" onMouseLeave={() => setMateInfo(false)}>
+                <b>🧉 ¿Qué hace el mate?</b>
+                <span>Acelera <b>todas tus máquinas un {Math.round((E.mateBoost(s) - 1) * 100)} %</b> durante <b>{dur(E.mateDuration(s))}</b>: fabrican más rápido y ganás más.</span>
+                <span>Después hay que esperar <b>{dur(E.mateCooldown(s))}</b> para cebar otro (el botón muestra cuánto falta).</span>
+                <span>Atajo: tecla <b>M</b>. Cebar mates también suma para los desafíos.</span>
+                <span className="muted">Con las mejoras Termo y Yerba premium dura más y se recarga antes.</span>
+              </span>
+            )}
+          </span>
           <button className={'btn-apply mate-btn' + (mateOn ? ' on' : '') + (glow === 'mate' && mateReady ? ' tut-glow' : '')}
             disabled={!mateReady} onClick={actions.mate} title="Atajo: M">
             🧉 {E.rule(s, 'sinmate') ? 'Sin mate (desafío)' : mateOn ? `Mate activo · ${Math.ceil(s.mate.until - s.time)} s` : mateReady ? `Cebar mate (+${Math.round((E.mateBoost(s) - 1) * 100)} %)` : `Mate en ${clock(s.mate.ready - s.time)}`}
