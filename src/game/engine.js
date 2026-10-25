@@ -491,7 +491,8 @@ function machineEventWeights(s, m) {
 }
 function eventChance(s, m) {
   return MACHINES[m.model].fail * (perk(s, 'ojo') ? 0.75 : 1) * (s.time < s.boost.risky ? 2 : 1)
-    * (rule(s, 'lluvias') ? 3 : 1) * (mastered(s, 'lluvias') ? 0.7 : 1) * wearFailMult(m) * modFail(m);
+    * (rule(s, 'lluvias') ? 3 : 1) * (mastered(s, 'lluvias') ? 0.7 : 1) * wearFailMult(m) * modFail(m)
+    * (s.duel && s.duel.kind === 'supervivencia' && s.time < s.duel.until ? 3 : 1);
 }
 // Probabilidad de falla por pieza que se muestra en pantalla (con el desgaste).
 export const machineFail = (s, m) => eventChance(s, m);
@@ -578,6 +579,7 @@ export function retrieve(s, mid, ctx = {}, by = 'hand') {
     out.push({ type: 'sale', mid, amount: gain, pid, by });
   }
   out.push({ type: 'piece', pid, by });
+  { const v = pieceValue(s, pid, stars); const tch = PRODUCTS[pid].tech; s.stats.value = (s.stats.value || 0) + v; s.stats.techValue = s.stats.techValue || {}; s.stats.techValue[tch] = (s.stats.techValue[tch] || 0) + v; }
   for (const z of zonesOf(pid)) { s.stats.zone = s.stats.zone || {}; s.stats.zone[z.id] = (s.stats.zone[z.id] || 0) + 1; }
   m.state = 'idle'; m.cur = null; m.curOrder = null; m.pen = 0; m.progress = 0;
   startPiece(s, m, out);
@@ -1436,10 +1438,56 @@ export function tick(s, dt, ctx = {}) {
   }
   stepOrders(s, dt, ctx);
   stepCity(s, dt, ctx);
+  stepDuel(s, ctx);
   const tp = stepTrend(s);
   if (tp) ctx.out.push({ type: 'trend', pid: tp });
   stepGlobal(s, ctx);
   return ctx.out;
+}
+
+// ---------- Duelos Maker (10 minutos, se comparan en el servidor) ----------
+export const DUEL_SECS = 600;
+export const DUEL_KINDS = {
+  carrera: { name: 'Carrera de producción', icon: '🏁', blurb: '10 minutos produciendo a full: gana el taller que más rinde sobre su capacidad.' },
+  supervivencia: { name: 'Supervivencia', icon: '🔥', blurb: 'Fallas ×3 durante 10 minutos. Gana el que más factura sin colapsar.' },
+  tecnico: { name: 'Duelo técnico', icon: '🛠️', blurb: 'Solo cuenta una tecnología (FDM, resina, láser o CNC).' },
+};
+// Lo que tu taller podría producir en 10 minutos a pleno (para que el duelo sea parejo entre niveles).
+export function duelExpected(s, tech = null) {
+  let v = 0;
+  for (const m of s.machines) {
+    if (tech && MACHINES[m.model].tech !== tech) continue;
+    const pid = canPrint(s, m, m.product) ? m.product : bestProductFor(s, m);
+    if (pid) v += pieceValue(s, pid, machineStars(s, m)) * machineSpeed(s, m, false) / PRODUCTS[pid].time;
+  }
+  return v * DUEL_SECS;
+}
+export function duelStartReason(s, d) {
+  if (s.duel && s.time < s.duel.until) return 'Ya estás jugando un duelo';
+  if (d.kind === 'tecnico' && !s.machines.some((m) => MACHINES[m.model].tech === d.tech)) return 'No tenés máquinas de esa tecnología';
+  if (duelExpected(s, d.kind === 'tecnico' ? d.tech : null) <= 0) return 'Tus máquinas no tienen nada para fabricar';
+  return null;
+}
+export function startDuel(s, d) {
+  if (duelStartReason(s, d)) return false;
+  const tech = d.kind === 'tecnico' ? d.tech : null;
+  s.duel = { id: d.id, kind: d.kind, tech, rival: d.rival || null, start: s.time, until: s.time + DUEL_SECS,
+    base: tech ? (s.stats.techValue?.[tech] || 0) : (s.stats.value || 0), expected: duelExpected(s, tech) };
+  return true;
+}
+export function duelScore(s) {
+  const d = s.duel;
+  if (!d) return 0;
+  const now = d.tech ? (s.stats.techValue?.[d.tech] || 0) : (s.stats.value || 0);
+  return Math.max(0, Math.min(400, Math.round((100 * (now - d.base)) / Math.max(1, d.expected))));
+}
+function stepDuel(s, ctx) {
+  const d = s.duel;
+  if (!d || d.done) return;
+  const left = d.until - s.time;
+  if (left <= DUEL_SECS / 2 && !d.half) { d.half = true; ctx.out.push({ type: 'duelNarr', k: 'half', score: duelScore(s), rival: d.rival }); }
+  if (left <= 60 && !d.last) { d.last = true; ctx.out.push({ type: 'duelNarr', k: 'last', score: duelScore(s), rival: d.rival }); }
+  if (left <= 0) { d.done = true; d.score = duelScore(s); ctx.out.push({ type: 'duelDone', id: d.id, score: d.score, rival: d.rival }); }
 }
 
 // ---------- Ciudad: mapa de demanda ----------

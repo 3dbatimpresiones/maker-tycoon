@@ -2,6 +2,23 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.2', date: '2026-10-25', title: 'Liga Maker y Duelos',
+    intro: 'El ranking deja de ser solo una lista: ahora cada semana competís contra jugadores de tu nivel.',
+    groups: [
+      ['🏅 Liga Maker 3DBAT', [
+        'Divisiones: Bronce, Plata, Oro, Platino, Diamante, Leyenda Maker y Top 100 3DBAT.',
+        'Cada lunes entrás en un grupo de hasta 20 makers de tu división. Los 3 primeros suben y los 3 últimos bajan.',
+        'Sumás con pedidos, contratos, producción, fallas resueltas, retos, aportes a la granja y duelos.',
+        'Premios solo estéticos: un título por cada división nueva, marcos Platino y Diamante, y la corona para BATI.',
+      ]],
+      ['⚔️ Duelos Maker', [
+        'Duelos de 10 minutos contra alguien de nivel parecido: carrera de producción, supervivencia (fallas ×3) o duelo técnico de una sola tecnología.',
+        'Son asincrónicos: cada uno juega cuando quiere (24 h). Gana el que mejor rinde sobre la capacidad de su taller.',
+        'BATI narra el duelo y ganar suma +30 puntos de Liga. Con 10 victorias, título de Duelista.',
+      ]],
+    ],
+  },
+  {
     v: '1.1', date: '2026-10-25', title: 'BATI toma el mando',
     intro: 'BATI deja de ser solo el tutorial: ahora es tu encargado de planta. Y el chat se vuelve mucho más útil.',
     groups: [

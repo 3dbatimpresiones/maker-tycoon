@@ -12,6 +12,7 @@ import { money, num, SEASON } from '../game/format.js';
 import { LINKS } from '../config.js';
 import fcLogo from '../assets/filacolor-logo.png';
 import fcIcon from '../assets/filacolor-icon.png';
+import { LeagueTab } from './League.jsx';
 
 // ---------- Piezas chicas ----------
 export const GoogleG = ({ size = 18 }) => (
@@ -140,7 +141,7 @@ export function LiveChip({ live, open }) {
 }
 
 // ---------- Ventana principal ----------
-const TABS = [['perfil', 'Perfil', 'user'], ['ranking', 'Ranking', 'trophy'], ['retos', 'Retos', 'target'], ['granja', 'Granja', 'factory'], ['filacolor', 'Filacolor', 'spool']];
+const TABS = [['perfil', 'Perfil', 'user'], ['ranking', 'Ranking', 'trophy'], ['liga', 'Liga', 'award'], ['retos', 'Retos', 'target'], ['granja', 'Granja', 'factory'], ['filacolor', 'Filacolor', 'spool']];
 
 export function OnlineModal({ s, actions, online, tab: tab0, onClose, open }) {
   const [tab, setTab] = useState(tab0 || 'perfil');
@@ -157,6 +158,7 @@ export function OnlineModal({ s, actions, online, tab: tab0, onClose, open }) {
         <>
           {tab === 'perfil' && <ProfileTab s={s} actions={actions} online={online} />}
           {tab === 'ranking' && <RankingTab online={online} onVisit={(n) => open('visita', null, n)} />}
+          {tab === 'liga' && <LeagueTab s={s} actions={actions} online={online} />}
           {tab === 'retos' && <ChallengesTab online={online} open={open} />}
           {tab === 'granja' && <FarmTab online={online} onVisit={(n) => open('visita', null, n)} />}
           {tab === 'filacolor' && <FilacolorTab />}

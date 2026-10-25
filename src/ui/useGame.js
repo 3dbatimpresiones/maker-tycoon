@@ -3,6 +3,7 @@
 import { useEffect, useReducer, useRef, useState, useCallback } from 'react';
 import * as E from '../game/engine.js';
 import * as B from '../game/bati.js';
+import { rpc } from '../online/api.js';
 import { step, startMissionHooks, currentMission, skipTutorial, claimChallenge } from '../game/progress.js';
 import { PRODUCTS, MACHINES, UPGRADES, MATERIALS, MACHINE_EVENTS, GLOBAL_EVENTS, TOKEN_SHOP, MASTERY_CHALLENGES, fullName, MODS, SPACES } from '../game/data.js';
 import { SAVE_KEY, BACKUP_KEY } from '../config.js';
@@ -219,6 +220,11 @@ export function useGame() {
           sfx.achievement(); toast(`📖 ¡Capítulo terminado: ${e.title}! BATI ahora tiene ${B.BATI_ACCS[e.acc]?.icon || ''} ${B.BATI_ACCS[e.acc]?.name || ''}`, 'info', 6000);
           social('chapter', { name: e.title });
           break;
+        case 'duelNarr':
+          if (e.k === 'half') say(`🎙️ ¡Mitad del duelo! Vas rindiendo ${e.score} %. ${e.score >= 90 ? 'Ritmo de campeón, seguí así.' : 'Hay que apretar: ¿hay piezas esperando o fallas sin resolver?'}`, { mood: e.score >= 90 ? 'happy' : 'worried' });
+          else say(`🎙️ ¡Último minuto del duelo! ${e.score} % y subiendo… ¡que no se corte la luz!`, { mood: 'happy' });
+          break;
+        case 'duelDone': sfx.achievement(); toast(`⚔️ Terminó el duelo: rendiste ${e.score} %. Mandando el resultado…`, 'info', 4000); break;
         case 'challengeDone': sfx.achievement(); say(`¡Superaste el desafío «${e.name}»! Premio para siempre: ${e.reward} (+3 fichas).`, { mood: 'happy' }); break;
         case 'newChallenges':
           if (!st.seen.daily1) { st.seen.daily1 = 1; say('Hay desafíos nuevos todos los días (y uno semanal). Dan fichas para canjear por turbos, saltos de tiempo y más. Están en el botón 🎯 Desafíos.'); }
@@ -251,6 +257,26 @@ export function useGame() {
     setOffline(r);
     save(st);
   }, [handle]);
+
+  // Duelos: cuando termina, se manda el puntaje (y se reintenta si no había conexión).
+  useEffect(() => {
+    const t = setInterval(() => {
+      const st = ref.current;
+      const d = st.duel;
+      if (!d || !d.done || d.sent || d.sending) return;
+      d.sending = true;
+      rpc('bb_mt_duel_submit', { p_id: d.id, p_score: d.score }).then((r) => {
+        d.sent = true; d.sending = false;
+        if (r?.status === 'done') {
+          if (r.won) { toast(`🏆 ¡Ganaste el duelo contra ${r.rival}! ${r.my_score} % a ${r.their_score} %`, 'info', 6000); social('duel', {}); say(`¡GANAMOS el duelo! ${r.my_score} % contra ${r.their_score} %. +30 puntos de Liga.`, { mood: 'happy' }); }
+          else if (r.won === false) { toast(`⚔️ Perdiste el duelo contra ${r.rival}: ${r.my_score} % a ${r.their_score} %`, 'warn', 6000); say(`Esta vez ${r.rival} rindió más (${r.their_score} %). Tip: retirá las piezas apenas terminan y resolvé las fallas al toque.`, { mood: 'worried' }); }
+          else toast(`⚔️ ¡Empate en el duelo! ${r.my_score} %`, 'info', 5000);
+        } else toast('⚔️ Resultado enviado: ahora le toca a tu rival (tiene 24 h).', 'info', 5000);
+        force();
+      }).catch((e) => { d.sending = false; if (/no es tuyo|Ya jugaste/.test(e?.message || '')) d.sent = true; });
+    }, 5000);
+    return () => clearInterval(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // BATI encargado de planta: consejos según el estado del taller y el nivel de ayuda elegido.
   useEffect(() => {
@@ -374,6 +400,20 @@ export function useGame() {
       return m;
     }),
     moveMachine: (mid, dir) => act((st) => { E.moveMachine(st, mid, dir); }),
+    startDuel: (d) => act((st) => {
+      if (!E.startDuel(st, d)) return false;
+      sfx.urgent();
+      say(`⚔️ ¡Arranca el duelo ${E.DUEL_KINDS[d.kind].name.toLowerCase()}${d.rival ? ` contra ${d.rival}` : ''}! Tenés 10 minutos: retirá piezas, resolvé fallas al toque y cebá un mate.`, { mood: 'happy' });
+      return true;
+    }),
+    leagueUp: (last) => act((st) => {
+      const k = 'liga_' + last.week;
+      if (st.seen[k]) return;
+      st.seen[k] = 1;
+      toast(`🏅 ¡Ascendiste a ${last.name} en la Liga Maker!`, 'info', 6000);
+      if (B.giveAcc(st, 'corona')) toast('👑 BATI ganó un accesorio: Corona de liga', 'info', 5000);
+      social('league', { name: last.name });
+    }),
     startChapter: () => act((st) => { if (B.startChapter(st)) { sfx.accept(); const c = B.currentChapter(st); say(`📖 «${c.ch.title}»: ${c.ch.goal}`, { mood: 'happy' }); } }),
     finishChapter: (pick) => act((st) => { const out = []; if (B.finishChapter(st, pick, out)) handle(out); }),
     setBatiWear: (k) => act((st) => { st.bati = { ...B.batiOf(st), wear: k }; }),

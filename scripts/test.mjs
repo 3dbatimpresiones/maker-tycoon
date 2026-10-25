@@ -650,4 +650,22 @@ t('Expo Maker: inscribirse, producir y quedar en un puesto', () => {
   assert.ok(s.city.lastExpo.table.length === 5);
 });
 
+t('duelo maker: 10 minutos, puntaje relativo a la capacidad y aviso al terminar', () => {
+  const s = E.newGame(null, 46); skipTutorial(s);
+  s.money = 1e9; s.mat.PLA = 1e9;
+  for (let i = 0; i < 2; i++) E.buyMachine(s, 'ender3');
+  assert.equal(E.duelStartReason(s, { kind: 'tecnico', tech: 'cnc' }), 'No tenés máquinas de esa tecnología');
+  assert.ok(E.startDuel(s, { id: 7, kind: 'carrera', rival: 'Lola' }));
+  assert.equal(E.startDuel(s, { id: 8, kind: 'carrera' }), false, 'uno por vez');
+  const evs = [];
+  for (let i = 0; i < (E.DUEL_SECS + 2) * 10; i++) {
+    const ctx = { out: [] }; step(s, 0.1, ctx); evs.push(...ctx.out);
+    for (const m of s.machines) { if (m.event) E.resolveEvent(s, m.id, 0); if (m.state === 'done') E.retrieve(s, m.id, ctx); }
+  }
+  const done = evs.find((e) => e.type === 'duelDone');
+  assert.ok(done && done.id === 7, 'termina');
+  assert.ok(done.score > 40 && done.score <= 130, 'jugando bien rinde cerca del 100 %: ' + done.score);
+  assert.equal(evs.filter((e) => e.type === 'duelNarr').length, 2, 'BATI narra la mitad y el último minuto');
+});
+
 console.log(`\n${n} pruebas OK`);
