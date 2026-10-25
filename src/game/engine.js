@@ -564,7 +564,7 @@ export function sellMachine(s, mid) {
 // ---------- Desgaste y reparación (idea de la comunidad: SHUNE3D) ----------
 // Cada máquina se gasta mientras imprime: llega al 100 % después de WEAR_HOURS horas
 // imprimiendo. Una máquina gastada falla más (al 100 %, 2,5 veces más).
-export const WEAR_HOURS = 20;
+export const WEAR_HOURS = 24;
 export const WEAR_FAIL = 1.5;
 export const WEAR_WARN = 0.6;
 export const wearOf = (m) => Math.max(0, Math.min(1, Number(m?.wear) || 0));
