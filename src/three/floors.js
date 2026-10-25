@@ -58,9 +58,11 @@ export function decorateFloor(room, floor, space) {
   const bz = -D / 2, lx = -W / 2, rx = W / 2, fz = D / 2;
   const premium = space >= 6;
   const deco = new THREE.Group(); g.add(deco);
-  // Cartel del piso, bajo el neón de la nave
-  const fn = floorNeon(deco, `PISO ${['fdm', 'resin', 'laser', 'cnc'].indexOf(floor) + 1} · ${T.title}`, T.color, lx + 0.035, wallH - 1.5, -0.2, 3.0);
-  fn.rotation.y = Math.PI / 2; // en la pared izquierda, para no pisarse con el neón de la nave
+  // Nombre del piso: chico, centrado debajo del cartel del taller (en la pared del fondo, entero a la vista)
+  const signW = Math.min(3.6, W * 0.4);
+  floorNeon(deco, `PISO ${['fdm', 'resin', 'laser', 'cnc'].indexOf(floor) + 1} · ${T.title}`, T.color, 0, wallH - 1.15 - signW * 0.125 - 0.38, bz + 0.035, 2.3);
+  // Tira de luz arriba de la pared del fondo (en vez de tiras colgando en el aire)
+  box(W - 0.6, 0.04, 0.04, glow(T.led, 2.4), 0, wallH - 0.12, bz + 0.05, deco, false);
   // Luz de ambiente del color del piso
   const amb = new THREE.PointLight(T.led, premium ? 3.2 : 2.4, Math.max(W, D) * 1.1, 2); amb.position.set(0, wallH - 0.6, 0); deco.add(amb); room.lights.push(amb);
   const acc = new THREE.PointLight(T.accent, 1.6, Math.max(W, D) * 0.8, 2); acc.position.set(lx + 1.2, wallH - 1.0, bz + 1.0); deco.add(acc); room.lights.push(acc);
@@ -82,15 +84,15 @@ export function decorateFloor(room, floor, space) {
         sp.position.set(-0.52 + j * 0.21, 0.52 + i * 0.42, 0); rack.add(sp);
       }
     }
-    screen(deco, lx + 1.6, 2.35, bz + 0.03, 1.2, 0.66, '#5DDADB');
-    screen(deco, lx + 3.1, 2.35, bz + 0.03, 1.2, 0.66, '#a855f7');
-    // franjas de luz violeta en el techo
-    for (let i = 0; i < 3; i++) box(W * 0.8, 0.03, 0.06, glow(i % 2 ? T.accent : T.led, 2.2), 0, wallH - 0.08, bz + 1.6 + i * (D - 3) / 2, deco, false);
+    // Pantallas sobre las estanterías, a la izquierda (no tapan el nombre del piso)
+    screen(deco, lx + 1.0, 2.35, bz + 0.03, 1.1, 0.62, '#5DDADB');
+    screen(deco, lx + 2.25, 2.35, bz + 0.03, 1.1, 0.62, '#a855f7');
   }
 
   if (floor === 'resin') {
     // Laboratorio oscuro: luz UV, estaciones de lavado y curado, frascos y carteles de seguridad
-    for (let i = 0; i < 4; i++) box(0.05, 0.03, D * 0.75, glow('#8b5cf6', 2.6), lx + 1.4 + i * (W - 2.8) / 3, wallH - 0.08, 0, deco, false);
+    // tiras UV arriba de las paredes laterales
+    for (const x of [lx + 0.05, rx - 0.05]) box(0.04, 0.04, D - 0.6, glow('#8b5cf6', 2.6), x, wallH - 0.12, 0, deco, false);
     const uv = new THREE.PointLight('#7c3aed', 2.6, 6, 2); uv.position.set(rx - 2, 1.6, bz + 1.2); deco.add(uv); room.lights.push(uv);
     const table = new THREE.Group(); table.position.set(lx + 2.4, 0, bz + 0.45); deco.add(table);
     box(2.6, 0.05, 0.6, REAL.on ? pbr('metal', [1, 0.3], { tint: '#cfd5df', metal: 0.7, rough: 0.35 }) : std('#cfd5df', 0.35, 0.6), 0, 0.82, 0, table);
@@ -146,7 +148,7 @@ export function decorateFloor(room, floor, space) {
     for (let i = 0; i < 220; i++) { const c = new THREE.Mesh(geo, chipMat); c.rotation.x = -Math.PI / 2; c.rotation.z = r() * 6; c.position.set((r() - 0.5) * (W - 2), 0.004, (r() - 0.5) * (D - 2.5)); deco.add(c); }
     // paneles metálicos en la pared
     for (let i = 0; i < 5; i++) box(1.2, 1.6, 0.02, REAL.on ? pbr('metal', [1, 1.3], { tint: '#b6bcc6', metal: 0.85, rough: 0.45 }) : std('#9aa3b0', 0.45, 0.8), lx + 1.0 + i * 1.25, 0.95, bz + 0.02, deco, false);
-    for (let i = 0; i < 3; i++) box(W * 0.8, 0.03, 0.08, glow(i % 2 ? '#fb923c' : '#f8fafc', 2.2), 0, wallH - 0.08, bz + 1.6 + i * (D - 3) / 2, deco, false);
+    for (const x of [lx + 0.05, rx - 0.05]) box(0.04, 0.04, D - 0.6, glow('#fb923c', 2.2), x, wallH - 0.12, 0, deco, false);
     safetySign('USAR PROTECCIÓN\nAUDITIVA', deco, lx + 0.02, 1.7, bz + 1.6, Math.PI / 2);
     if (REAL.on) placeProp(deco, 'metal_tool_chest', { pos: [rx - 2.0, 0, bz + 0.4], size: 0.95 });
   }
@@ -156,7 +158,9 @@ export function decorateFloor(room, floor, space) {
     const rec = new THREE.Group(); rec.position.set(lx + 1.5, 0, fz - 0.6); deco.add(rec);
     box(2.0, 1.0, 0.5, std('#131D47', 0.35, 0.3), 0, 0.5, 0, rec);
     box(2.05, 0.04, 0.55, std('#f8fafc', 0.2, 0.2), 0, 1.02, 0, rec);
-    floorNeon(rec, '3DBAT', '#F78EB6', 0, 0.55, 0.26, 1.6);
+    // El frente de la recepción lleva tu cartel (texto, logo o nombre del taller)
+    const recSign = new THREE.Group(); recSign.position.set(0, 0.55, 0.26); rec.add(recSign);
+    room.addSignHolder(recSign, 1.6);
     for (let i = 0; i < 2; i++) { // brazos robóticos
       const arm = new THREE.Group(); arm.position.set(rx - 0.5, 0, -0.4 + i * 1.5); deco.add(arm); // contra la pared derecha, fuera de los bancos
       cyl(0.18, 0.22, 0.25, std('#f97316', 0.4, 0.4), 0, 0.12, 0, arm, 24);
@@ -166,7 +170,7 @@ export function decorateFloor(room, floor, space) {
       box(0.1, 0.55, 0.1, std('#f1f5f9', 0.35, 0.4), 0, 0.27, 0, j2);
       room.updaters.push((t) => { j1.rotation.y = Math.sin(t * 0.8 + i) * 1.2; j2.rotation.z = -0.6 + Math.sin(t * 1.3 + i) * 0.4; });
     }
-    screen(deco, rx - 2.5, wallH - 1.1, bz + 0.03, 1.6, 0.9, T.color);
+    screen(deco, rx - 1.3, wallH - 1.1, bz + 0.03, 1.6, 0.9, T.color);
   }
   return deco;
 }

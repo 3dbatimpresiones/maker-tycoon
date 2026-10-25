@@ -227,6 +227,8 @@ export class CatActor {
     loadCharacter('gato').then((ch) => {
       if (!ch || !this.g.parent) return;
       const body = ch.scene;
+      // Sin la base/piso que traen algunos modelos: solo la malla con huesos (el gato en sí).
+      body.traverse((n) => { if (n.isMesh && !n.isSkinnedMesh) n.visible = false; });
       body.updateMatrixWorld(true);
       let top = -1e9, bot = 1e9; const v = new THREE.Vector3();
       body.traverse((n) => { if (n.isBone) { n.getWorldPosition(v); top = Math.max(top, v.y); bot = Math.min(bot, v.y); } });

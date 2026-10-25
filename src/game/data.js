@@ -193,6 +193,7 @@ export const UPGRADES = {
   camara: { name: 'Cámara con detección de spaghetti', cat: 'Confiabilidad', cost: 250000, rep: 5, max: 1, desc: 'Detecta el spaghetti y limpia sola en 3 s.' },
   abs: { name: 'Extractor y gabinete: ABS/ASA', cat: 'Tecnología', cost: 450000, rep: 5, max: 1, desc: 'Desbloquea ABS/ASA (solo en impresoras cerradas).' },
   input: { name: 'Input shaping y Klipper', cat: 'Velocidad', cost: 300000, rep: 5, max: 1, desc: '+20 % de velocidad en las impresoras CoreXY cerradas.', tip: 'El firmware compensa las vibraciones para imprimir rápido sin "fantasmas".' },
+  generador: { name: 'Generador eléctrico', cat: 'Automatización', cost: 250000, growth: 3, rep: 4, max: 3, desc: 'Cuando se corta la luz el taller sigue andando: 50 % de velocidad (nivel 2: 80 %, nivel 3: 100 %).', flavor: 'Idea de la comunidad (Chechulina). Nafta, aceite y un buen alargue.' },
   remota: { name: 'Cámara remota', cat: 'Automatización', cost: 400000, rep: 6, max: 1, desc: 'Mientras no estás: hasta 6 h y 80 % de rendimiento.' },
   ams: { name: 'Sistema multicolor (AMS lite / ACE / MMU)', cat: 'Tecnología', cost: 900000, rep: 5, max: 1, desc: 'Las impresoras compatibles imprimen piezas multicolor.' },
   expulsion: { name: 'Expulsión automática', cat: 'Automatización', cost: 1500000, rep: 6, max: 1, desc: 'Las piezas se retiran solas al instante. Si tenés al sobrino, asciende: ordena las bobinas y despacha los pedidos (+5 % en pedidos).' },

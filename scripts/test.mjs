@@ -739,4 +739,61 @@ t('pedidos: liberar todas las máquinas y apagar el Gestor', () => {
   assert.ok(s.orders.active.length >= 2, 'prendido, los acepta solo');
 });
 
+t('sugerencias: generador, turbo de pedido y bodega', () => {
+  const s = E.newGame(null, 54); skipTutorial(s);
+  s.money = 1e9; s.mat.PLA = 1e9;
+  E.buyMachine(s, 'ender3');
+  // Generador: con corte de luz y nivel 1, la máquina avanza a la mitad
+  s.global = { id: 'corte', since: s.time };
+  const m = s.machines[0]; m.state = 'printing'; m.progress = 0; m.need = 1000; m.ev = null;
+  run(s, 1);
+  assert.equal(m.progress, 0, 'sin generador no avanza');
+  s.upgrades.generador = 1; run(s, 1);
+  assert.ok(m.progress > 0, 'con generador avanza');
+  s.global = null;
+  // Turbo de pedido
+  s.orders.spawnT = 999; run(s, 0.2);
+  assert.ok(E.acceptOrder(s, s.orders.offers[0].id));
+  const o = s.orders.active[0];
+  s.tokens = 4; assert.equal(E.orderTurbo(s, o.id), false, 'sin fichas no');
+  s.tokens = 10; const d0 = o.items[0].done;
+  assert.ok(E.orderTurbo(s, o.id));
+  assert.ok(o.items[0].done > d0 && s.tokens === 5);
+  assert.equal(E.orderTurbo(s, o.id), false, 'una vez por pedido');
+  // Bodega
+  const id = s.machines[1].id;
+  assert.ok(E.storeMachine(s, id));
+  assert.equal(s.machines.length, 1); assert.equal(s.storage.length, 1);
+  assert.equal(E.storeMachine(s, s.machines[0].id), false, 'siempre queda una');
+  const back = E.migrate(JSON.parse(E.serialize(s)));
+  assert.equal(back.storage.length, 1, 'se guarda');
+  assert.ok(E.unstoreMachine(s, 0)); assert.equal(s.machines.length, 2);
+});
+
+t('pedidos: asignar todas las que sirven y explicar por qué no hay más', () => {
+  const s = E.newGame(null, 55); skipTutorial(s);
+  s.money = 1e9; for (let i = 0; i < 3; i++) E.buyMachine(s, 'ender3');
+  s.orders.spawnT = 999; run(s, 0.2);
+  assert.ok(E.acceptOrder(s, s.orders.offers[0].id));
+  const o = s.orders.active[0];
+  E.releaseAllOrders(s);
+  assert.ok(E.assignAll(s, o.id) >= 1);
+  assert.equal(s.machines.filter((m) => !m.orderId && E.orderCompatibleMachines(s, o).includes(m)).length, 0, 'no queda ninguna libre que sirva');
+  E.releaseAllOrders(s); o.minStars = 5;
+  assert.match(E.assignBlockReason(s, o), /calidad ★5/);
+});
+
+t('asignación inteligente: acepta lo que llega a tiempo y conviene', () => {
+  const s = E.newGame(null, 56); skipTutorial(s);
+  s.money = 1e9; s.mat.PLA = 1e6; for (let i = 0; i < 3; i++) E.buyMachine(s, 'ender3');
+  s.orders.spawnT = 999; run(s, 0.2); s.orders.spawnT = 999; run(s, 0.2); s.orders.spawnT = 999; run(s, 0.2);
+  const n0 = s.orders.offers.length;
+  assert.ok(n0 >= 1);
+  const picked = E.smartPick(s);
+  assert.ok(picked.length >= 1, 'aceptó al menos uno');
+  for (const o of s.orders.active) assert.ok(s.machines.some((m) => m.orderId === o.id), 'con máquinas asignadas');
+  const p = E.orderPlan(s, s.orders.offers[0] || s.orders.active[0]);
+  assert.ok(p === null || typeof p.perMin === 'number');
+});
+
 console.log(`\n${n} pruebas OK`);

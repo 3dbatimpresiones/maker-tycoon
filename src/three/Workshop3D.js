@@ -221,11 +221,18 @@ export class Workshop3D {
   }
 
   buildSpace(space, floor = null) {
-    if (this.room) this.scene.remove(this.room.group);
-    for (const b of this.benches) this.scene.remove(b);
-    for (const m of this.emptyMarks) this.scene.remove(m);
+    // Lo que se saca de la escena se libera de la placa de video (si no, se acumula al cambiar de piso).
+    // Si algo compartido se vuelve a usar, three.js lo vuelve a subir solo.
+    const free = (o) => o && o.traverse((n) => {
+      if (n.geometry) n.geometry.dispose();
+      const mats = Array.isArray(n.material) ? n.material : n.material ? [n.material] : [];
+      for (const mt of mats) { for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap']) if (mt[k] && mt[k].isCanvasTexture) mt[k].dispose(); mt.dispose(); }
+    });
+    if (this.room) { this.scene.remove(this.room.group); free(this.room.group); }
+    for (const b of this.benches) { this.scene.remove(b); free(b); }
+    for (const m of this.emptyMarks) { this.scene.remove(m); free(m); }
     this.benches = []; this.emptyMarks = [];
-    for (const [, e] of this.machines) this.scene.remove(e.station);
+    for (const [, e] of this.machines) { this.scene.remove(e.station); free(e.station); }
     this.machines.clear();
     const n = floor ? (SPACES[space].floorSlots || FLOOR_SLOTS) : SPACES[space].slots;
     this.room = buildRoom(space, n, floor);
@@ -602,8 +609,19 @@ export class Workshop3D {
   }
 
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
     this.controls.dispose();
     for (const ev of ['mousedown', 'auxclick']) this.canvas.removeEventListener(ev, this.stopAutoScroll);
+    // Se libera todo lo de la placa de video antes de soltar el contexto (así cerrar o recargar no se traba).
+    this.scene.traverse((n) => {
+      if (n.geometry) n.geometry.dispose();
+      const mats = Array.isArray(n.material) ? n.material : n.material ? [n.material] : [];
+      for (const mt of mats) { for (const k in mt) { const v = mt[k]; if (v && v.isTexture) v.dispose(); } mt.dispose(); }
+    });
+    if (this.scene.environment) this.scene.environment.dispose?.();
+    this.renderer.renderLists?.dispose?.();
     this.renderer.dispose();
+    try { this.renderer.forceContextLoss(); } catch { /* ya estaba liberado */ }
   }
 }

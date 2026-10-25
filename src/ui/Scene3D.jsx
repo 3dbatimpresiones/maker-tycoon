@@ -12,7 +12,7 @@ function labelStatus(s, m) {
   if (m.event) return { k: 'event', t: `${MACHINE_EVENTS[m.event.id].icon} ¡Problema!` };
   if (m.state === 'done') return { k: 'done', t: '✔ ¡Lista! Tocá' };
   if (m.state === 'nofil') return { k: 'nofil', t: `Sin ${PRODUCTS[m.product]?.mat || 'material'}` };
-  if (s.global?.id === 'corte' && m.state === 'printing') return { k: 'event', t: '🔌 Sin luz' };
+  if (s.global?.id === 'corte' && m.state === 'printing') return E.genFactor(s) > 0 ? { k: 'print', t: `🔋 Generador ${Math.round(E.genFactor(s) * 100)} %` } : { k: 'event', t: '🔌 Sin luz' };
   if (m.pauseUntil > s.time) return { k: 'pause', t: `Pausa ${Math.ceil(m.pauseUntil - s.time)} s` };
   if (m.state === 'printing') return { k: 'print', t: dur((m.need - m.progress) / E.machineSpeed(s, m)) };
   return { k: 'idle', t: 'Sin trabajo' };
@@ -52,7 +52,7 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
   sRef.current = s;
 
   useEffect(() => {
-    let raf = 0, alive = true, ro = null, lastSync = 0;
+    let raf = 0, alive = true, ro = null, lastSync = 0, onExit = null;
     import('../three/Workshop3D.js').then(({ Workshop3D }) => {
       if (!alive) return;
       let ws;
@@ -62,11 +62,17 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
       if (typeof location !== 'undefined' && /[?&]debug3d/.test(location.search)) window.__mt3d = ws; // solo para pruebas
       ws.controls.addEventListener('start', () => { ws.userMoved = true; });
       ro = new ResizeObserver(() => ws.resize());
+      // Al cerrar la pestaña o recargar (F5): frenar el dibujo y liberar el 3D antes que el navegador.
+      onExit = () => { alive = false; cancelAnimationFrame(raf); try { ws.dispose(); } catch { /* nada */ } };
+      window.addEventListener('pagehide', onExit);
+      // Si el navegador restaura la página desde su memoria (botón atrás), se recarga para rearmar el 3D.
+      window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); }, { once: true });
       ro.observe(wrapRef.current);
       ws.sync(sRef.current);
       ws.resize();
       setReady(true);
       const loop = (now) => {
+        if (!alive) return;
         raf = requestAnimationFrame(loop);
         if (scenePause.on) return;
         const st = sRef.current;
@@ -104,7 +110,7 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
       };
       raf = requestAnimationFrame(loop);
     }).catch(() => onFail?.());
-    return () => { alive = false; cancelAnimationFrame(raf); ro?.disconnect(); wsRef.current?.dispose(); wsRef.current = null; sfx.updateMachines([]); };
+    return () => { alive = false; cancelAnimationFrame(raf); ro?.disconnect(); if (onExit) window.removeEventListener('pagehide', onExit); wsRef.current?.dispose(); wsRef.current = null; sfx.updateMachines([]); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // "Ver de cerca": el panel de la máquina pide acercar la cámara

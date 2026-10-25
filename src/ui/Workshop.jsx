@@ -127,6 +127,7 @@ export default function Workshop({ s, live, actions, floats, onMachine, onEvent,
           <button className={'seg' + (view === '3d' ? ' active' : '')} disabled={fail3d} onClick={() => actions.setting('view', '3d')}>3D</button>
           <button className={'seg' + (view === 'lista' ? ' active' : '')} onClick={() => actions.setting('view', 'lista')}>Lista</button>
         </div>
+        <button className="slots-chip bodega-chip" onClick={() => open('bodega')} title="Bodega: máquinas guardadas para cambiar cuando haga falta">📦 {(s.storage || []).length}/{E.storageCap(s)}</button>
         <span className="slots-chip" title={floors ? `Piso ${FLOORS.find((f) => f.id === floor).long} · ${s.machines.length} máquinas en toda la nave` : ''}>{shown.length}/{cap}</span>
       </div>
       <ChallengeStrip s={s} open={open} />

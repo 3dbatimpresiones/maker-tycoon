@@ -254,11 +254,13 @@ export function buildRoom(space, n, floorId = null) {
     room.vitrinaPos = new THREE.Vector3(W / 2 - 1.2, 0.95, -D / 2 + 0.6);
   }
   if (space >= 4 && space <= 5) {
-    for (let i = 0; i < 5; i++) {
+    // Ventanas altas (en los pisos no: ahí va el cartel del taller)
+    if (!floorId) for (let i = 0; i < 5; i++) {
       const w = plane(1.4, 0.8, std('#0b1438', 1, 0, { emissive: '#4a6fb5', emissiveIntensity: 0.45 }), g);
       w.position.set(-W / 2 + 1.2 + i * (W - 2.4) / 4, wallH - 0.8, -D / 2 + 0.01);
     }
-    for (let i = 0; i < 4; i++) box(0.22, wallH, 0.22, std('#c9a227', 0.5, 0.6), -W / 2 + 0.3 + i * (W - 0.6) / 3, wallH / 2, -D / 2 + 0.12, g);
+    // Columnas: en los pisos solo en las puntas, para no cruzar el cartel
+    for (let i = 0; i < 4; i++) if (!floorId || i === 0 || i === 3) box(0.22, wallH, 0.22, std('#c9a227', 0.5, 0.6), -W / 2 + 0.3 + i * (W - 0.6) / 3, wallH / 2, -D / 2 + 0.12, g);
     box(W, 0.3, 0.25, std('#c9a227', 0.5, 0.6), 0, wallH - 0.2, -D / 2 + 0.6, g);
     const lineMat = std('#f2c94c', 0.6, 0);
     const lw = L.cols * SX + 0.4, ld = L.rows * SZ + 0.4;
@@ -268,13 +270,24 @@ export function buildRoom(space, n, floorId = null) {
     for (let r = 0; r < rows; r++) for (let i = 0; i < 4; i++) {
       const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.3, 24).rotateX(Math.PI / 2), emissive('#f4f8ff', 1.1)); lamp.position.set(-W / 2 + 1.5 + i * (W - 3) / 3, wallH - 0.4, -D / 2 + 1.5 + r * (D - 3) / Math.max(1, rows - 1)); g.add(lamp);
     }
-    const label = space === 5 ? 'NAVE 3DBAT' : 'TALLER 3DBAT';
-    const neon = plane(3.6, 0.6, new THREE.MeshStandardMaterial({ map: TEX.label(label, '#5DDADB'), emissive: '#ffffff', emissiveMap: TEX.label(label, '#5DDADB'), emissiveIntensity: 1.6, transparent: true }), g);
-    neon.position.set(0.6, wallH - 1.7, -D / 2 + 0.03);
+    if (floorId) {
+      // En los pisos: cartel personalizable (tu texto, tu logo o el nombre del taller), al centro del fondo.
+      const sg = new THREE.Group(); sg.position.set(0, wallH - 1.15, -D / 2 + 0.035); g.add(sg);
+      room.addSignHolder(sg, Math.min(3.6, W * 0.4));
+    } else {
+      const label = space === 5 ? 'NAVE 3DBAT' : 'TALLER 3DBAT';
+      const neon = plane(3.6, 0.6, new THREE.MeshStandardMaterial({ map: TEX.label(label, '#5DDADB'), emissive: '#ffffff', emissiveMap: TEX.label(label, '#5DDADB'), emissiveIntensity: 1.6, transparent: true }), g);
+      neon.position.set(0.6, wallH - 1.7, -D / 2 + 0.03);
+    }
   }
   if (space === 6) {
-    const neon = plane(4.4, 0.9, new THREE.MeshStandardMaterial({ map: TEX.label('PLANTA 3DBAT', '#F78EB6'), emissive: '#ffffff', emissiveMap: TEX.label('PLANTA 3DBAT', '#F78EB6'), emissiveIntensity: 1.7, transparent: true }), g);
-    neon.position.set(0.5, wallH - 1.2, -D / 2 + 0.03);
+    if (floorId) {
+      const sg = new THREE.Group(); sg.position.set(0, wallH - 1.15, -D / 2 + 0.035); g.add(sg);
+      room.addSignHolder(sg, Math.min(3.6, W * 0.4));
+    } else {
+      const neon = plane(4.4, 0.9, new THREE.MeshStandardMaterial({ map: TEX.label('PLANTA 3DBAT', '#F78EB6'), emissive: '#ffffff', emissiveMap: TEX.label('PLANTA 3DBAT', '#F78EB6'), emissiveIntensity: 1.7, transparent: true }), g);
+      neon.position.set(0.5, wallH - 1.2, -D / 2 + 0.03);
+    }
     const glassWall = plane(D * 0.8, 2.6, M.glass('#7fb6e8', 0.14), g); glassWall.position.set(-W / 2 + 0.05, 1.3, 0); glassWall.rotation.y = Math.PI / 2;
     // Cinta transportadora con cajas
     const belt = new THREE.Group(); belt.position.set(0, 0, -D / 2 + 0.55); g.add(belt);
@@ -467,7 +480,8 @@ export function buildRoom(space, n, floorId = null) {
     frame.castShadow = false;
     const board = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
     board.position.z = 0.022; honor.add(board);
-    honor.position.set(-W * 0.2, Math.min(wallH - h / 2 - 0.25, wallH * (space >= 3 ? 0.66 : 0.6)), -D / 2 + 0.03);
+    if (floorId) honor.position.set(-W / 2 + 0.85 + w / 2, wallH - 0.95, -D / 2 + 0.03);
+    else honor.position.set(-W * 0.2, Math.min(wallH - h / 2 - 0.25, wallH * (space >= 3 ? 0.66 : 0.6)), -D / 2 + 0.03);
   };
 
   // ---------- Decoración ganada en el juego online (solo estética) ----------

@@ -1,5 +1,5 @@
 // Tablero de pedidos: ofertas para aceptar y pedidos en curso.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Icon from './Icon.jsx';
 import { ProductThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
@@ -36,6 +36,26 @@ export function ClientLine({ s, name, full = false }) {
       {c.last != null && <span className="cl-rev">{'★'.repeat(c.last)}<em>{'★'.repeat(5 - c.last)}</em></span>}
       {E.clientKnown(s, name) && <span className="cl-pref" title={`Le gusta el presupuesto ${Q.name.toLowerCase()}: si lo elegís, la confianza sube más`}>prefiere {Q.icon} {Q.name.toLowerCase()}</span>}
     </small>
+  );
+}
+
+// Botón que repite mientras lo mantenés apretado, cada vez más rápido (trrr).
+function HoldBtn({ onStep, disabled, children, ...rest }) {
+  const t = useRef(null);
+  const stop = () => { clearTimeout(t.current); t.current = null; };
+  useEffect(() => stop, []);
+  useEffect(() => { if (disabled) stop(); }, [disabled]);
+  const start = (e) => {
+    if (disabled || (e.button != null && e.button !== 0)) return;
+    e.preventDefault();
+    onStep();
+    let wait = 350;
+    const loop = () => { t.current = setTimeout(() => { onStep(); wait = Math.max(25, wait * 0.78); loop(); }, wait); };
+    loop();
+  };
+  return (
+    <button {...rest} disabled={disabled} onPointerDown={start} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStep(); } }}>{children}</button>
   );
 }
 
@@ -121,11 +141,19 @@ function Active({ s, o, actions }) {
       <div className="o-time"><i style={{ width: `${Math.max(0, left / o.time) * 100}%` }} /></div>
       <div className="o-assign">
         <span>Impresoras: <b>{mine}</b></span>
-        <button className="mini-btn" disabled={mine <= 0} onClick={() => actions.assign(o.id, -1)} aria-label="Sacar una impresora"><Icon name="minus" size={14} /></button>
-        <button className="mini-btn" disabled={freeCompat <= 0} onClick={() => actions.assign(o.id, 1)} aria-label="Sumar una impresora"><Icon name="plus" size={14} /></button>
+        <HoldBtn className="mini-btn" disabled={mine <= 0} onStep={() => actions.assign(o.id, -1)} aria-label="Sacar una impresora" title="Mantené apretado para sacar varias"><Icon name="minus" size={14} /></HoldBtn>
+        <HoldBtn className="mini-btn" disabled={freeCompat <= 0} onStep={() => actions.assign(o.id, 1)} aria-label="Sumar una impresora" title="Mantené apretado para sumar varias"><Icon name="plus" size={14} /></HoldBtn>
+        {freeCompat > 1 && <button className="mini-btn all-btn" onClick={() => actions.assignAll(o.id)} title="Asignar todas las máquinas libres que sirven para este pedido">Todas ({freeCompat})</button>}
         <span className="o-reward">{o.reward ? money(o.reward) : '$0'} · +{o.rep} ⭐{o.tokens ? ` · +${o.tokens} 🎟️` : ''}</span>
       </div>
-      {mine === 0 && <p className="o-warn">Sin impresoras asignadas: tocá + para sumar una.</p>}
+      {!o.turbo && (late || left < o.time * 0.35) && (
+        <button className="chip-btn o-turbo" disabled={!!E.orderTurboReason(s, o)} onClick={() => actions.orderTurbo(o.id)}
+          title="Suma de golpe el 25 % de las piezas del pedido (una vez por pedido). Idea de SHUNE3D.">⚡ Turbo de pedido · {E.ORDER_TURBO_TOKENS} 🎟️{s.tokens < E.ORDER_TURBO_TOKENS ? ' (te faltan fichas)' : ''}</button>
+      )}
+      {mine === 0 && (freeCompat > 0
+        ? <p className="o-warn">Sin impresoras asignadas: tocá + (o «Todas») para sumarle.</p>
+        : <p className="o-warn">Sin impresoras asignadas: {E.assignBlockReason(s, o)}.</p>)}
+      {mine > 0 && freeCompat === 0 && s.machines.some((m) => !m.orderId) && <p className="o-hint-sm">No podés sumar más: {E.assignBlockReason(s, o).toLowerCase()}.</p>}
       {mine > 0 && late && <p className="o-warn soft">Viene justo: sumá otra impresora o cebá un mate.</p>}
     </div>
   );
@@ -163,8 +191,11 @@ export default function Orders({ s, actions, glow }) {
         <span className="slots-chip">{used}/{size}</span>
       </div>
       {/* Controles: liberar todas las máquinas y prender/apagar la aceptación automática */}
-      {(busyMachines > 0 || E.has(s, 'gestor')) && (
+      {(busyMachines > 0 || E.has(s, 'gestor') || s.orders.offers.length > 0) && (
         <div className="o-ctrl">
+          {s.orders.offers.length > 0 && s.machines.some((m) => !m.orderId) && (
+            <button className="chip-btn o-smart" onClick={actions.smartPick} title="Analiza los pedidos del tablero (tiempo con tus máquinas libres, material, plata por minuto) y acepta los que más convienen y llegan a tiempo">🧠 Elegir los mejores</button>
+          )}
           {busyMachines > 0 && <button className="chip-btn" onClick={actions.releaseAll} title="Saca todas las máquinas de los pedidos para que las asignes vos">🔓 Liberar máquinas ({busyMachines})</button>}
           {E.has(s, 'gestor') && (
             <label className="ch-toggle o-auto" title="Si lo apagás, el Gestor no acepta pedidos solo: los elegís vos (así no se te pasa ningún pedido especial)">

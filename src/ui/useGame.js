@@ -228,6 +228,7 @@ export function useGame() {
         case 'autoSpool':
           if (e.urgent) sayOnce('urgentspool', `Faltaba ${MATERIALS[e.mat]?.name || 'material'} para un pedido y lo compré con envío urgente (+25 %), así no se traba. Para pagar menos, dejá stock en Tienda → Materiales o contratá a Filacolor en Mejoras.`, { mood: 'normal', ctas: ['filacolor'] });
           break;
+        case 'orderTurbo': toast(`⚡ Turbo de pedido: +${e.added} piezas listas al toque.`, 'info', 4000); break;
         case 'challengeDone': sfx.achievement(); say(`¡Superaste el desafío «${e.name}»! Premio para siempre: ${e.reward} (+3 fichas).`, { mood: 'happy' }); break;
         case 'newChallenges':
           if (!st.seen.daily1) { st.seen.daily1 = 1; say('Hay desafíos nuevos todos los días (y uno semanal). Dan fichas para canjear por turbos, saltos de tiempo y más. Están en el botón 🎯 Desafíos.'); }
@@ -536,6 +537,16 @@ export function useGame() {
     abandonChallenge: () => act((st) => { E.abandonChallenge(st); toast('Desafío abandonado: seguís jugando sin las reglas.', 'info'); }),
     setProduct: (mid, pid) => act((st) => E.setProduct(st, mid, pid)),
     mate: () => act((st, ctx) => E.useMate(st, ctx)),
+    orderTurbo: (oid) => act((st, ctx) => { const ok = E.orderTurbo(st, oid, ctx); if (ok) sfx.buy(); return ok; }),
+    storeMachine: (mid) => act((st) => { const ok = E.storeMachine(st, mid); if (ok) toast('📦 Máquina guardada en la bodega.', 'info', 3500); return ok; }),
+    unstoreMachine: (i) => act((st) => { const ok = E.unstoreMachine(st, i); if (ok) toast('📦 Máquina de vuelta en el taller.', 'info', 3500); return ok; }),
+    assignAll: (oid) => act((st) => E.assignAll(st, oid)),
+    smartPick: () => act((st) => {
+      const list = E.smartPick(st);
+      if (list.length) { sfx.accept(); toast(`🧠 Acepté ${list.length === 1 ? 'el pedido que más conviene' : `${list.length} pedidos`}: ${list.join(' · ')}`, 'info', 6000); }
+      else toast('🧠 Ningún pedido del tablero llega a tiempo con tus máquinas libres. Liberá máquinas o esperá pedidos nuevos.', 'warn', 6000);
+      return list;
+    }),
     releaseAll: () => act((st) => { const n = E.releaseAllOrders(st); if (n) toast(`🔓 Liberé ${n} ${n === 1 ? 'máquina' : 'máquinas'}: ahora asignalas con + al pedido que quieras.`, 'info', 5000); return n; }),
     accept: (oid, quote = 'std') => act((st) => { const ok = E.acceptOrder(st, oid, quote); if (ok) sfx.accept(); return ok; }),
     decline: (oid) => act((st) => E.declineOrder(st, oid)),

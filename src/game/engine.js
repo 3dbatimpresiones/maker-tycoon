@@ -602,13 +602,16 @@ export function startMachine(s, mid, ctx = {}) {
   if (m.state === 'idle' || m.state === 'nofil') startPiece(s, m, out);
 }
 
+// Generador eléctrico (idea de Chechulina): durante un corte de luz el taller sigue a 50/80/100 %.
+export const genFactor = (s) => [0, 0.5, 0.8, 1][Math.min(3, lvlOf(s, 'generador'))];
 function stepMachine(s, m, dt, ctx, blackout) {
   const out = ctx.out;
   if (m.event) {
     if (m.event.auto != null && s.time >= m.event.auto) resolveEvent(s, m.id, 0, ctx);
     return;
   }
-  if (blackout || m.pauseUntil > s.time) return;
+  if (blackout) { const g = genFactor(s); if (g <= 0) return; dt *= g; }
+  if (m.pauseUntil > s.time) return;
   if (m.state === 'idle' || m.state === 'nofil') {
     if (!m.waitStart) startPiece(s, m, out);
     return;
@@ -1204,12 +1207,124 @@ export function acceptOrder(s, oid, qid = 'std') {
   for (const m of machines) m.orderId = o.id;
   return true;
 }
+// Asignación inteligente: mira los pedidos del tablero, cuánto tardarían con tus máquinas libres,
+// si llegan a tiempo, cuánto material falta (y lo que costaría comprarlo) y cuánto dejan por minuto.
+// Acepta los que más convienen mientras haya máquinas libres.
+export function orderPlan(s, o) {
+  const { machines, enough } = suggestAssign(s, o);
+  if (!machines.length) return null;
+  let work = 0;
+  const need = {};
+  for (const it of o.items) {
+    const left = it.qty - it.done;
+    work += left * PRODUCTS[it.p].time;
+    need[PRODUCTS[it.p].mat] = (need[PRODUCTS[it.p].mat] || 0) + left * PRODUCTS[it.p].use;
+  }
+  const speed = machines.reduce((a, m) => a + machineSpeed(s, m, false), 0) || 1;
+  const eta = work / speed;
+  let matCost = 0;
+  for (const [mat, g] of Object.entries(need)) {
+    const short = Math.max(0, g - (s.mat[mat] || 0));
+    if (short > 0) matCost += Math.ceil(short / UNIT) * matPrice(s, mat) * (hasProveedor(s) ? 1.1 : URGENT_SPOOL);
+  }
+  const net = o.reward - matCost;
+  return { machines: machines.length, eta, onTime: enough && eta < o.time * 0.85, matCost, net, perMin: net / Math.max(1, eta / 60) };
+}
+export function smartPick(s) {
+  const picked = [];
+  for (let guard = 0; guard < 10; guard++) {
+    const best = s.orders.offers
+      .filter((o) => !(o.tpl === 'exposicion' && o.reward === 0))
+      .map((o) => ({ o, p: orderPlan(s, o) }))
+      .filter((x) => x.p && x.p.onTime && x.p.net > 0 && (x.p.matCost === 0 || s.money >= x.p.matCost))
+      .sort((a, b) => b.p.perMin - a.p.perMin)[0];
+    if (!best) break;
+    if (!acceptOrder(s, best.o.id)) break;
+    picked.push(best.o.title);
+  }
+  return picked;
+}
+
+// Asigna a un pedido todas las máquinas libres que lo pueden hacer.
+export function assignAll(s, oid) {
+  const o = s.orders.active.find((x) => x.id === oid);
+  if (!o) return 0;
+  let n = 0;
+  for (const m of s.machines) if (!m.orderId && compatible(s, m, o)) { m.orderId = o.id; n++; }
+  return n;
+}
+// Por qué no se pueden sumar más máquinas a un pedido (para explicarlo en pantalla).
+export function assignBlockReason(s, o) {
+  const free = s.machines.filter((m) => !m.orderId);
+  if (!free.length) return 'Todas tus máquinas están en otros pedidos';
+  const left = o.items.filter((it) => it.done < it.qty);
+  const techs = new Set(left.map((it) => PRODUCTS[it.p].tech));
+  const sameTech = free.filter((m) => techs.has(MACHINES[m.model].tech));
+  if (!sameTech.length) return 'Las máquinas libres son de otra tecnología';
+  const stars = Math.max(...left.map((it) => Math.max(o.minStars, PRODUCTS[it.p].minStars || 1)));
+  if (sameTech.every((m) => machineStars(s, m) < stars)) return `Este pedido pide calidad ★${stars} y tus máquinas libres no llegan`;
+  return 'Las máquinas libres no pueden hacer estos productos';
+}
 // Libera todas las máquinas de todos los pedidos (los pedidos siguen en curso, sin máquinas).
 // La pieza que cada una está haciendo se termina igual y cuenta para su pedido.
 export function releaseAllOrders(s) {
   let n = 0;
   for (const m of s.machines) if (m.orderId) { m.orderId = null; n++; }
   return n;
+}
+// Turbo de pedido (idea de SHUNE3D): por 5 fichas, suma de golpe el 25 % de las piezas del pedido
+// (sin cambiar qué está haciendo cada máquina). Una vez por pedido.
+export const ORDER_TURBO_TOKENS = 5;
+export function orderTurboReason(s, o) {
+  if (!o) return 'Ese pedido ya no está';
+  if (o.turbo) return 'Ya usaste el turbo en este pedido';
+  if (s.tokens < ORDER_TURBO_TOKENS) return `Necesitás ${ORDER_TURBO_TOKENS} fichas`;
+  return null;
+}
+export function orderTurbo(s, oid, ctx = {}) {
+  const out = ctx.out || (ctx.out = []);
+  const o = s.orders.active.find((x) => x.id === oid);
+  if (orderTurboReason(s, o)) return false;
+  s.tokens -= ORDER_TURBO_TOKENS;
+  o.turbo = true;
+  let added = 0;
+  for (const it of o.items) {
+    const n = Math.min(it.qty - it.done, Math.max(1, Math.ceil(it.qty * 0.25)));
+    if (n > 0) { it.done += n; added += n; }
+  }
+  out.push({ type: 'orderTurbo', oid, added });
+  if (o.items.every((i) => i.done >= i.qty)) completeOrder(s, o, out);
+  return true;
+}
+
+// ---------- Bodega (idea de Elcompy): guardar máquinas para cambiarlas cuando haga falta ----------
+// No producen ni se gastan mientras están guardadas. Conservan desgaste, mods y lo que pagaste.
+export const storageCap = (s) => 4 + s.space; // 4 en el escritorio … 10 en la Planta
+export function storeReason(s, m) {
+  if (!m) return 'Esa máquina no está';
+  if (s.machines.length <= 1) return 'Necesitás al menos una máquina en el taller';
+  if ((s.storage || []).length >= storageCap(s)) return `La bodega está llena (${storageCap(s)})`;
+  return null;
+}
+export function storeMachine(s, mid) {
+  const m = s.machines.find((x) => x.id === mid);
+  if (storeReason(s, m)) return false;
+  s.machines = s.machines.filter((x) => x !== m);
+  Object.assign(m, { orderId: null, cur: null, curOrder: null, state: 'idle', progress: 0, pen: 0, event: null, ev: null, waitStart: false, pauseUntil: 0 });
+  s.storage = [...(s.storage || []), m];
+  return true;
+}
+export function unstoreReason(s, i) {
+  const m = (s.storage || [])[i];
+  if (!m) return 'Esa máquina no está';
+  if (!roomFor(s, m.model)) return hasFloors(s) ? 'No hay lugar en ese piso' : 'No hay lugar en el taller';
+  return null;
+}
+export function unstoreMachine(s, i) {
+  if (unstoreReason(s, i)) return false;
+  const [m] = s.storage.splice(i, 1);
+  s.machines.push(m);
+  return true;
 }
 export function declineOrder(s, oid) { s.orders.offers = s.orders.offers.filter((x) => x.id !== oid); }
 export function assignMore(s, oid, delta) {
@@ -1956,6 +2071,7 @@ export function migrate(obj) {
   obj.stats = { ...base.stats, ...obj.stats };
   // Tiempo jugado total (sobrevive a las mudanzas). Las partidas de antes arrancan con el tiempo de la partida actual.
   if (typeof obj.stats.playSecs !== 'number') obj.stats.playSecs = obj.time || 0;
+  if (!Array.isArray(obj.storage)) obj.storage = [];
   obj.run = { ...base.run, ...obj.run };
   obj.boost = { ...base.boost, ...obj.boost };
   obj.orders = { ...base.orders, ...obj.orders };

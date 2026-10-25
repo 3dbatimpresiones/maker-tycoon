@@ -19,6 +19,7 @@ import { VisitModal } from './Visit.jsx';
 import NaveIntro, { naveIntroKey } from './NaveIntro.jsx';
 import CityModal from './City.jsx';
 import StatsModal from './Stats.jsx';
+import Bodega from './Bodega.jsx';
 import BatiPanel from './BatiPanel.jsx';
 import { setBatiAcc } from './Bati.jsx';
 import { batiOf } from '../game/bati.js';
@@ -128,6 +129,7 @@ export default function App() {
       {modal?.kind === 'event' && m && <EventModal s={s} m={m} actions={actions} onClose={close} />}
       {modal?.kind === 'logros' && <AchievementsModal s={s} onClose={close} />}
       {modal?.kind === 'stats' && <StatsModal s={s} onClose={close} />}
+      {modal?.kind === 'bodega' && <Bodega s={s} actions={actions} onClose={close} />}
       {modal?.kind === 'bati' && <BatiPanel s={s} actions={actions} tab={modal.tab} onClose={close} />}
       {modal?.kind === 'news' && <NewsModal onClose={close} />}
       {modal?.kind === 'ciudad' && <CityModal s={s} actions={actions} tab={modal.tab} onClose={close} />}

@@ -2,6 +2,29 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.5', date: '2026-10-25', title: 'Ideas de la comunidad',
+    intro: 'Varias de estas mejoras salieron del buzón de Sugerencias. ¡Gracias!',
+    groups: [
+      ['💡 Ideas de ustedes', [
+        'Generador eléctrico (idea de Chechulina): en Mejoras. Cuando se corta la luz, el taller sigue al 50 %, 80 % o 100 % según el nivel.',
+        'Turbo de pedido (idea de SHUNE3D): si un pedido viene justo, por 5 fichas suma de golpe el 25 % de las piezas. Una vez por pedido.',
+        'Bodega (idea de Elcompy): guardá máquinas para cambiarlas cuando quieras. No producen ni se gastan. Botón 📦 arriba del taller.',
+        'Menos memoria (idea de benja): el taller 3D libera lo que ya no usa al cambiar de piso, y cerrar o recargar la página ya no traba el navegador.',
+      ]],
+      ['📋 Pedidos', [
+        '🧠 «Elegir los mejores»: analiza tiempo con tus máquinas libres, material y plata por minuto, y acepta los pedidos que llegan a tiempo y más convienen.',
+        'Botón «Todas» para asignarle a un pedido todas las máquinas que sirven.',
+        'Mantené apretado + o − para sumar o sacar máquinas rapidísimo.',
+        'Si no podés sumar más máquinas, te dice por qué (otra tecnología, calidad que pide, o están ocupadas).',
+      ]],
+      ['🎨 Pisos más prolijos', [
+        'Tu cartel personalizado (o el nombre de tu taller) ahora aparece en la pared de cada piso y en la recepción de la Planta, en vez de «3DBAT» fijo.',
+        'El nombre del piso, el cuadro de honor y las pantallas ya no se pisan ni se cortan.',
+        'Luces más ordenadas y el gato sin base blanca.',
+      ]],
+    ],
+  },
+  {
     v: '1.4', date: '2026-10-25', title: 'Más control sobre tus pedidos',
     intro: 'Arreglos y mejoras que pidieron ustedes.',
     groups: [

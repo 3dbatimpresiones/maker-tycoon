@@ -171,6 +171,7 @@ export function MachinePanel({ s, m, actions, onClose, onSellUsed }) {
           </span>
         )}
         {s.settings.view !== 'lista' && <button className="chip-btn" onClick={() => { window.dispatchEvent(new CustomEvent('mt-focus', { detail: m.id })); onClose(); }}>🔍 Ver de cerca en el taller</button>}
+        {!E.storeReason(s, m) && <button className="chip-btn" onClick={() => { actions.storeMachine(m.id); onClose(); }} title="La sacás del taller sin venderla: no produce ni se gasta. La volvés a poner cuando quieras.">📦 Guardar en la bodega</button>}
         {E.needsRepair(m) && (
           <button className={'chip-btn' + (s.money >= E.repairCost(s, m) ? ' fix-ok' : '')} disabled={s.money < E.repairCost(s, m)} onClick={() => actions.repair(m.id)}
             title="La deja al 100 %: vuelve a fallar como nueva">🔧 Reparar al 100 % · {money(E.repairCost(s, m))}</button>
