@@ -374,9 +374,12 @@ export function machineCost(s, model) {
   const n = s.machines.filter((m) => m.model === model).length;
   return Math.round(M.cost * Math.pow(M.growth, n));
 }
+export const KNOWLEDGE = ['resina', 'laser', 'cnc'];
+export const knows = (s, id) => KNOWLEDGE.includes(id) && (s.prestige.known || []).includes(id);
 export function upgradeCost(s, id) {
   const U = UPGRADES[id];
-  return Math.round(U.cost * Math.pow(U.growth, lvlOf(s, id)));
+  // Conocimiento de etapas anteriores: volver a equipar un área que ya usaste cuesta la mitad.
+  return Math.round(U.cost * Math.pow(U.growth, lvlOf(s, id)) * (knows(s, id) ? 0.5 : 1));
 }
 export function upgradeUnlocked(s, id) {
   const U = UPGRADES[id];
@@ -1942,6 +1945,25 @@ export function canMove(s) {
   const b = oficioBreakdown(s);
   return b.fromMoney >= 1 && (s.space >= 3 || b.total >= 3);
 }
+// ---------- Mudanza Evolutiva: vendés esta etapa de tu empresa para financiar la próxima ----------
+// Valuación: máquinas (según lo que pagaste y el desgaste), mods, las instalaciones del taller y la plata.
+// Capital de traslado: el 25 % de lo vendido + el 5 % de la plata, con un tope para que reconstruir siga siendo un desafío.
+export function startSpaceOf(perks) { return perks.local ? 3 : perks.garage ? 2 : perks.cuarto ? 1 : 0; }
+export function valuation(s) {
+  let machines = 0, mods = 0;
+  for (const m of s.machines) {
+    machines += (m.paid || MACHINES[m.model].cost) * (1 - Math.min(0.9, wearOf(m))) * 0.6;
+    mods += modsRefund(s, m);
+  }
+  const place = Math.round((SPACES[s.space].cost || 0) * 0.4);
+  const money = Math.max(0, s.money);
+  const sold = Math.round(machines + mods + place);
+  // Tope: lo que cuesta el taller dos lugares más arriba de donde arrancás (la reputación igual hay que ganarla).
+  const startIdx = Math.min(SPACES.length - 1, startSpaceOf(s.prestige.perks) + 2);
+  const cap = Math.round(SPACES[startIdx].cost);
+  const raw = Math.round(sold * 0.25 + money * 0.05);
+  return { machines: Math.round(machines), mods: Math.round(mods), place, money, sold, total: sold + money, raw, cap, capital: Math.min(cap, raw) };
+}
 function keepForMove(s, prestige) {
   const keepFrac = prestige.perks.fieles2 ? 0.5 : prestige.perks.fieles ? 0.25 : 0;
   return {
@@ -1959,11 +1981,23 @@ export function doMove(s, vitrinaPid, challenge = null) {
   if (!canMove(s) && !challenge) return null;
   const gain = canMove(s) ? oficioGain(s) : 0;
   const prestige = clonePrestige(s);
+  const val = challenge ? null : valuation(s);
   prestige.points += gain;
   prestige.total += gain;
   if (gain > 0) prestige.moves++;
   if (gain > 0 && vitrinaPid && PRODUCTS[vitrinaPid]) prestige.vitrina.push({ p: vitrinaPid, move: prestige.moves, space: s.space });
-  return newGame(keepForMove(s, prestige), s.rng ^ 0x9e3779b9, challenge);
+  // Conocimientos: las tecnologías que ya equipaste quedan aprendidas.
+  prestige.known = [...new Set([...(prestige.known || []), ...KNOWLEDGE.filter((id) => lvlOf(s, id) > 0)])];
+  // Historia de la empresa: cada etapa queda registrada.
+  if (gain > 0) {
+    prestige.history = [...(prestige.history || []), {
+      n: prestige.moves, space: s.space, earned: Math.round(s.runEarned), orders: s.run.orders || 0, pieces: s.run.pieces || 0,
+      secs: Math.round(s.time), oficio: gain, capital: val ? val.capital : 0, machines: s.machines.length, at: Date.now(),
+    }].slice(-50);
+  }
+  const next = newGame(keepForMove(s, prestige), s.rng ^ 0x9e3779b9, challenge);
+  if (val && val.capital > 0) next.money += val.capital; // no cuenta como "ganado": no da Oficio ni puntos
+  return next;
 }
 export const challengesUnlocked = (s) => s.prestige.moves >= 1;
 export function startChallenge(s, id, vitrinaPid) {

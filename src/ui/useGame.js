@@ -575,8 +575,29 @@ export function useGame() {
     setting: (k, v) => act((st) => { st.settings[k] = v; sfx.configure(st.settings.sound, st.settings.volume, st.settings.vol); if (k === 'currency') setCurrency(v); }),
     setVol: (k, v) => act((st) => { st.settings.vol = { ...(st.settings.vol || {}), [k]: v }; sfx.configure(st.settings.sound, st.settings.volume, st.settings.vol); }),
     buyPerk: (id, PERKS) => act((st) => { const ok = E.buyPerk(st, id, PERKS); if (ok) sfx.buy(); return ok; }),
-    move: (pid) => { const next = E.doMove(ref.current, pid); if (next) { sfx.achievement(); replace(next); say('¡Nueva sede! Arrancás de nuevo, pero con todo el oficio encima: tus piezas valen más para siempre.', { mood: 'happy' }); } return !!next; },
+    move: (pid) => {
+      // Copia de seguridad automática antes de mudarse.
+      try { localStorage.setItem('mt3dbat.save.premove', E.serialize(ref.current)); } catch { /* sin espacio */ }
+      const val = E.valuation(ref.current);
+      const next = E.doMove(ref.current, pid);
+      if (next && val.capital > 0) setTimeout(() => toast(`🏭 Vendiste tu etapa anterior: arrancás con ${money(val.capital)} de capital.`, 'info', 6000), 600); if (next) { sfx.achievement(); replace(next); say('¡Nueva sede! Arrancás de nuevo, pero con todo el oficio encima: tus piezas valen más para siempre.', { mood: 'happy' }); } return !!next; },
     reset: () => { const next = E.newGame(); try { localStorage.removeItem(BACKUP_KEY); } catch { /* sin acceso */ } replace(next); setBati([]); },
+    downloadSave: () => {
+      const st = ref.current;
+      const blob = new Blob([E.serialize(st)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `maker-tycoon-${(st.name || 'partida').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    },
+    importJson: (txt) => {
+      try { const obj = E.migrate(JSON.parse(txt)); if (!obj) return false; save(ref.current, true); obj.lastSeen = Date.now(); replace(obj); return true; } catch { return false; }
+    },
+    hasPreMove: () => { try { return !!localStorage.getItem('mt3dbat.save.premove'); } catch { return false; } },
+    restorePreMove: () => {
+      try { const obj = E.migrate(JSON.parse(localStorage.getItem('mt3dbat.save.premove'))); if (!obj) return false; obj.lastSeen = Date.now(); replace(obj); localStorage.removeItem('mt3dbat.save.premove'); return true; } catch { return false; }
+    },
     exportCode: () => { const json = E.serialize(ref.current); return btoa(unescape(encodeURIComponent(json))); },
     importCode: (code) => {
       try {

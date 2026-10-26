@@ -136,7 +136,7 @@ t('mudanza: da Oficio, conserva logros y vitrina, reinicia el taller', () => {
   assert.equal(n2.prestige.vitrina[0].p, 'casco');
   assert.equal(n2.achievements.primera, 1);
   assert.equal(n2.space, 0);
-  assert.equal(n2.money, 0);
+  assert.ok(n2.money > 0 && n2.money <= 20e6, 'arranca con el capital de traslado, con tope');
   assert.equal(n2.tutorial.active, false);
   assert.ok(E.buyPerk(n2, 'mesa', PERKS));
   assert.ok(E.oficioMult(n2) > 1.1);
@@ -810,6 +810,30 @@ t('equilibrio: oficio por logros y la Bodega viaja en la mudanza', () => {
   const moved = E.doMove(s, null);
   assert.ok(moved && moved.storage.length === 1, 'la Bodega se conserva');
   assert.equal(moved.prestige.total, 20);
+});
+
+t('Mudanza Evolutiva: valuación, capital con tope, conocimientos e historia', () => {
+  const s = E.newGame(null, 58); skipTutorial(s);
+  s.space = 5; s.money = 5e12; s.runEarned = E.OFICIO_SCALE * 9; s.run.orders = 80;
+  for (let i = 0; i < 5; i++) s.machines.push({ ...s.machines[0], id: 500 + i, model: 'x1c', paid: 3e6 });
+  s.upgrades.resina = 1; s.upgrades.laser = 1;
+  const v = E.valuation(s);
+  assert.ok(v.sold > 0 && v.raw > v.cap, 'con mucha plata pega en el tope');
+  assert.equal(v.capital, v.cap);
+  const n2 = E.doMove(s, null);
+  assert.equal(n2.money, v.capital, 'arranca con el capital (sin la plata de antes)');
+  assert.equal(n2.runEarned, 0, 'el capital no cuenta como ganado');
+  assert.deepEqual(n2.prestige.known.sort(), ['laser', 'resina']);
+  assert.equal(E.upgradeCost(n2, 'resina'), Math.round(900000 * 0.5), 'resina a mitad de precio');
+  assert.equal(E.upgradeCost(n2, 'cnc'), 6000000, 'CNC nunca se usó: precio normal');
+  assert.equal(n2.prestige.history.length, 1);
+  assert.equal(n2.prestige.history[0].space, 5);
+  const back = E.migrate(JSON.parse(E.serialize(n2)));
+  assert.equal(back.prestige.history.length, 1, 'se guarda');
+  // Desafío de Oficio: arranca sin capital
+  n2.prestige.moves = 1;
+  const ch = E.startChallenge(n2, 'sinmate', null);
+  assert.equal(ch.money, 0);
 });
 
 console.log(`\n${n} pruebas OK`);

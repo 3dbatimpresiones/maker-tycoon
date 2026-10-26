@@ -2,6 +2,26 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.8', date: '2026-10-26', title: 'Mudanza Evolutiva',
+    intro: 'Mudarte ya no es empezar de cero: vendés una etapa de tu empresa para financiar la próxima, más ambiciosa.',
+    groups: [
+      ['🏭 Tu empresa tiene valor', [
+        'Al mudarte se valúa tu empresa: máquinas (según lo que pagaste y su desgaste), mods, instalaciones y caja.',
+        'Con eso arrancás con capital: el 25 % de lo que vendés más el 5 % de tu caja, con un tope (lo que vale el taller dos lugares más arriba de donde arrancás). No cuenta como «ganado».',
+      ]],
+      ['🧠 Conocimientos', [
+        'Las áreas que ya usaste (resina, láser, CNC) quedan aprendidas: volver a equiparlas cuesta la mitad.',
+      ]],
+      ['📜 Historia de tu empresa', [
+        'Cada mudanza queda registrada como una etapa: el taller al que llegaste, lo que ganaste, los pedidos, las máquinas y el capital que te llevaste.',
+      ]],
+      ['💾 Tu partida, a salvo', [
+        'En Ajustes: «Descargar copia» guarda tu partida en un archivo y «Cargar archivo» la recupera.',
+        'Antes de cada mudanza se guarda una copia automática y podés volver a antes de la última mudanza.',
+      ]],
+    ],
+  },
+  {
     v: '1.7', date: '2026-10-26', title: 'Más justo para todos',
     intro: 'Primeros ajustes del plan de progresión: que jugar valga más que dejar el juego abierto, y que mudarse premie todo lo que lograste.',
     groups: [

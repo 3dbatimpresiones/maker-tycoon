@@ -1,5 +1,5 @@
 // Configuración pública del juego (va al navegador: nada secreto acá).
-export const VERSION = '1.7';
+export const VERSION = '1.8';
 export const SAVE_KEY = 'mt3dbat.save.v1';
 export const BACKUP_KEY = 'mt3dbat.save.bak';
 

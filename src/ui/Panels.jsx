@@ -6,7 +6,7 @@ import { BatiArt, CtaButtons } from './Bati.jsx';
 import * as E from '../game/engine.js';
 import {
   MACHINES, PRODUCTS, PRODUCT_ORDER, MACHINE_EVENTS, PERKS, LED_COLORS, SPACES, SIZE_NAME, MATERIALS,
-  MASTERY_CHALLENGES, TOKEN_SHOP, BRAND_DISCLAIMER, MODS, MOD_SLOTS } from '../game/data.js';
+  MASTERY_CHALLENGES, TOKEN_SHOP, BRAND_DISCLAIMER, MODS, MOD_SLOTS, UPGRADES } from '../game/data.js';
 import { ACHIEVEMENTS } from '../game/progress.js';
 import { money, rate, dur, num, fmtText, SEASON } from '../game/format.js';
 import { LINKS, IG_HANDLE, VERSION } from '../config.js';
@@ -378,10 +378,24 @@ export function OficioModal({ s, actions, onClose }) {
         <div className="of-points"><span className="hud-label">PARA GASTAR</span><b>{num(pr.points)}</b></div>
       </div>
 
+      {(pr.history || []).length > 0 && (
+        <>
+          <div className="section-label">HISTORIA DE TU EMPRESA</div>
+          <div className="of-history">
+            {[...pr.history].reverse().map((h) => (
+              <div key={h.n + '-' + h.at} className="of-h">
+                <span className="of-hn">Etapa {h.n}</span>
+                <span className="of-ht"><b>{SPACES[h.space]?.name}</b><small>{money(h.earned)} ganados · {num(h.orders)} pedidos · {num(h.machines)} máquinas · {new Date(h.at).toLocaleDateString('es-AR')}</small></span>
+                <span className="of-ho">+{num(h.oficio)} Oficio{h.capital ? ` · ${money(h.capital)} de capital` : ''}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
       <div className="section-label">MUDANZA</div>
       <div className="field-box of-move">
-        <p>Vendés el taller y arrancás uno nuevo. <b>El oficio no se pierde:</b> conservás logros, Vitrina, experiencia de cada producto, fichas, clientes frecuentes y todo tu Oficio.
-          Se reinician la plata, las máquinas, las mejoras, el espacio y la reputación (las máquinas guardadas en la Bodega se llevan).</p>
+        <p>No empezás de cero: <b>vendés esta etapa de tu empresa para financiar la próxima.</b> El oficio no se pierde: conservás logros, Vitrina, experiencia de cada producto, fichas, clientes frecuentes y todo tu Oficio.
+          Vendés esta etapa (máquinas, instalaciones y caja) y con eso arrancás con <b>capital</b>; se reinician las mejoras, el espacio y la reputación. Las máquinas de la Bodega se llevan.</p>
         <div className="rb-stats">
           <div><span>Ganado en esta partida</span><b>{money(s.runEarned)}</b></div>
           <div><span>Oficio que ganás</span><b className="c-pink">+{num(gain)}</b></div>
@@ -389,6 +403,15 @@ export function OficioModal({ s, actions, onClose }) {
         {(() => { const b = E.oficioBreakdown(s); return (
           <p className="hint of-break">De dónde sale: <b>{num(b.fromMoney)}</b> por la plata ganada · <b>{num(b.fromMoney >= 1 ? b.fromSpace : 0)}</b> por el taller que alcanzaste · <b>{num(b.fromMoney >= 1 ? b.fromOrders : 0)}</b> por pedidos entregados ({num(s.run.orders || 0)}, uno cada 40, hasta 10).
             {b.fromMoney < 1 && ' Los puntos por taller y pedidos se suman cuando ya ganás al menos 1 por la plata.'} Tu Bodega viaja con vos a la mudanza.</p>
+        ); })()}
+        {(() => { const v = E.valuation(s); return (
+          <div className="of-val">
+            <b>🏭 Valuación de tu empresa: {money(v.total)}</b>
+            <small>Máquinas {money(v.machines)} · mods {money(v.mods)} · instalaciones {money(v.place)} · caja {money(v.money)}</small>
+            <span>Capital para tu próxima etapa: <b className="c-cyan">{money(v.capital)}</b>{v.raw > v.cap ? ` (tope de esta etapa: ${money(v.cap)})` : ''}</span>
+            <small>Es el 25 % de lo que vendés más el 5 % de tu caja, con un tope para que reconstruir siga siendo un desafío. No cuenta como «ganado».</small>
+            {E.KNOWLEDGE.some((k) => (s.upgrades[k] || 0) > 0 || E.knows(s, k)) && <small>🧠 Conocimientos: las áreas de {E.KNOWLEDGE.filter((k) => (s.upgrades[k] || 0) > 0 || E.knows(s, k)).map((k) => UPGRADES[k].name.replace(/^(Rincón|Sala|Taller) de /, '')).join(', ')} te van a costar la mitad para volver a equiparlas.</small>}
+          </div>
         ); })()}
         {!can && <p className="hint">{gain < 1 ? `Necesitás ganar ${money(E.firstOficioAt())} en esta partida para el primer punto.` : `Disponible al abrir el ${SPACES[3].name} o al juntar 3 puntos (ganás ${gain}).`}</p>}
         {can && made.length > 0 && <>
@@ -536,6 +559,12 @@ export function SettingsModal({ s, actions, onClose, online, open }) {
         <button className="chip-btn wide" disabled={!code} onClick={async () => { try { await navigator.clipboard.writeText(code); setMsg('Código copiado.'); } catch { setMsg('Seleccioná el código y copialo a mano.'); } }}>Copiar</button>
       </div>
       {code && <textarea className="code-box" readOnly value={code} onFocus={(e) => e.target.select()} rows={3} />}
+      <div className="two-col">
+        <button className="chip-btn wide" onClick={() => actions.downloadSave()} title="Guardá una copia de tu partida en un archivo"><Icon name="download" size={14} /> Descargar copia</button>
+        <label className="chip-btn wide file-btn" title="Cargá una partida desde un archivo descargado"><Icon name="upload" size={14} /> Cargar archivo
+          <input type="file" accept=".json,application/json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; f.text().then((txt) => { const ok = actions.importJson(txt); setMsg(ok ? '¡Partida cargada desde el archivo!' : 'Ese archivo no es una partida válida.'); }); e.target.value = ''; }} /></label>
+      </div>
+      {actions.hasPreMove() && <button className="chip-btn wide" onClick={() => { if (window.confirm('¿Volver a cómo estaba tu partida justo antes de la última mudanza? Se pierde lo que hiciste después.')) setMsg(actions.restorePreMove() ? 'Volviste a antes de la última mudanza.' : 'No se pudo.'); }}>↩️ Volver a antes de la última mudanza</button>}
       <div className="pink-input"><textarea className="code-in" rows={2} placeholder="Pegá acá un código para cargar esa partida" value={imp} onChange={(e) => setImp(e.target.value)} /></div>
       <button className="chip-btn wide" disabled={!imp.trim()} onClick={() => { const ok = actions.importCode(imp); setMsg(ok ? '¡Partida cargada!' : 'Ese código no es válido.'); if (ok) setImp(''); }}><Icon name="upload" size={14} /> Cargar partida</button>
       {msg && <p className="hint"><b>{msg}</b></p>}
