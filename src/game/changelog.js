@@ -2,6 +2,16 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '2.0.1', date: '2026-10-26', title: 'Cada pieza dice con qué se hace',
+    intro: 'Pedido de la comunidad: ahora se entiende de un vistazo qué máquina necesita cada trabajo.',
+    groups: [
+      ['🏷️ Tecnología en cada pieza', [
+        'Al lado de cada pieza de un pedido aparece una etiqueta de color: 🧵 FDM, 💧 Resina, 🔦 Láser o ⚙️ CNC.',
+        'También en los contratos de inversión. Pasá el mouse por encima para ver el nombre completo.',
+      ]],
+    ],
+  },
+  {
     v: '2.0', date: '2026-10-26', title: 'Oficio y legado',
     intro: 'Tu carrera de maker ahora deja huella: metas que se cuentan a través de todas tus mudanzas y ventajas nuevas para los que ya juntaron mucho Oficio.',
     groups: [

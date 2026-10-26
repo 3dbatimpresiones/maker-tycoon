@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Modal } from './Panels.jsx';
 import { ProductThumb } from './Thumb.jsx';
+import { TechTag } from './Orders.jsx';
 import * as E from '../game/engine.js';
 import { ZONES, RIVALS, PRODUCTS, EXPO_STANDS, EXPO_REP, DEMAND_HOT, DEMAND_COLD } from '../game/data.js';
 import { money, clock, num } from '../game/format.js';
@@ -48,7 +49,7 @@ function CompanyTab({ s, actions }) {
                 <div key={inv.kind + i} className={'inv inv-' + inv.kind}>
                   <div className="inv-head"><b>{K.icon} {K.name}</b><small>{inv.client}</small></div>
                   <small className="inv-blurb">{K.blurb}</small>
-                  <div className="inv-items">{inv.items.map(([p, q]) => <span key={p} title={PRODUCTS[p].name}><ProductThumb pid={p} size={22} /> {num(q)}× {PRODUCTS[p].name}</span>)}</div>
+                  <div className="inv-items">{inv.items.map(([p, q]) => <span key={p} title={PRODUCTS[p].name}><ProductThumb pid={p} size={22} /> {num(q)}× {PRODUCTS[p].name} <TechTag pid={p} /></span>)}</div>
                   <div className="inv-nums">
                     <span>Invertís <b>{money(inv.amount)}</b></span>
                     <span>Cobrás <b className="c-cyan">{money(inv.reward)}</b> (×{String(K.ret).replace('.', ',')})</span>
