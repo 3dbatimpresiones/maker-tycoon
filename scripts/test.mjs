@@ -132,7 +132,7 @@ t('mudanza: da Oficio, conserva logros y vitrina, reinicia el taller', () => {
   s.runEarned = 4 * E.OFICIO_SCALE; s.space = 3; s.achievements.primera = 1;
   assert.ok(E.canMove(s));
   const n2 = E.doMove(s, 'casco');
-  assert.equal(n2.prestige.total, 4);
+  assert.equal(n2.prestige.total, 6, '4 por la plata + 2 por llegar al Local');
   assert.equal(n2.prestige.vitrina[0].p, 'casco');
   assert.equal(n2.achievements.primera, 1);
   assert.equal(n2.space, 0);
@@ -794,6 +794,22 @@ t('asignación inteligente: acepta lo que llega a tiempo y conviene', () => {
   for (const o of s.orders.active) assert.ok(s.machines.some((m) => m.orderId === o.id), 'con máquinas asignadas');
   const p = E.orderPlan(s, s.orders.offers[0] || s.orders.active[0]);
   assert.ok(p === null || typeof p.perMin === 'number');
+});
+
+t('equilibrio: oficio por logros y la Bodega viaja en la mudanza', () => {
+  const s = E.newGame(null, 57); skipTutorial(s);
+  s.runEarned = 0; s.space = 5; s.run.orders = 400;
+  assert.equal(E.oficioGain(s), 0, 'sin plata ganada no hay oficio aunque tengas logros');
+  assert.equal(E.canMove(s), false);
+  s.runEarned = E.OFICIO_SCALE * 4; // 4 puntos por plata
+  const b = E.oficioBreakdown(s);
+  assert.equal(b.fromMoney, 4); assert.equal(b.fromSpace, 6); assert.equal(b.fromOrders, 10);
+  assert.equal(E.oficioGain(s), 20);
+  s.money = 1e9; E.buyMachine(s, 'ender3');
+  assert.ok(E.storeMachine(s, s.machines[1].id));
+  const moved = E.doMove(s, null);
+  assert.ok(moved && moved.storage.length === 1, 'la Bodega se conserva');
+  assert.equal(moved.prestige.total, 20);
 });
 
 console.log(`\n${n} pruebas OK`);

@@ -381,11 +381,15 @@ export function OficioModal({ s, actions, onClose }) {
       <div className="section-label">MUDANZA</div>
       <div className="field-box of-move">
         <p>Vendés el taller y arrancás uno nuevo. <b>El oficio no se pierde:</b> conservás logros, Vitrina, experiencia de cada producto, fichas, clientes frecuentes y todo tu Oficio.
-          Se reinician la plata, las máquinas, las mejoras, el espacio y la reputación.</p>
+          Se reinician la plata, las máquinas, las mejoras, el espacio y la reputación (las máquinas guardadas en la Bodega se llevan).</p>
         <div className="rb-stats">
           <div><span>Ganado en esta partida</span><b>{money(s.runEarned)}</b></div>
           <div><span>Oficio que ganás</span><b className="c-pink">+{num(gain)}</b></div>
         </div>
+        {(() => { const b = E.oficioBreakdown(s); return (
+          <p className="hint of-break">De dónde sale: <b>{num(b.fromMoney)}</b> por la plata ganada · <b>{num(b.fromMoney >= 1 ? b.fromSpace : 0)}</b> por el taller que alcanzaste · <b>{num(b.fromMoney >= 1 ? b.fromOrders : 0)}</b> por pedidos entregados ({num(s.run.orders || 0)}, uno cada 40, hasta 10).
+            {b.fromMoney < 1 && ' Los puntos por taller y pedidos se suman cuando ya ganás al menos 1 por la plata.'} Tu Bodega viaja con vos a la mudanza.</p>
+        ); })()}
         {!can && <p className="hint">{gain < 1 ? `Necesitás ganar ${money(E.firstOficioAt())} en esta partida para el primer punto.` : `Disponible al abrir el ${SPACES[3].name} o al juntar 3 puntos (ganás ${gain}).`}</p>}
         {can && made.length > 0 && <>
           <div className="lbl">Elegí una pieza para la <b>Vitrina</b> (queda exhibida para siempre en tu local):</div>

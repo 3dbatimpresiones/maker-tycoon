@@ -306,7 +306,10 @@ export function useGame() {
     const st = ref.current;
     sfx.configure(st.settings.sound, st.settings.volume, st.settings.vol);
     setCurrency(st.settings.currency);
-    const gap = Date.now() - (st.lastSeen || Date.now());
+    // Si la última vez quedó de fondo, cuenta desde que se fue de la vista (no desde el último guardado).
+    const since = st.hiddenSince && st.hiddenSince < (st.lastSeen || Infinity) ? st.hiddenSince : st.lastSeen;
+    const gap = Date.now() - (since || Date.now());
+    st.hiddenSince = null;
     if (gap > 60000) catchUp(gap);
     st.lastSeen = Date.now();
     lastTick.current = Date.now();
@@ -319,6 +322,20 @@ export function useGame() {
     const loop = setInterval(() => {
       const now = Date.now();
       if (lockedRef.current) { lastTick.current = now; return; }
+      // Pestaña de fondo: el taller se frena. Al volver se calcula como si hubieras estado afuera
+      // (mismo rendimiento y tope que con el juego cerrado). Un ratito (menos de 1 min) cuenta normal.
+      const stH = ref.current;
+      if (document.visibilityState === 'hidden') {
+        if (!stH.hiddenSince) stH.hiddenSince = lastTick.current;
+        return;
+      }
+      if (stH.hiddenSince) {
+        const away = now - stH.hiddenSince;
+        stH.hiddenSince = null;
+        lastTick.current = now;
+        if (away > 60000) { catchUp(away); force(); return; }
+        lastTick.current = now - away; // menos de un minuto: se simula normal
+      }
       let ms = now - lastTick.current;
       lastTick.current = now;
       if (ms <= 60000) ms *= SPEED;

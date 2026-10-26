@@ -2,6 +2,23 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.7', date: '2026-10-26', title: 'Más justo para todos',
+    intro: 'Primeros ajustes del plan de progresión: que jugar valga más que dejar el juego abierto, y que mudarse premie todo lo que lograste.',
+    groups: [
+      ['⏸️ Juego de fondo', [
+        'Si el juego queda en otra pestaña o ventana, el taller se frena. Al volver se calcula como cuando lo cerrás: al 50 % (o lo que te den la Cámara remota y Duermo tranquilo) y con el mismo tope de horas.',
+        'Si cambiás de pestaña menos de un minuto, sigue todo normal.',
+      ]],
+      ['🏅 Oficio por lo que lograste', [
+        'La Mudanza ahora da Oficio por la plata ganada y también por el taller que alcanzaste (Local +2, Industrial +4, Nave +6, Planta +8) y por los pedidos entregados (+1 cada 40, hasta 10).',
+        'La ventana de Oficio muestra de dónde sale cada punto.',
+      ]],
+      ['📦 La Bodega viaja con vos', [
+        'Las máquinas guardadas en la Bodega ya no se pierden al mudarte.',
+      ]],
+    ],
+  },
+  {
     v: '1.6', date: '2026-10-25', title: 'Nuevo equilibrio: más camino, mejoras más accesibles',
     intro: 'El juego se estaba pasando muy rápido. Ahora llegar a la Planta lleva más tiempo, y mejorar tu taller rinde más en el camino.',
     groups: [

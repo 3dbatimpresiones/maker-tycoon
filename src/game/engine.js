@@ -75,6 +75,7 @@ export function newGame(keep = null, seed = (Date.now() ^ 0x5bd1e995) >>> 0, cha
     run: freshRun(),
     mastery: keep?.mastery || {},
     lots: keep?.lots || undefined, bati: keep?.bati || undefined, story: keep?.story || undefined,
+    storage: keep?.storage || [], // la Bodega se lleva a la mudanza
     // Ciudad: los rivales vencidos y las Expos ganadas se recuerdan; la demanda arranca de nuevo.
     city: keep?.city ? { hot: [], cold: null, until: 0, rivals: keep.city.rivals || {}, expo: null, expoT: 1800, expoWins: keep.city.expoWins || 0, expos: keep.city.expos || 0, lastExpo: keep.city.lastExpo || null } : undefined,
     tokens: keep?.tokens || 0,
@@ -1927,11 +1928,19 @@ export function buyTokenItem(s, id, TOKEN_SHOP) {
 }
 
 // ---------- Mudanza (prestigio) y desafíos de maestría ----------
-export function oficioGain(s) { return Math.floor(2 * Math.sqrt(s.runEarned / OFICIO_SCALE)); }
+// Oficio que da la Mudanza: por la plata ganada y también por lo logrado en la partida
+// (hasta dónde llegó el taller y cuántos pedidos entregaste).
+export function oficioBreakdown(s) {
+  const fromMoney = Math.floor(2 * Math.sqrt(s.runEarned / OFICIO_SCALE));
+  const fromSpace = Math.max(0, s.space - 2) * 2;                 // Local 2 · Industrial 4 · Nave 6 · Planta 8
+  const fromOrders = Math.min(10, Math.floor((s.run.orders || 0) / 40)); // 1 cada 40 pedidos (hasta 10)
+  return { fromMoney, fromSpace, fromOrders, total: fromMoney + (fromMoney >= 1 ? fromSpace + fromOrders : 0) };
+}
+export function oficioGain(s) { return oficioBreakdown(s).total; }
 export const firstOficioAt = () => OFICIO_SCALE / 4;
 export function canMove(s) {
-  const g = oficioGain(s);
-  return g >= 1 && (s.space >= 3 || g >= 3);
+  const b = oficioBreakdown(s);
+  return b.fromMoney >= 1 && (s.space >= 3 || b.total >= 3);
 }
 function keepForMove(s, prestige) {
   const keepFrac = prestige.perks.fieles2 ? 0.5 : prestige.perks.fieles ? 0.25 : 0;
@@ -1939,7 +1948,7 @@ function keepForMove(s, prestige) {
     keptRep: Math.floor(s.rep * keepFrac),
     name: s.name, totalEarned: s.totalEarned, stats: s.stats, achievements: s.achievements, mastery: s.mastery,
     tokens: s.tokens, daily: s.daily, weekly: s.weekly, prestige, settings: s.settings, seen: s.seen, cosmetics: s.cosmetics,
-    market: s.market, city: s.city, lots: s.lots, bati: s.bati, story: s.story,
+    market: s.market, city: s.city, lots: s.lots, bati: s.bati, story: s.story, storage: s.storage,
     orders: { fidelity: s.orders.fidelity, clients: s.orders.clients },
   };
 }
