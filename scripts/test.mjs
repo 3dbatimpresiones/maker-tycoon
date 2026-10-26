@@ -871,4 +871,21 @@ t('final del juego: especialización y contratos de inversión', () => {
   assert.equal(s.stats.investDone, 1);
 });
 
+t('legado y ventajas nuevas del Oficio', () => {
+  const s = E.newGame(null, 60); skipTutorial(s);
+  s.prestige.moves = 3; s.prestige.history = [{ space: 5 }, { space: 6 }, { space: 3 }];
+  const lp = E.legacyProgress(s);
+  assert.ok(lp.find((l) => l.id === 'etapas3').done && lp.find((l) => l.id === 'nave2').done && lp.find((l) => l.id === 'planta1').done);
+  const p0 = s.prestige.points;
+  assert.ok(E.claimLegacy(s, 'planta1'));
+  assert.equal(s.prestige.points, p0 + 30);
+  assert.equal(E.claimLegacy(s, 'planta1'), false, 'una sola vez');
+  assert.equal(E.claimLegacy(s, 'expo5'), false, 'no cumplida');
+  assert.equal(E.modSlots(s), 3);
+  s.prestige.perks.ranura = true; assert.equal(E.modSlots(s), 4);
+  s.prestige.perks.industrial = true;
+  const n2 = E.newGame({ prestige: s.prestige, orders: {} }, 1);
+  assert.equal(n2.space, 4, 'franquicia: arranca en el Taller industrial');
+});
+
 console.log(`\n${n} pruebas OK`);

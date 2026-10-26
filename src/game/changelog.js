@@ -2,6 +2,25 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '2.0', date: '2026-10-26', title: 'Oficio y legado',
+    intro: 'Tu carrera de maker ahora deja huella: metas que se cuentan a través de todas tus mudanzas y ventajas nuevas para los que ya juntaron mucho Oficio.',
+    groups: [
+      ['🏛️ Metas de legado (en la ventana de Oficio)', [
+        '10 logros de toda tu carrera: tres etapas, dos naves, planta propia, campeón de Expos, inversor, un millón de piezas y más.',
+        'Cada meta da Oficio una sola vez. Las Expos, piezas, proyectos y contratos que ya tenías también cuentan.',
+      ]],
+      ['⭐ Ventajas nuevas en el Banco de Oficio', [
+        '🔧 Ingeniería de mods: 4 ranuras de mods en todas tus máquinas.',
+        '💼 Inversor experimentado: los contratos de inversión pagan más.',
+        '🏭 Franquicia industrial: arrancás cada etapa en el Taller industrial.',
+        '📜 Plan de sucesión: más capital al mudarte.',
+      ]],
+      ['🏆 Desafíos de Oficio más claros', [
+        'Cada desafío muestra su dificultad (★ a ★★★) y cuánto tiempo lleva más o menos.',
+      ]],
+    ],
+  },
+  {
     v: '1.9', date: '2026-10-26', title: 'Tu empresa, a tu manera',
     intro: 'Para los que ya llegaron lejos: decisiones de empresa y una forma de que la plata vuelva a importar. Está en Ciudad → 💼 Empresa (y en el botón 💼 Inversiones de Pedidos).',
     groups: [

@@ -257,7 +257,7 @@ export const ORDER_SPAWN_EVERY = 40;
 // Contratos de empresa: pedidos grandes que además dan fichas.
 // Mods por máquina: 3 ranuras en cada una. Efectos: speed (×), fail (×), stars (+), use (× material).
 // cost = fracción del precio base de la máquina.
-export const MOD_SLOTS = 3;
+export const MOD_SLOTS = 3; // con la ventaja «Ingeniería de mods», 4
 export const MODS = {
   hotend: { tech: 'fdm', name: 'Hotend de alto flujo', icon: '🔥', speed: 1.2, cost: 0.18, blurb: '+20 % de velocidad.' },
   boq06: { tech: 'fdm', name: 'Boquilla 0.6', icon: '🎯', speed: 1.35, stars: -1, cost: 0.08, blurb: '+35 % de velocidad, pero −1 ★ de calidad.' },
@@ -385,21 +385,21 @@ export const GLOBAL_EVENTS = {
 
 // ---------- Desafíos de maestría (se juegan como una Mudanza con reglas especiales) ----------
 export const MASTERY_CHALLENGES = {
-  sinmate: { name: 'Sin mate', rule: 'No se puede cebar mate.', goalText: 'Llegá al Garage taller.', goal: { space: 2 },
+  sinmate: { diff: 1, time: '1 a 2 h', name: 'Sin mate', rule: 'No se puede cebar mate.', goalText: 'Llegá al Garage taller.', goal: { space: 2 },
     reward: 'El mate da +100 % de velocidad (en vez de +50 %).' },
-  amano: { name: 'Todo a mano', rule: 'Sin sobrino, sin expulsión, sin proveedor ni gestor.', goalText: 'Llegá al Garage taller.', goal: { space: 2 },
+  amano: { diff: 2, time: '2 a 3 h', name: 'Todo a mano', rule: 'Sin sobrino, sin expulsión, sin proveedor ni gestor.', goalText: 'Llegá al Garage taller.', goal: { space: 2 },
     reward: 'El sobrino retira cada 4 s.' },
-  soloender: { name: 'Solo Ender', rule: 'Solo podés comprar Creality Ender-3 V3 SE.', goalText: 'Juntá {$:3000000} en el Cuarto maker.', goal: { space: 1, earned: 3e6 },
+  soloender: { diff: 2, time: '1 a 2 h', name: 'Solo Ender', rule: 'Solo podés comprar Creality Ender-3 V3 SE.', goalText: 'Juntá {$:3000000} en el Cuarto maker.', goal: { space: 1, earned: 3e6 },
     reward: 'Las Ender-3 van ×3 más rápido para siempre.' },
-  verano: { name: 'Verano porteño', rule: 'Se corta la luz cada 6 minutos.', goalText: 'Abrí el Local con vidriera.', goal: { space: 3 },
+  verano: { diff: 3, time: '3 a 5 h', name: 'Verano porteño', rule: 'Se corta la luz cada 6 minutos.', goalText: 'Abrí el Local con vidriera.', goal: { space: 3 },
     reward: 'Los cortes de luz nunca más reinician piezas.' },
-  exigente: { name: 'Cliente exigente', rule: 'Todos los pedidos piden ★3 y tienen 30 % menos de plazo.', goalText: 'Completá 25 pedidos.', goal: { orders: 25 },
+  exigente: { diff: 2, time: '1 a 2 h', name: 'Cliente exigente', rule: 'Todos los pedidos piden ★3 y tienen 30 % menos de plazo.', goalText: 'Completá 25 pedidos.', goal: { orders: 25 },
     reward: 'Los pedidos pagan +25 % para siempre.' },
-  lluvias: { name: 'Temporada de lluvias', rule: 'Los problemas aparecen el triple.', goalText: 'Llegá al Garage taller.', goal: { space: 2 },
+  lluvias: { diff: 2, time: '2 a 3 h', name: 'Temporada de lluvias', rule: 'Los problemas aparecen el triple.', goalText: 'Llegá al Garage taller.', goal: { space: 2 },
     reward: '−30 % de problemas para siempre.' },
-  bobina: { name: 'Bobina contada', rule: 'Los materiales cuestan ×5.', goalText: 'Abrí el Local con vidriera.', goal: { space: 3 },
+  bobina: { diff: 3, time: '3 a 5 h', name: 'Bobina contada', rule: 'Los materiales cuestan ×5.', goalText: 'Abrí el Local con vidriera.', goal: { space: 3 },
     reward: 'Materiales −30 % para siempre.' },
-  mostrador: { name: 'Solo mostrador', rule: 'No llegan pedidos: solo venta suelta.', goalText: 'Ganá {$:50000000} en la partida.', goal: { earned: 5e7 },
+  mostrador: { diff: 3, time: '3 a 4 h', name: 'Solo mostrador', rule: 'No llegan pedidos: solo venta suelta.', goalText: 'Ganá {$:50000000} en la partida.', goal: { earned: 5e7 },
     reward: 'La venta suelta paga +25 % para siempre.' },
 };
 
@@ -432,7 +432,24 @@ export const PERKS = {
   sabercnc: { name: 'Saber de CNC', cost: 120, desc: 'El Taller de CNC queda armado para siempre.' },
   fieles2: { name: 'Clientela de toda la vida', cost: 200, desc: 'Al mudarte conservás el 50 % de tu reputación.' },
   local: { name: 'Dueño del local', cost: 400, desc: 'Arrancás con el Local con vidriera ya abierto.' },
+  ranura: { name: 'Ingeniería de mods', cost: 600, desc: 'Todas tus máquinas tienen 4 ranuras de mods (en vez de 3).' },
+  inversor: { name: 'Inversor experimentado', cost: 800, desc: 'Los contratos de inversión pagan +0,3 al multiplicador.' },
+  industrial: { name: 'Franquicia industrial', cost: 1000, desc: 'Arrancás con el Taller industrial ya armado.' },
+  sucesion: { name: 'Plan de sucesión', cost: 1500, desc: 'El capital de la mudanza tiene el tope de un taller más arriba.' },
 };
+// Metas de legado: logros de toda tu carrera (sobreviven a las mudanzas). Cada una da Oficio una sola vez.
+export const LEGACY = [
+  { id: 'etapas3', name: 'Tres etapas', desc: 'Completá 3 mudanzas.', oficio: 10 },
+  { id: 'nave2', name: 'Dos naves', desc: 'Llegá 2 veces a la Nave de producción (en distintas etapas).', oficio: 20 },
+  { id: 'planta1', name: 'Planta propia', desc: 'Cerrá una etapa en la Planta 3DBAT.', oficio: 30 },
+  { id: 'expo5', name: 'Campeón de Expos', desc: 'Ganá 5 Expo Maker.', oficio: 25 },
+  { id: 'proyectos10', name: 'Constructor', desc: 'Terminá 10 proyectos grandes.', oficio: 25 },
+  { id: 'inversion5', name: 'Inversor', desc: 'Cumplí 5 contratos de inversión.', oficio: 30 },
+  { id: 'contratos100', name: 'Proveedor oficial', desc: 'Cumplí 100 contratos de empresa.', oficio: 30 },
+  { id: 'rivales4', name: 'El más famoso', desc: 'Superá en fama a los 4 talleres rivales.', oficio: 15 },
+  { id: 'historia', name: 'Toda la historia', desc: 'Terminá los 6 capítulos de la historia de BATI.', oficio: 20 },
+  { id: 'piezas1m', name: 'Un millón de piezas', desc: 'Fabricá 1.000.000 de piezas en tu carrera.', oficio: 40 },
+];
 export const MAKER_TITLES = [
   [0, 'Curioso'], [1, 'Aprendiz'], [5, 'Maker'], [15, 'Maker Pro'], [35, 'Maestro Maker'], [75, 'Leyenda 3DBAT'],
   [200, 'Referente nacional'], [600, 'Ícono maker'], [2000, 'Leyenda viviente'], [10000, 'Mito del filamento'],
