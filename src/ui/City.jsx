@@ -6,7 +6,64 @@ import * as E from '../game/engine.js';
 import { ZONES, RIVALS, PRODUCTS, EXPO_STANDS, EXPO_REP, DEMAND_HOT, DEMAND_COLD } from '../game/data.js';
 import { money, clock, num } from '../game/format.js';
 
-const TABS = [['mapa', '🗺️ Mapa'], ['rivales', '🏁 Rivales'], ['expo', '🎪 Expo Maker']];
+const TABS = [['mapa', '🗺️ Mapa'], ['rivales', '🏁 Rivales'], ['expo', '🎪 Expo Maker'], ['empresa', '💼 Empresa']];
+
+// Empresa: especialización y contratos de inversión (final del juego).
+function CompanyTab({ s, actions }) {
+  const spec = E.specOf(s);
+  const offers = E.investOffers(s);
+  const running = s.orders.active.find((o) => o.invest);
+  return (
+    <>
+      <div className="section-label">ESPECIALIZACIÓN DE TU EMPRESA</div>
+      {!E.specUnlocked(s) ? <p className="hint">Se habilita al llegar al <b>Taller industrial</b>. Vas a poder orientar tu empresa hacia la producción en serie, el trabajo boutique o la precisión técnica.</p> : (
+        <>
+          <p className="hint">Elegí hacia dónde va tu empresa: cada camino tiene ventajas y una desventaja. La primera vez es gratis; después, reorganizar la empresa cuesta {money(E.specChangeCost(s))} y hay que esperar 30 minutos entre cambios.</p>
+          <div className="spec-list">
+            {Object.entries(E.SPECS).map(([id, S]) => {
+              const why = E.specReason(s, id);
+              return (
+                <div key={id} className={'spec' + (spec === id ? ' on' : '')}>
+                  <b>{S.icon} {S.name}</b>
+                  <ul>{S.pros.map((p) => <li key={p} className="pro">✔ {p}</li>)}{S.cons.map((c) => <li key={c} className="con">✖ {c}</li>)}</ul>
+                  {spec === id ? <span className="chip ok">Tu especialización</span>
+                    : <button className="chip-btn" disabled={!!why} title={why || ''} onClick={() => actions.setSpec(id)}>{why || (spec ? `Cambiar · ${money(E.specChangeCost(s))}` : 'Elegir (gratis)')}</button>}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      <div className="section-label">CONTRATOS DE INVERSIÓN</div>
+      {!E.investUnlocked(s) ? <p className="hint">Se habilitan con <b>Reputación 10</b>. Ponés plata al principio y, si cumplís a tiempo, te vuelve multiplicada (más fichas y reputación). Si fallás, la inversión se pierde.</p> : (
+        <>
+          <p className="hint">La inversión crece con tu caja y tus ingresos: así la plata vuelve a importar. Uno por vez. Las ofertas cambian cada 30 minutos.</p>
+          {running && <p className="o-warn soft">En marcha: <b>{running.title}</b> · invertiste {money(running.invest)} · cobrás {money(running.reward)} si llegás. Lo ves en Pedidos.</p>}
+          <div className="inv-list">
+            {offers.map((inv, i) => {
+              const K = E.INVEST_KINDS[inv.kind];
+              const why = E.investReason(s, inv);
+              return (
+                <div key={inv.kind + i} className={'inv inv-' + inv.kind}>
+                  <div className="inv-head"><b>{K.icon} {K.name}</b><small>{inv.client}</small></div>
+                  <small className="inv-blurb">{K.blurb}</small>
+                  <div className="inv-items">{inv.items.map(([p, q]) => <span key={p} title={PRODUCTS[p].name}><ProductThumb pid={p} size={22} /> {num(q)}× {PRODUCTS[p].name}</span>)}</div>
+                  <div className="inv-nums">
+                    <span>Invertís <b>{money(inv.amount)}</b></span>
+                    <span>Cobrás <b className="c-cyan">{money(inv.reward)}</b> (×{String(K.ret).replace('.', ',')})</span>
+                    <span>Plazo <b>{clock(inv.time)}</b> · +{K.tokens} 🎟️ · +{K.rep} ⭐</span>
+                  </div>
+                  <button className="btn-center" disabled={!!why} onClick={() => actions.acceptInvest(i)}>{why || 'Invertir y aceptar'}</button>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
 
 function MapTab({ s }) {
   const c = s.city;
@@ -130,6 +187,7 @@ export default function CityModal({ s, actions, tab: tab0, onClose }) {
       {tab === 'mapa' && <MapTab s={s} />}
       {tab === 'rivales' && <RivalsTab s={s} />}
       {tab === 'expo' && <ExpoTab s={s} actions={actions} />}
+      {tab === 'empresa' && <CompanyTab s={s} actions={actions} />}
     </Modal>
   );
 }

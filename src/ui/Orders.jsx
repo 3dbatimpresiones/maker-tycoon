@@ -179,7 +179,7 @@ function ClientsList({ s }) {
   );
 }
 
-export default function Orders({ s, actions, glow }) {
+export default function Orders({ s, actions, glow, open }) {
   const size = E.boardSize(s);
   const used = s.orders.offers.filter((o) => !o.contract).length + s.orders.active.filter((o) => !o.contract).length;
   const busyMachines = s.machines.filter((m) => m.orderId).length;
@@ -191,8 +191,9 @@ export default function Orders({ s, actions, glow }) {
         <span className="slots-chip">{used}/{size}</span>
       </div>
       {/* Controles: liberar todas las máquinas y prender/apagar la aceptación automática */}
-      {(busyMachines > 0 || E.has(s, 'gestor') || s.orders.offers.length > 0) && (
+      {(busyMachines > 0 || E.has(s, 'gestor') || s.orders.offers.length > 0 || E.investUnlocked(s)) && (
         <div className="o-ctrl">
+          {E.investUnlocked(s) && <button className="chip-btn o-inv" onClick={() => open?.('ciudad', null, 'empresa')} title="Contratos de inversión y especialización de tu empresa">💼 Inversiones</button>}
           {s.orders.offers.length > 0 && s.machines.some((m) => !m.orderId) && (
             <button className="chip-btn o-smart" onClick={actions.smartPick} title="Analiza los pedidos del tablero (tiempo con tus máquinas libres, material, plata por minuto) y acepta los que más convienen y llegan a tiempo">🧠 Elegir los mejores</button>
           )}

@@ -836,4 +836,39 @@ t('Mudanza Evolutiva: valuación, capital con tope, conocimientos e historia', (
   assert.equal(ch.money, 0);
 });
 
+t('final del juego: especialización y contratos de inversión', () => {
+  const s = E.newGame(null, 59); skipTutorial(s);
+  s.money = 1e10; s.rep = 1e6; s.mat.PLA = 1e9;
+  for (let i = 0; i < 4; i++) E.buyMachine(s, 'ender3');
+  s.space = 3;
+  assert.match(E.specReason(s, 'serie'), /industrial/);
+  s.space = 4;
+  const m = s.machines[0];
+  const v0 = E.machineSpeed(s, m, false);
+  assert.ok(E.setSpec(s, 'serie'), 'la primera vez es gratis');
+  assert.ok(Math.abs(E.machineSpeed(s, m, false) - v0 * 1.25) < 1e-9);
+  assert.match(E.specReason(s, 'boutique'), /Podés cambiar/);
+  s.time += E.SPEC_COOLDOWN + 1;
+  const money0 = s.money;
+  assert.ok(E.setSpec(s, 'boutique'));
+  assert.ok(s.money < money0, 'cambiar cuesta plata');
+  // Inversión
+  const offers = E.investOffers(s);
+  assert.ok(offers.length >= 2, 'hay ofertas');
+  const i = offers.findIndex((x) => x.kind === 'seguro');
+  const inv = offers[i];
+  const before = s.money;
+  assert.ok(E.acceptInvest(s, i));
+  assert.equal(s.money, before - inv.amount, 'se descuenta la inversión');
+  const o = s.orders.active.find((x) => x.invest);
+  assert.ok(o && o.reward === inv.reward && s.machines.some((mm) => mm.orderId === o.id));
+  assert.equal(E.investReason(s, E.investOffers(s)[0]), 'Ya tenés un contrato de inversión en marcha');
+  const ctx = { out: [] };
+  for (const it of o.items) it.done = it.qty - 1;
+  const p0 = s.money;
+  for (let k = 0; k < 20000 && s.orders.active.includes(o); k++) { step(s, 0.1, ctx); for (const mm of s.machines) { if (mm.event) E.resolveEvent(s, mm.id, 0); if (mm.state === 'done') E.retrieve(s, mm.id, ctx); } }
+  assert.ok(!s.orders.active.includes(o) && s.money >= p0 + inv.reward * 0.99, 'cumplido: cobra lo invertido multiplicado');
+  assert.equal(s.stats.investDone, 1);
+});
+
 console.log(`\n${n} pruebas OK`);

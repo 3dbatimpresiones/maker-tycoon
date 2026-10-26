@@ -83,7 +83,7 @@ export default function App() {
       <Hud s={s} onFilament={() => goShop('filament')} onTokens={() => open('desafios')} />
       <main className={`layout tab-${tab}`}>
         <div className="col col-orders" data-tab="pedidos">
-          <Orders s={s} actions={actions} glow={glow} />
+          <Orders s={s} actions={actions} glow={glow} open={open} />
         </div>
         <Workshop s={s} live={live} actions={actions} floats={floats} glow={glow} podium={online.available === true ? online.podium : null} gifts={online.gifts}
           onMachine={(mm) => open('machine', mm.id)} onEvent={(mm) => open('event', mm.id)} goShop={goShop} open={open} />

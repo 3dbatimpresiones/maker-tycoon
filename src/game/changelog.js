@@ -2,6 +2,23 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.9', date: '2026-10-26', title: 'Tu empresa, a tu manera',
+    intro: 'Para los que ya llegaron lejos: decisiones de empresa y una forma de que la plata vuelva a importar. Está en Ciudad → 💼 Empresa (y en el botón 💼 Inversiones de Pedidos).',
+    groups: [
+      ['🏢 Especialización de empresa (desde el Taller industrial)', [
+        '🏭 Producción en serie: +25 % de velocidad y los pedidos grandes pagan +20 %, pero la venta suelta paga −10 %.',
+        '🎨 Taller boutique: los pedidos pagan +30 % y los clientes te toman confianza más rápido, pero las máquinas van −10 %.',
+        '🎯 Precisión técnica: resina, CNC y lo que pide ★3 o más paga +35 %, el Premium paga más y hay −20 % de fallas, pero las FDM van −15 %.',
+        'La primera vez es gratis; cambiar después cuesta plata y hay que esperar 30 minutos.',
+      ]],
+      ['💼 Contratos de inversión (desde Reputación 10)', [
+        'Ponés plata al principio y, si cumplís a tiempo, te vuelve multiplicada, más fichas y reputación. Si fallás, la perdés.',
+        'Seguro (×1,6, plazo largo), arriesgado (×2,5, plazo corto) o licitación grande (×3,5, varias tecnologías).',
+        'La inversión crece con tus ingresos y tu caja: la plata vuelve a ser una decisión.',
+      ]],
+    ],
+  },
+  {
     v: '1.8', date: '2026-10-26', title: 'Mudanza Evolutiva',
     intro: 'Mudarte ya no es empezar de cero: vendés una etapa de tu empresa para financiar la próxima, más ambiciosa.',
     groups: [

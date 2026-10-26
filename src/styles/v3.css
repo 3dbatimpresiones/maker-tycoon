@@ -363,3 +363,21 @@ button:not(:disabled):active, .chip-btn:not(:disabled):active, .btn-center:not(:
 .of-ht { flex: 1; display: flex; flex-direction: column; } .of-ht b { color: #fff; font-size: 13px; } .of-ht small { color: var(--muted); font-size: 11px; }
 .of-ho { font-size: 12px; color: var(--cyan); white-space: nowrap; }
 .file-btn { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+
+/* Empresa: especialización e inversiones */
+.spec-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.spec { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.03); }
+.spec.on { border-color: var(--cyan); background: rgba(93,218,219,.08); }
+.spec b { color: #fff; font-size: 14px; }
+.spec ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-size: 12px; flex: 1; }
+.spec li.pro { color: #bbf7d0; } .spec li.con { color: #fecaca; }
+.spec .chip-btn, .spec .chip { align-self: flex-start; }
+.inv-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.inv { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.03); }
+.inv-arriesgado { border-color: rgba(248,113,113,.5); } .inv-licitacion { border-color: rgba(167,139,250,.6); } .inv-seguro { border-color: rgba(74,222,128,.45); }
+.inv-head { display: flex; flex-direction: column; } .inv-head b { color: #fff; } .inv-head small, .inv-blurb { color: var(--muted); font-size: 11.5px; }
+.inv-items { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #e2e8f0; } .inv-items span { display: inline-flex; align-items: center; gap: 6px; }
+.inv-nums { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #cbd5e1; } .inv-nums b { color: #fff; }
+.inv .btn-center { margin-top: auto; }
+.o-ctrl .o-inv { border-color: rgba(74,222,128,.5); color: #bbf7d0; }
+@media (max-width: 760px) { .spec-list, .inv-list { grid-template-columns: 1fr; } }

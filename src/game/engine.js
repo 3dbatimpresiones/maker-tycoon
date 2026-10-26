@@ -229,7 +229,7 @@ export function speedMult(s, model, withMate = true) {
   else if (M.tech === 'cnc') k *= Math.pow(1.15, lvlOf(s, 'fresas'));
   if (model === 'ender3' && mastered(s, 'soloender')) k *= 3;
   if (withMate && mateActive(s)) k *= mateBoost(s);
-  return k;
+  return k * specSpeed(s, M);
 }
 // ---------- Mods por máquina ----------
 const modsOf = (m) => (m.mods || []).map((k) => MODS[k]).filter(Boolean);
@@ -310,7 +310,44 @@ export const canPrint = (s, m, pid) => machineCantReason(s, m, pid) === null;
 
 export function pieceValue(s, pid, stars) {
   return PRODUCTS[pid].price * STAR_MULT[Math.max(1, Math.min(5, stars))] * repMult(s) * oficioMult(s)
-    * Math.pow(1.08, lvlOf(s, 'marca')) * masteryInfo(s, pid).mult;
+    * Math.pow(1.08, lvlOf(s, 'marca')) * masteryInfo(s, pid).mult * specPrice(s, pid);
+}
+// ---------- Especialización de la empresa (final del juego) ----------
+export const SPECS = {
+  serie: { name: 'Producción en serie', icon: '🏭', pros: ['+25 % de velocidad en todas las máquinas', 'Pedidos grandes (20 piezas o más) pagan +20 %'], cons: ['La venta suelta paga −10 %'] },
+  boutique: { name: 'Taller boutique', icon: '🎨', pros: ['Todos los pedidos pagan +30 %', 'Los clientes te toman confianza 50 % más rápido'], cons: ['Las máquinas van −10 % de velocidad'] },
+  precision: { name: 'Precisión técnica', icon: '🎯', pros: ['Resina, CNC y lo que pide ★3 o más paga +35 %', 'El presupuesto Premium paga +15 % extra', '−20 % de fallas'], cons: ['Las máquinas FDM van −15 % de velocidad'] },
+};
+export const specUnlocked = (s) => !s.tutorial.active && s.space >= 4;
+export const specOf = (s) => (specUnlocked(s) ? s.company?.spec || null : null);
+export function specSpeed(s, M) {
+  const sp = specOf(s);
+  if (sp === 'serie') return 1.25;
+  if (sp === 'boutique') return 0.9;
+  if (sp === 'precision' && M.tech === 'fdm') return 0.85;
+  return 1;
+}
+export function specPrice(s, pid) {
+  if (specOf(s) !== 'precision') return 1;
+  const P = PRODUCTS[pid];
+  return P.tech === 'resin' || P.tech === 'cnc' || (P.minStars || 1) >= 3 ? 1.35 : 1;
+}
+export const specChangeCost = (s) => Math.round(Math.max(2e6, valuation(s).total * 0.02));
+export const SPEC_COOLDOWN = 1800;
+export function specReason(s, id) {
+  if (!specUnlocked(s)) return 'Se habilita en el Taller industrial';
+  if (!SPECS[id]) return 'No existe';
+  if (specOf(s) === id) return 'Ya es tu especialización';
+  const c = s.company || {};
+  if (c.spec && s.time < (c.at || 0) + SPEC_COOLDOWN) return `Podés cambiar en ${Math.ceil(((c.at || 0) + SPEC_COOLDOWN - s.time) / 60)} min`;
+  if (c.spec && s.money < specChangeCost(s)) return 'Te falta plata para reorganizar la empresa';
+  return null;
+}
+export function setSpec(s, id) {
+  if (specReason(s, id)) return false;
+  if (s.company?.spec) s.money -= specChangeCost(s); // la primera vez es gratis
+  s.company = { ...(s.company || {}), spec: id, at: s.time };
+  return true;
 }
 export const trendActive = (s, pid) => s.trend.p === pid && s.time < s.trend.until;
 export function saleMult(s, pid) {
@@ -504,7 +541,8 @@ function machineEventWeights(s, m) {
 function eventChance(s, m) {
   return MACHINES[m.model].fail * (perk(s, 'ojo') ? 0.75 : 1) * (s.time < s.boost.risky ? 2 : 1)
     * (rule(s, 'lluvias') ? 3 : 1) * (mastered(s, 'lluvias') ? 0.7 : 1) * wearFailMult(m) * modFail(m)
-    * (s.duel && s.duel.kind === 'supervivencia' && s.time < s.duel.until ? 3 : 1);
+    * (s.duel && s.duel.kind === 'supervivencia' && s.time < s.duel.until ? 3 : 1)
+    * (specOf(s) === 'precision' ? 0.8 : 1);
 }
 // Probabilidad de falla por pieza que se muestra en pantalla (con el desgaste).
 export const machineFail = (s, m) => eventChance(s, m);
@@ -1024,7 +1062,8 @@ export function quoteFor(s, o, qid = 'std') {
     else if (!o.items.every((it) => s.machines.some((m) => canPrint(s, m, it.p) && machineStars(s, m) >= Math.max(minStars, PRODUCTS[it.p].minStars || 1))))
       why = `Necesitás máquinas de calidad ★${minStars}`;
   }
-  return { q: Q, reward: Math.round(o.reward * Q.pay), time: Math.round(o.time * Q.time), rep: Math.max(1, Math.round(o.rep * Q.rep)), minStars, why };
+  const extra = qid === 'prem' && specOf(s) === 'precision' ? 1.15 : 1;
+  return { q: Q, reward: Math.round(o.reward * Q.pay * extra), time: Math.round(o.time * Q.time), rep: Math.max(1, Math.round(o.rep * Q.rep)), minStars, why };
 }
 
 function makeOffer(s, tpl, opts = {}) {
@@ -1036,7 +1075,10 @@ function makeOffer(s, tpl, opts = {}) {
   const items = tpl.items.map(([p, q]) => ({ p, qty: Math.max(1, Math.round(q * (opts.qtyMult || 1) * tier.qty)), done: 0 }));
   let base = 0;
   for (const it of items) base += it.qty * pieceValue(s, it.p, Math.max(minStars, PRODUCTS[it.p].minStars || 1));
-  const mult = (opts.mult ?? tpl.mult) * orderMult(s) * (frequent ? 1 + 0.1 * Math.min(5, fid) : 1) * tier.pay;
+  const qtyAll = items.reduce((a, it) => a + it.qty, 0);
+  const spec = specOf(s);
+  const specMult = spec === 'boutique' ? 1.3 : spec === 'serie' && qtyAll >= 20 ? 1.2 : 1;
+  const mult = (opts.mult ?? tpl.mult) * orderMult(s) * (frequent ? 1 + 0.1 * Math.min(5, fid) : 1) * tier.pay * specMult;
   return {
     id: s.orders.nextId++, tpl: tpl.id, client: tpl.client, title: opts.title || tpl.title, flavor: opts.flavor ?? tpl.flavor,
     items, time: Math.round((opts.time || tpl.time) * (rule(s, 'exigente') ? 0.7 : 1)), reward: Math.round(base * mult), rep: tpl.rep, minStars,
@@ -1249,6 +1291,65 @@ export function smartPick(s) {
   return picked;
 }
 
+// ---------- Contratos de inversión (final del juego): ponés plata, si cumplís vuelve multiplicada ----------
+export const INVEST_KINDS = {
+  seguro: { name: 'Contrato seguro', icon: '🛡️', ret: 1.6, time: 2700, load: 0.3, techs: 1, tokens: 2, rep: 6, blurb: 'Plazo largo y poco riesgo.' },
+  arriesgado: { name: 'Contrato arriesgado', icon: '🔥', ret: 2.5, time: 1500, load: 0.42, techs: 1, tokens: 4, rep: 10, blurb: 'Plazo corto: hay que poner todo.' },
+  licitacion: { name: 'Licitación grande', icon: '🏛️', ret: 3.5, time: 3000, load: 0.32, techs: 3, tokens: 7, rep: 16, blurb: 'Pide trabajo de varias tecnologías.' },
+};
+export const investUnlocked = (s) => !s.tutorial.active && repLevel(s) >= 10;
+// Media hora de tus ingresos + hasta el 3 % de tu caja (con tope de 1,5 h de ingresos): la plata importa,
+// pero invertir una y otra vez no la hace crecer sin límite.
+export const investAmount = (s) => { const inc = Math.max(0, incomeRate(s)); return Math.round(Math.max(1e6, inc * 1800 + Math.min(Math.max(0, s.money) * 0.03, inc * 5400))); };
+const INVEST_CLIENTS = ['Municipalidad', 'Cadena de cafeterías', 'Productora de TV', 'Constructora del sur', 'Hospital regional', 'Club de fútbol', 'Feria internacional'];
+function makeInvest(s, kind) {
+  const K = INVEST_KINDS[kind];
+  const techs = Object.keys(TECHS).filter((t) => feasibleProducts(s, (p) => p.tech === t).length);
+  if (techs.length < K.techs) return null;
+  const use = [...techs].sort(() => rand(s) - 0.5).slice(0, Math.max(1, K.techs));
+  const items = [];
+  for (const t of use) {
+    const prods = feasibleProducts(s, (p) => p.tech === t).sort((a, b) => PRODUCTS[b].price - PRODUCTS[a].price).slice(0, 3);
+    const pid = prods[Math.floor(rand(s) * prods.length)];
+    const speed = s.machines.filter((m) => canPrint(s, m, pid)).reduce((a, m) => a + machineSpeed(s, m, false), 0) || 1;
+    items.push([pid, Math.max(3, Math.round((speed * K.time * K.load) / use.length / PRODUCTS[pid].time))]);
+  }
+  const amount = investAmount(s);
+  return { kind, client: INVEST_CLIENTS[Math.floor(rand(s) * INVEST_CLIENTS.length)], items, amount, reward: Math.round(amount * K.ret), time: K.time };
+}
+export function investOffers(s) {
+  if (!investUnlocked(s)) return [];
+  const st = s.invest || (s.invest = { offers: [], next: 0 });
+  if (s.time >= st.next || !st.offers.length) {
+    st.offers = Object.keys(INVEST_KINDS).map((k) => makeInvest(s, k)).filter(Boolean);
+    st.next = s.time + 1800;
+  }
+  return st.offers;
+}
+export function investReason(s, inv) {
+  if (!inv) return 'Esa oferta ya no está';
+  if ([...s.orders.active].some((o) => o.invest)) return 'Ya tenés un contrato de inversión en marcha';
+  if (s.money < inv.amount) return 'Te falta plata para invertir';
+  const tmp = { items: inv.items.map(([p, q]) => ({ p, qty: q, done: 0 })), minStars: 1 };
+  if (!s.machines.some((m) => !m.orderId && compatible(s, m, tmp))) return 'No tenés máquinas libres que sirvan';
+  return null;
+}
+export function acceptInvest(s, i) {
+  const inv = (s.invest?.offers || [])[i];
+  if (investReason(s, inv)) return false;
+  const K = INVEST_KINDS[inv.kind];
+  const o = makeOffer(s, { id: 'inversion', client: inv.client, title: `${K.icon} ${K.name}: ${inv.client}`, items: inv.items, time: inv.time, mult: 1, rep: K.rep },
+    { contract: true, tokens: K.tokens, life: 60, flavor: `Invertiste ${Math.round(inv.amount)}: si cumplís a tiempo cobrás ×${String(K.ret).replace('.', ',')}.` });
+  o.reward = inv.reward; o.invest = inv.amount; o.investKind = inv.kind;
+  s.money -= inv.amount;
+  o.deadline = s.time + o.time;
+  s.orders.active.push(o);
+  const { machines } = suggestAssign(s, o);
+  for (const m of machines) m.orderId = o.id;
+  s.invest.offers.splice(i, 1);
+  return true;
+}
+
 // Asigna a un pedido todas las máquinas libres que lo pueden hacer.
 export function assignAll(s, oid) {
   const o = s.orders.active.find((x) => x.id === oid);
@@ -1355,6 +1456,7 @@ function completeOrder(s, o, out) {
   if (o.tokens) s.tokens += o.tokens;
   s.stats.orders++; s.run.orders++;
   if (o.urgent) s.stats.urgentDone++;
+  if (o.invest) s.stats.investDone = (s.stats.investDone || 0) + 1;
   if (o.contract) s.stats.contracts = (s.stats.contracts || 0) + 1;
   if (o.quote === 'prem') s.stats.premDone = (s.stats.premDone || 0) + 1;
   if (o.quote === 'fast') s.stats.fastDone = (s.stats.fastDone || 0) + 1;
@@ -1369,7 +1471,7 @@ function completeOrder(s, o, out) {
     const stars = Math.min(5, 3 + (early > 0.3 ? 1 : 0) + (pref ? 1 : 0) + (o.quote === 'prem' ? 1 : 0));
     const before = clientOf(s, o.client);
     const c = touchClient(s, o.client, (c) => {
-      c.trust += 10 * Q.trust * (pref ? 1.5 : 1) * (early > 0.4 ? 1.2 : 1);
+      c.trust += 10 * Q.trust * (pref ? 1.5 : 1) * (early > 0.4 ? 1.2 : 1) * (specOf(s) === 'boutique' ? 1.5 : 1);
       c.done++; c.stars += stars; c.reviews++; c.last = stars;
     });
     if (stars === 5 && o.quote === 'prem') addRep(s, 1, out);
