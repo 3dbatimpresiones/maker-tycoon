@@ -145,6 +145,7 @@ function Active({ s, o, actions }) {
         <span className={'o-clock' + (left < 60 ? ' hot' : '')}><Icon name="clock" size={14} /> {clock(left)}</span>
       </div>
       <Items o={o} />
+      {o.items.length > 1 && <p className="o-hint-sm">Al completar un producto, las máquinas que ya no tienen trabajo en este pedido quedan libres para otros.</p>}
       <div className="o-time"><i style={{ width: `${Math.max(0, left / o.time) * 100}%` }} /></div>
       <div className="o-assign">
         <span>Impresoras: <b>{mine}</b></span>
