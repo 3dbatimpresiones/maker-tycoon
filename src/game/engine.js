@@ -492,6 +492,9 @@ function pickJob(s, m) {
         if (!canPrint(s, m, it.p)) continue;
         if (it.done + inProgressFor(s, o.id, it.p) < it.qty) return { pid: it.p, oid: o.id };
       }
+      // No future unit needs this machine. Keep curOrder on other machines:
+      // their already-started pieces still belong to this contract.
+      m.orderId = null;
     }
   }
   const pid = canPrint(s, m, m.product) ? m.product : bestProductFor(s, m);
@@ -619,6 +622,9 @@ export function retrieve(s, mid, ctx = {}, by = 'hand') {
   const it = o && o.items.find((i) => i.p === pid && i.done < i.qty);
   if (it) {
     it.done++;
+    // It is delivered now: do not count this same piece again as in-flight
+    // when deciding how much future capacity the order still needs.
+    m.curOrder = null;
     out.push({ type: 'orderPiece', mid, oid: o.id, pid });
     if (o.items.every((i) => i.done >= i.qty)) completeOrder(s, o, out);
     else releaseFinishedAssignments(s, o);
@@ -1218,7 +1224,18 @@ function compatible(s, m, o) {
 // being printed. A completed technology must not reserve machines until the
 // other technologies finish the contract.
 function releaseFinishedAssignments(s, o) {
-  for (const m of s.machines) if (m.orderId === o.id && !compatible(s, m, o)) m.orderId = null;
+  const committed = new Map();
+  for (const m of s.machines) if (m.curOrder === o.id && m.state !== 'idle' && m.state !== 'nofil') {
+    committed.set(m.cur, (committed.get(m.cur) || 0) + 1);
+  }
+  for (const m of s.machines) {
+    if (m.orderId !== o.id) continue;
+    const compatibleItems = o.items.filter((it) => it.done < it.qty && canPrint(s, m, it.p)
+      && machineStars(s, m) >= Math.max(o.minStars, PRODUCTS[it.p].minStars || 1));
+    const stillPrinting = m.state === 'printing' && m.curOrder === o.id && compatibleItems.some((it) => it.p === m.cur);
+    const futureWork = compatibleItems.some((it) => it.done + (committed.get(it.p) || 0) < it.qty);
+    if (!compatibleItems.length || (!stillPrinting && !futureWork)) m.orderId = null;
+  }
 }
 export function orderCompatibleMachines(s, o) { return s.machines.filter((m) => compatible(s, m, o)); }
 export function suggestAssign(s, o, timeLeft = o.time) {

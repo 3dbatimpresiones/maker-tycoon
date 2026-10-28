@@ -952,6 +952,38 @@ t('combinado con 30 equipos: libera las 10 FDM y conserva las 10 de cada tecnolo
   assert.ok(s.orders.active.includes(o));
 });
 
+t('reservas reales: 40 equipos no quedan retenidos para fabricar solo 8 piezas', () => {
+  const { s, o } = combinedFixture(); s.space = 6;
+  s.upgrades.cnc = 1; s.upgrades.sabercnc = 1;
+  assert.ok(E.buyMachine(s, 'g3018'));
+  for (let i = 1; i < 10; i++) for (const model of ['ender3', 'falcon', 'mars', 'g3018']) assert.ok(E.buyMachine(s, model));
+  o.items = ['llavero', 'llaveroacr', 'miniatura', 'tabla'].map((p) => ({ p, qty: 2, done: 0 }));
+  o.deadline = s.time + 10000;
+  E.assignAll(s, o.id);
+  E.tick(s, .25, { out: [], idle: true });
+  for (const model of ['ender3', 'falcon', 'mars', 'g3018']) {
+    const machines = s.machines.filter((m) => m.model === model);
+    assert.equal(machines.filter((m) => m.orderId === o.id).length, 2, model + ': solo reserva las dos necesarias');
+    assert.equal(machines.filter((m) => !m.orderId).length, 8, model + ': libera las ocho sobrantes');
+  }
+  // Finish the actual printing cycle without manual changes to done counters.
+  for (let i = 0; i < 2000; i++) E.tick(s, .25, { out: [], idle: true });
+  assert.equal(s.machines.filter((m) => m.orderId === o.id).length, 0, 'la última tanda lista no reserva equipos');
+  const ready = s.machines.filter((m) => m.curOrder === o.id && m.state === 'done');
+  assert.equal(ready.length, 8, 'las ocho piezas conservan su pedido original');
+  assert.ok(o.items.every((it) => it.done === 0), 'listas para retirar no significa entregadas');
+  assert.ok(s.orders.active.includes(o));
+  const next = { ...o, id: 'after-last-batch', items: [{ p: 'llavero', qty: 10, done: 0 }], time: 1000 };
+  s.orders.offers.push(next);
+  assert.ok(E.acceptOrder(s, next.id), 'se puede aceptar otro contrato antes de retirar la tanda anterior');
+  const fdm = s.machines.find((m) => m.orderId === next.id);
+  assert.equal(fdm.curOrder, o.id);
+  const ctx = { out: [] };
+  E.retrieve(s, fdm.id, ctx);
+  assert.equal(o.items[0].done, 1); assert.equal(next.items[0].done, 0);
+  assert.equal(fdm.orderId, next.id); assert.equal(fdm.curOrder, next.id);
+});
+
 t('partida anterior: libera reservas terminadas al reanudar sin alterar las entregas', () => {
   const { s, o } = combinedFixture();
   o.items[0].done = o.items[0].qty;
