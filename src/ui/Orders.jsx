@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Icon from './Icon.jsx';
 import { ProductThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
-import { PRODUCTS } from '../game/data.js';
+import { PRODUCTS, MACHINES, TECHS } from '../game/data.js';
 import { money, clock, dur } from '../game/format.js';
 
 function Items({ o }) {
@@ -127,6 +127,7 @@ function Offer({ s, o, actions, glow }) {
 function Active({ s, o, actions }) {
   const left = o.deadline - s.time;
   const mine = s.machines.filter((m) => m.orderId === o.id).length;
+  const technologies = Object.values(TECHS).filter((tech) => o.items.some((it) => PRODUCTS[it.p].tech === tech.id));
   const inFlight = s.machines.filter((m) => m.curOrder === o.id && m.state !== 'idle' && m.state !== 'nofil');
   const printing = inFlight.filter((m) => m.state === 'printing').length;
   const ready = inFlight.filter((m) => m.state === 'done').length;
@@ -150,6 +151,12 @@ function Active({ s, o, actions }) {
         <HoldBtn className="mini-btn" disabled={freeCompat <= 0} onStep={() => actions.assign(o.id, 1)} aria-label="Sumar una impresora" title="Mantené apretado para sumar varias"><Icon name="plus" size={14} /></HoldBtn>
         {freeCompat > 1 && <button className="mini-btn all-btn" onClick={() => actions.assignAll(o.id)} title="Asignar todas las máquinas libres que sirven para este pedido">Todas ({freeCompat})</button>}
         <span className="o-reward">{o.reward ? money(o.reward) : '$0'} · +{o.rep} ⭐{o.tokens ? ` · +${o.tokens} 🎟️` : ''}</span>
+      </div>
+      <div className="o-tech-reservations" aria-label="Máquinas reservadas por tecnología">
+        {technologies.map((tech) => {
+          const count = s.machines.filter((m) => m.orderId === o.id && MACHINES[m.model].tech === tech.id).length;
+          return <span key={tech.id} className={count ? '' : 'free'}>{tech.short}: <b>{count}</b>{count === 0 && ' · libres de este pedido'}</span>;
+        })}
       </div>
       {inFlight.length > 0 && <p className="o-hint-sm">En proceso: <b>{printing}</b> · Listas para retirar: <b>{ready}</b></p>}
       {!o.turbo && (late || left < o.time * 0.35) && (
@@ -213,6 +220,12 @@ export default function Orders({ s, actions, glow, open }) {
           )}
         </div>
       )}
+      <div className="o-tech-reservations" aria-label="Máquinas disponibles para otros pedidos">
+        <small>Disponibles para asignar:</small>
+        {Object.values(TECHS).filter((tech) => s.machines.some((m) => MACHINES[m.model].tech === tech.id)).map((tech) => (
+          <span key={tech.id}>{tech.short}: <b>{s.machines.filter((m) => !m.orderId && MACHINES[m.model].tech === tech.id).length}</b></span>
+        ))}
+      </div>
       {/* Los pedidos tienen su propio scroll: la página no se estira hacia abajo */}
       <div className="orders-scroll">
       {s.orders.active.length > 0 && <div className="section-label">EN CURSO</div>}
