@@ -6,6 +6,7 @@ import { rpc } from '../online/api.js';
 import { GIFTS, titleName } from '../online/rewards.js';
 import { SPACES } from '../game/data.js';
 import { scenePause } from './Scene3D.jsx';
+import { startRenderLoop, sceneFps } from './renderLoop.js';
 import { Avatar, Emblem } from './Online.jsx';
 
 // Estado mínimo para dibujar el taller ajeno con el mismo motor 3D (sin plata ni contadores).
@@ -31,7 +32,7 @@ function VisitScene({ data, quality }) {
   const wsRef = useRef(null);
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    let raf = 0, alive = true, ro = null, last = performance.now();
+    let stopLoop = () => {}, alive = true, ro = null;
     scenePause.on = true; // el taller propio deja de dibujarse mientras visitás
     const st = visitState(data.taller, quality);
     import('../three/Workshop3D.js').then(({ Workshop3D }) => {
@@ -42,17 +43,16 @@ function VisitScene({ data, quality }) {
       ro = new ResizeObserver(() => ws.resize()); ro.observe(wrapRef.current);
       ws.sync(st); ws.setGifts(data.gifts); ws.resize();
       setReady(true);
-      const loop = (now) => {
-        raf = requestAnimationFrame(loop);
-        const dt = Math.min(0.1, (now - last) / 1000); last = now;
+      const loop = (now, dt) => {
+        if (!alive) return;
         // Las impresoras del otro siguen imprimiendo (de mentira, para que se vea vivo).
         for (const m of st.machines) if (m.state === 'printing') { m.progress += dt; if (m.progress >= m.need) m.progress = 0; }
         st.time += dt;
         ws.frame(st, now / 1000);
       };
-      raf = requestAnimationFrame(loop);
-    });
-    return () => { alive = false; scenePause.on = false; cancelAnimationFrame(raf); ro?.disconnect(); wsRef.current?.dispose(); };
+      stopLoop = startRenderLoop({ element: wrapRef.current, frame: loop, fps: () => sceneFps(st.settings), onResume: () => { ws.lastT = 0; } });
+    }).catch(() => { /* keep the modal usable when WebGL cannot load */ });
+    return () => { alive = false; scenePause.on = false; stopLoop(); ro?.disconnect(); wsRef.current?.dispose(); };
   }, [data, quality]);
   return (
     <div className="scene3d visit-scene" ref={wrapRef}>

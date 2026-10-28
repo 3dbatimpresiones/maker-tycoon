@@ -34,7 +34,7 @@ function brownBuffer(c) {
 }
 
 function ensure() {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined' || !enabled || document.visibilityState === 'hidden') return null;
   try {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -105,7 +105,7 @@ function noise(dur, { at = 0, gain = 0.15, f1 = 800, f2 = 2400, q = 3, type = 'b
 const chord = (notes, opts = {}) => notes.forEach((f, i) => tone(f, opts.dur || 0.5, { ...opts, at: (opts.at || 0) + i * (opts.step || 0) }));
 
 export const sfx = {
-  configure(on, vol, v) { enabled = !!on; if (vol != null) master = vol; if (v) vols = { ...vols, ...v }; applyVolumes(); if (enabled) music.maybeStart(); else music.stop(); },
+  configure(on, vol, v) { enabled = !!on; if (vol != null) master = vol; if (v) vols = { ...vols, ...v }; applyVolumes(); if (enabled) music.maybeStart(); else { music.stop(); ambient.stop(); machines.stopAll(); ctx?.suspend().catch(() => {}); } },
   // Arranca el audio con el primer toque (los navegadores lo exigen): música y ambiente del taller. NO suena nada.
   unlock() { if (ensure()) { music.maybeStart(); ambient.start(); } },
   setDucked(on) { if (ducked === !!on) return; ducked = !!on; applyVolumes(); },
@@ -235,11 +235,12 @@ const machines = {
     for (const [id, v] of this.voices) {
       if (keep.has(id)) continue;
       v.out.gain.setTargetAtTime(0, c.currentTime, 0.2);
-      if (!v.dying) { v.dying = true; setTimeout(() => { v.nodes.forEach((n) => { try { n.stop(); } catch { /* listo */ } }); v.out.disconnect(); this.voices.delete(id); }, 900); }
+      if (!v.dying) { v.dying = true; v.stopTimer = setTimeout(() => { v.nodes.forEach((n) => { try { n.stop(); } catch { /* listo */ } }); v.out.disconnect(); if (this.voices.get(id) === v) this.voices.delete(id); }, 900); }
     }
     const t = c.currentTime;
     for (const m of active) {
       let v = this.voices.get(m.id);
+      if (v?.dying) { clearTimeout(v.stopTimer); v.nodes.forEach((node) => { try { node.stop(); node.disconnect(); } catch { /* stopped */ } }); v.out.disconnect(); }
       if (!v || v.dying) { v = makeVoice(KIND(m.model)); this.voices.set(m.id, v); }
       const g = Math.min(1, 1.6 / (1 + m.dist * 0.9));
       v.out.gain.setTargetAtTime(g, t, 0.25);
@@ -264,7 +265,7 @@ const machines = {
       }
     }
   },
-  stopAll() { for (const [, v] of this.voices) { v.nodes.forEach((n) => { try { n.stop(); } catch { /* listo */ } }); v.out.disconnect(); } this.voices.clear(); },
+  stopAll() { for (const [, v] of this.voices) { clearTimeout(v.stopTimer); v.nodes.forEach((n) => { try { n.stop(); } catch { /* listo */ } }); v.out.disconnect(); } this.voices.clear(); },
 };
 
 // ---------- Música electrónica ambiental generativa ----------
@@ -339,4 +340,10 @@ const music = {
 };
 
 // Al cerrar o recargar la página se cierra el audio (evita que el navegador quede trabado).
-if (typeof window !== 'undefined') window.addEventListener('pagehide', () => { try { ctx?.close(); } catch { /* nada */ } ctx = null; });
+if (typeof window !== 'undefined') window.addEventListener('pagehide', () => { sfx.stopAll(); try { ctx?.close(); } catch { /* nada */ } ctx = null; });
+
+// A muted/background tab must not keep oscillators and convolution running.
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { sfx.stopAll(); ctx?.suspend().catch(() => {}); }
+  else if (enabled && ctx) { ctx.resume().catch(() => {}); music.maybeStart(); ambient.start(); }
+});

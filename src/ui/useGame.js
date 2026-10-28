@@ -316,10 +316,10 @@ export function useGame() {
     const onInput = () => { lastInput.current = Date.now(); sfx.unlock(); };
     window.addEventListener('pointerdown', onInput, { passive: true });
     window.addEventListener('keydown', onInput);
-    const onHide = () => { if (document.visibilityState === 'hidden') save(ref.current); };
+    const onHide = () => { if (document.visibilityState === 'hidden') { ref.current.hiddenSince ||= lastTick.current; save(ref.current); } };
     document.addEventListener('visibilitychange', onHide);
     window.addEventListener('pagehide', onHide);
-    const loop = setInterval(() => {
+    const tick = () => {
       const now = Date.now();
       if (lockedRef.current) { lastTick.current = now; return; }
       // Pestaña de fondo: el taller se frena. Al volver se calcula como si hubieras estado afuera
@@ -348,14 +348,22 @@ export function useGame() {
       st2.lastSeen = now;
       if (ctx.out.length) handle(ctx.out);
       force();
-    }, 100);
+    };
+    let loop = null;
+    const updateClock = () => {
+      clearInterval(loop); loop = null;
+      if (document.visibilityState !== 'hidden') { tick(); loop = setInterval(tick, 250); }
+    };
+    document.addEventListener('visibilitychange', updateClock);
+    updateClock();
     let n = 0;
-    const saver = setInterval(() => { n++; save(ref.current, n % 30 === 0); }, 10000);
+    const saver = setInterval(() => { if (document.visibilityState === 'hidden') return; n++; save(ref.current, n % 30 === 0); }, 10000);
     return () => {
       clearInterval(loop); clearInterval(saver);
       window.removeEventListener('pointerdown', onInput);
       window.removeEventListener('keydown', onInput);
       document.removeEventListener('visibilitychange', onHide);
+      document.removeEventListener('visibilitychange', updateClock);
       window.removeEventListener('pagehide', onHide);
       save(ref.current);
     };

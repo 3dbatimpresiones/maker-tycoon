@@ -521,7 +521,7 @@ export function SettingsModal({ s, actions, onClose, online, open }) {
           <button key={k} className={'seg' + (st.quality === k ? ' active' : '')} onClick={() => actions.setting('quality', k)}>{l}</button>
         ))}
       </div>
-      <p className="hint">«Calidad» suma sombras de contacto, reflejos y antialias (ideal en PC). En el celular, «Equilibrado» o «Rendimiento» mantienen la estética con menos efectos.</p>
+      <p className="hint">Auto prioriza un consumo moderado. «Calidad» activa efectos extra; «Rendimiento» y el modo liviano reducen el consumo. El 3D se pausa cuando no está a la vista.</p>
       <div className="view-toggle">
         {[['3d', 'Taller en 3D'], ['lista', 'Vista de lista']].map(([k, l]) => (
           <button key={k} className={'seg' + (st.view === k ? ' active' : '')} onClick={() => actions.setting('view', k)}>{l}</button>

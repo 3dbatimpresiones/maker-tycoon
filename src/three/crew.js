@@ -1,5 +1,6 @@
 // Los que viven en el taller: el gato y el sobrino ayudante.
 import * as THREE from 'three';
+import { disposeObject } from './resources.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { buildPiece } from './pieces.js';
 import { REAL, loadCharacter } from './real.js';
@@ -57,7 +58,7 @@ export function animateCat(cat, t, k = 1) {
 // Sobrino realista (personaje de Mixamo con animaciones de verdad). Mientras carga se ve el de siempre.
 function realSobrino(g) {
   loadCharacter('sobrino').then((ch) => {
-    if (!ch || !g.parent) return;
+    if (!ch || !g.parent || g.userData.disposed) return;
     const body = ch.scene;
     // Alto real: del pie a la cabeza según los huesos → 1,62 m. Mira hacia +X como el resto del juego.
     body.updateMatrixWorld(true);
@@ -225,7 +226,7 @@ export class CatActor {
   // Gato realista (Somali Cat de DreamNoms, CC BY 4.0) con sus animaciones.
   loadReal() {
     loadCharacter('gato').then((ch) => {
-      if (!ch || !this.g.parent) return;
+      if (!ch || !this.g.parent || this.g.userData.disposed) return;
       const body = ch.scene;
       // Sin la base/piso que traen algunos modelos: solo la malla con huesos (el gato en sí).
       body.traverse((n) => { if (n.isMesh && !n.isSkinnedMesh) n.visible = false; });
@@ -257,7 +258,7 @@ export class CatActor {
     if (this.real) { this.lying.visible = false; this.standing.visible = false; return; }
     this.lying.visible = which === 'lying'; this.standing.visible = which === 'standing';
   }
-  dispose(scene) { scene.remove(this.g); }
+  dispose(scene) { disposeObject(this.g); }
   face(dx, dz) { this.g.rotation.y = Math.atan2(-dz, dx); }
   walkTo(to, dt, speed = 1.3) {
     const p = this.g.position; const dx = to.x - p.x, dz = to.z - p.z; const d = Math.hypot(dx, dz);

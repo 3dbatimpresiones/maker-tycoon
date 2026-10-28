@@ -2,6 +2,8 @@
 // Cada builder arma un "rig": root (Group), pieceSlot (donde crece la pieza), partes móviles,
 // luz de estado y emisores de efectos. update(st) anima todo según el estado del juego.
 import * as THREE from 'three';
+import { disposeObject } from './resources.js';
+import { batchStatic, movingNodes } from './batchStatic.js';
 import { MAT, rb, bx, cy, extrusion, spool, fan, mat } from './kit.js';
 import { buildPiece, applyLayers } from './pieces.js';
 import { MACHINES, MATERIALS, PRODUCTS } from '../game/data.js';
@@ -577,6 +579,7 @@ export function buildMachine(model) {
     default: bedGeneric(rig, a);
   }
   rig.root.add(rig.extra);
+  batchStatic(rig.root, movingNodes(rig.parts, rig.fans, rig.spools, rig.units, rig.emitters));
   rig.setMulti = (on) => {
     if (!on) return;
     if (a.type === 'cube' && !a.ams) amsTop(rig, 'ams');
@@ -623,7 +626,7 @@ function setPiece(rig, pid) {
 function setEvent(rig, id) {
   if (rig.eventId === id) return;
   rig.eventId = id;
-  while (rig.extra.children.length) rig.extra.remove(rig.extra.children[0]);
+  while (rig.extra.children.length) disposeObject(rig.extra.children[0]);
   rig.fx = null;
   if (id !== 'gato') rig.catSpot = null;
   if (!id) return;

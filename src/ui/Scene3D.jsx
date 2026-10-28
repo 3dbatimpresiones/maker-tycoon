@@ -6,6 +6,7 @@ import { MACHINES, MACHINE_EVENTS, PRODUCTS, SPACES } from '../game/data.js';
 import * as E from '../game/engine.js';
 import { dur } from '../game/format.js';
 import { sfx } from './sfx.js';
+import { startRenderLoop, sceneFps } from './renderLoop.js';
 
 function labelStatus(s, m) {
   if (m.waitStart) return { k: 'start', t: '▶ Imprimir' };
@@ -35,7 +36,8 @@ function useFloorFade(floor) {
 }
 
 // Mientras se visita otro taller, el propio deja de dibujarse (ahorra placa de video).
-export const scenePause = { on: false };
+let paused = false;
+export const scenePause = { get on() { return paused; }, set on(value) { paused = !!value; window.dispatchEvent(new Event('mt-scene-pause')); } };
 
 export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, glow, onFeedback, podium, gifts }) {
   const podiumRef = useRef(podium);
@@ -52,7 +54,9 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
   sRef.current = s;
 
   useEffect(() => {
-    let raf = 0, alive = true, ro = null, lastSync = 0, onExit = null, lastLite = 0;
+    let stopLoop = () => {}, alive = true, ro = null, lastSync = -Infinity, lastLabels = -Infinity, lastMeasure = -Infinity, lastDebug = 0, debugFrames = 0, onExit = null;
+    const labelSizes = new WeakMap();
+    const onShow = (e) => { if (e.persisted) window.location.reload(); };
     import('../three/Workshop3D.js').then(({ Workshop3D }) => {
       if (!alive) return;
       let ws;
@@ -63,33 +67,46 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
       ws.controls.addEventListener('start', () => { ws.userMoved = true; });
       ro = new ResizeObserver(() => ws.resize());
       // Al cerrar la pestaña o recargar (F5): frenar el dibujo y liberar el 3D antes que el navegador.
-      onExit = () => { alive = false; cancelAnimationFrame(raf); try { ws.dispose(); } catch { /* nada */ } };
+      onExit = () => { alive = false; stopLoop(); try { ws.dispose(); } catch { /* nada */ } };
       window.addEventListener('pagehide', onExit);
       // Si el navegador restaura la página desde su memoria (botón atrás), se recarga para rearmar el 3D.
-      window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); }, { once: true });
+      window.addEventListener('pageshow', onShow);
       ro.observe(wrapRef.current);
       ws.sync(sRef.current);
       ws.resize();
       setReady(true);
       const loop = (now) => {
         if (!alive) return;
-        raf = requestAnimationFrame(loop);
         if (scenePause.on) return;
         const st = sRef.current;
-        if (now - lastSync > 200) {
+        if (now - lastSync > 500) {
           lastSync = now; ws.setQuality(st.settings.quality); ws.sync(st); ws.setPodium(podiumRef.current, SEASON.name); ws.setGifts(giftsRef.current);
           sfx.setIntensity(st.space);
           sfx.updateMachines(ws.audioPositions());
         }
-        // Modo liviano: el 3D se dibuja a ~30 cuadros por segundo y los carteles se acomodan menos seguido.
-        if (st.settings.lite) { if (now - (lastLite || 0) < 33) return; lastLite = now; }
+        // El reloj visual limita los cuadros antes de entrar ac?.
         ws.frame(st, now / 1000);
+        if (import.meta.env.DEV && /[?&]debug3d/.test(location.search)) {
+          debugFrames++;
+          if (now - lastDebug > 1000) {
+            canvasRef.current.dataset.performance = JSON.stringify({ frames: debugFrames, at: Math.round(now), quality: ws.quality,
+              dpr: ws.renderer.getPixelRatio(), ...ws.renderer.info.memory, calls: ws.renderer.info.render.calls });
+            lastDebug = now;
+          }
+        }
+        // Project labels at 10 Hz; avoid reading dimensions after writing transforms.
+        if (now - lastLabels < 100) return;
+        const measure = now - lastMeasure > 1000;
+        if (measure) lastMeasure = now;
+        lastLabels = now;
         // Posiciones proyectadas + separación simple para que no se pisen
         const items = [];
         for (const [id, el] of labels.current) {
           const p = ws.project('machine', id);
           if (!p || !el) continue;
-          items.push({ el, x: p.x, y: p.y, w: el.offsetWidth || 90, h: el.offsetHeight || 34, behind: p.behind });
+          let size = labelSizes.get(el);
+          if (!size || measure) { size = { w: el.offsetWidth || 90, h: el.offsetHeight || 34 }; labelSizes.set(el, size); }
+          items.push({ el, x: p.x, y: p.y, ...size, behind: p.behind });
         }
         items.sort((a, b) => b.y - a.y);
         const placed = [];
@@ -110,9 +127,13 @@ export default function Scene3D({ s, actions, floats, onTap, onEmpty, onFail, gl
           el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -100%)`;
         }
       };
-      raf = requestAnimationFrame(loop);
+      stopLoop = startRenderLoop({ element: wrapRef.current, frame: loop, paused: () => scenePause.on,
+        fps: () => sceneFps(sRef.current.settings, sRef.current.machines.some((m) => m.state === 'printing') || !!ws.camAnim),
+        onPause: () => { sfx.updateMachines([]); ws.lastT = 0; },
+        onResume: () => { lastSync = lastLabels = -Infinity; ws.lastT = 0; },
+      });
     }).catch(() => onFail?.());
-    return () => { alive = false; cancelAnimationFrame(raf); ro?.disconnect(); if (onExit) window.removeEventListener('pagehide', onExit); wsRef.current?.dispose(); wsRef.current = null; sfx.updateMachines([]); };
+    return () => { alive = false; stopLoop(); window.removeEventListener('pageshow', onShow); ro?.disconnect(); if (onExit) window.removeEventListener('pagehide', onExit); wsRef.current?.dispose(); wsRef.current = null; sfx.updateMachines([]); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // "Ver de cerca": el panel de la máquina pide acercar la cámara
