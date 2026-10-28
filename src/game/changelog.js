@@ -2,6 +2,14 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.10.1', date: '2026-10-28', title: 'Reservas visibles por tecnología',
+    intro: 'Cada contrato muestra cuántas FDM, de resina, láser y CNC sigue reservando, incluidos los ceros al completar un área.',
+    groups: [['Tu capacidad disponible', [
+      'El tablero muestra cuántas máquinas de cada tecnología están disponibles para asignar a otros pedidos.',
+      'Una máquina libre de un pedido puede seguir produciendo catálogo o ser asignada por el Gestor a otro contrato.',
+    ]]],
+  },
+  {
     v: '1.10', date: '2026-10-28', title: 'Cuatro racks nuevos para tu granja',
     intro: 'Seis equipos por rack, un puesto del taller. Elegí volumen monocolor, multicolor o máquinas cerradas.',
     groups: [
