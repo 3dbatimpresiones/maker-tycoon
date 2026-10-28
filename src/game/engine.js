@@ -621,6 +621,7 @@ export function retrieve(s, mid, ctx = {}, by = 'hand') {
     it.done++;
     out.push({ type: 'orderPiece', mid, oid: o.id, pid });
     if (o.items.every((i) => i.done >= i.qty)) completeOrder(s, o, out);
+    else releaseFinishedAssignments(s, o);
     m.made = (m.made || 0) + 1;
   } else {
     const gain = pieceValue(s, pid, stars) * saleMult(s, pid);
@@ -1213,6 +1214,12 @@ export function spawnContract(s) {
 function compatible(s, m, o) {
   return o.items.some((it) => it.done < it.qty && canPrint(s, m, it.p) && machineStars(s, m) >= Math.max(o.minStars, PRODUCTS[it.p].minStars || 1));
 }
+// The assignment reserves future work; curOrder still owns any piece already
+// being printed. A completed technology must not reserve machines until the
+// other technologies finish the contract.
+function releaseFinishedAssignments(s, o) {
+  for (const m of s.machines) if (m.orderId === o.id && !compatible(s, m, o)) m.orderId = null;
+}
 export function orderCompatibleMachines(s, o) { return s.machines.filter((m) => compatible(s, m, o)); }
 export function suggestAssign(s, o, timeLeft = o.time) {
   const free = s.machines.filter((m) => !m.orderId && compatible(s, m, o))
@@ -1399,6 +1406,7 @@ export function orderTurbo(s, oid, ctx = {}) {
   }
   out.push({ type: 'orderTurbo', oid, added });
   if (o.items.every((i) => i.done >= i.qty)) completeOrder(s, o, out);
+  else releaseFinishedAssignments(s, o);
   return true;
 }
 
@@ -1502,6 +1510,8 @@ function failOrder(s, o, out) {
 }
 function stepOrders(s, dt, ctx) {
   const O = s.orders;
+  // Also repair assignments from a save made before automatic release existed.
+  for (const o of O.active) releaseFinishedAssignments(s, o);
   for (const o of O.offers) {
     if (o.expires > s.time) continue;
     if (o.project && o.project.stage > 0) ctx.out.push({ type: 'projectLost', name: PROJECTS.find((x) => x.id === o.project.id)?.name || 'Proyecto' });
