@@ -871,4 +871,97 @@ t('final del juego: especialización y contratos de inversión', () => {
   assert.equal(s.stats.investDone, 1);
 });
 
+// Regression: finished technologies in a combined contract must not reserve capacity.
+function combinedFixture() {
+  const s = E.newGame(null, 950); skipTutorial(s);
+  s.rep = 1e7; s.money = 1e10; s.space = 5;
+  for (const id of ['laser', 'resina', 'saberlaser', 'saberresina']) s.upgrades[id] = 1;
+  E.buyMachine(s, 'falcon'); E.buyMachine(s, 'mars');
+  const o = E.spawnCombo(s);
+  Object.assign(o, { minStars: 1, time: 1000, reward: 200000, items: [
+    { p: 'llavero', qty: 2, done: 0 }, { p: 'llaveroacr', qty: 3, done: 0 }, { p: 'miniatura', qty: 4, done: 0 },
+  ] });
+  assert.ok(E.acceptOrder(s, o.id));
+  assert.equal(s.machines.filter((m) => m.orderId === o.id).length, 3);
+  return { s, o };
+}
+function deliverFor(s, m, o, pid, ctx = { out: [] }) {
+  Object.assign(m, { state: 'done', cur: pid, curOrder: o.id, event: null, pen: 0 });
+  assert.ok(E.retrieve(s, m.id, ctx));
+  return ctx;
+}
+
+t('combinado: FDM queda libre al completar su parte y puede aceptar otro pedido', () => {
+  const { s, o } = combinedFixture();
+  const [fdm, laser, resin] = s.machines;
+  deliverFor(s, fdm, o, 'llavero');
+  assert.equal(fdm.orderId, o.id, 'todav?a falta un llavero');
+  const ctx = deliverFor(s, fdm, o, 'llavero');
+  assert.equal(fdm.orderId, null, 'FDM no espera al l?ser ni a resina');
+  assert.equal(laser.orderId, o.id); assert.equal(resin.orderId, o.id);
+  assert.ok(s.orders.active.includes(o));
+  assert.equal(ctx.out.filter((x) => x.type === 'orderDone').length, 0, 'no paga antes de completar todo');
+  const other = { ...o, id: 'regression-second-order', combo: false, items: [{ p: 'llavero', qty: 5, done: 0 }] };
+  s.orders.offers.push(other);
+  assert.ok(E.acceptOrder(s, other.id));
+  assert.equal(fdm.orderId, other.id);
+  for (let i = 0; i < 3; i++) deliverFor(s, laser, o, 'llaveroacr', ctx);
+  assert.equal(laser.orderId, null); assert.equal(resin.orderId, o.id);
+  for (let i = 0; i < 4; i++) deliverFor(s, resin, o, 'miniatura', ctx);
+  assert.ok(!s.orders.active.includes(o));
+  assert.equal(ctx.out.filter((x) => x.type === 'orderDone' && x.oid === o.id).length, 1);
+  assert.equal(fdm.orderId, other.id, 'cerrar el contrato anterior no quita la nueva asignaci?n');
+  assert.equal(E.retrieve(s, resin.id, ctx), false, 'no duplica la ?ltima entrega');
+});
+
+t('pedido de varios productos FDM: mantiene el equipo mientras haya otro producto compatible pendiente', () => {
+  const { s, o } = combinedFixture();
+  o.items = [{ p: 'llavero', qty: 1, done: 0 }, { p: 'soporte', qty: 2, done: 0 }];
+  const fdm = s.machines[0];
+  deliverFor(s, fdm, o, 'llavero');
+  assert.equal(fdm.orderId, o.id);
+  assert.equal(fdm.cur, 'soporte'); assert.equal(fdm.curOrder, o.id);
+});
+
+t('turbo combinado: libera el producto completado sin cancelar una pieza en proceso', () => {
+  const { s, o } = combinedFixture(); s.tokens = 20;
+  o.items[0].done = 1;
+  const fdm = s.machines[0];
+  Object.assign(fdm, { state: 'printing', cur: 'llavero', curOrder: o.id, progress: 3, need: 12 });
+  assert.ok(E.orderTurbo(s, o.id));
+  assert.equal(fdm.orderId, null); assert.equal(fdm.curOrder, o.id);
+  assert.equal(fdm.state, 'printing'); assert.equal(fdm.progress, 3);
+  assert.ok(s.orders.active.includes(o));
+  assert.equal(o.items[0].done, o.items[0].qty);
+});
+
+t('combinado con 30 equipos: libera las 10 FDM y conserva las 10 de cada tecnología pendiente', () => {
+  const { s, o } = combinedFixture();
+  s.space = 6;
+  for (let i = 1; i < 10; i++) {
+    assert.ok(E.buyMachine(s, 'ender3'));
+    assert.ok(E.buyMachine(s, 'falcon'));
+    assert.ok(E.buyMachine(s, 'mars'));
+  }
+  assert.equal(E.assignAll(s, o.id), 27);
+  o.items[0].done = o.items[0].qty - 1;
+  deliverFor(s, s.machines[0], o, 'llavero');
+  assert.equal(s.machines.filter((m) => m.model === 'ender3' && !m.orderId).length, 10);
+  assert.equal(s.machines.filter((m) => m.model === 'falcon' && m.orderId === o.id).length, 10);
+  assert.equal(s.machines.filter((m) => m.model === 'mars' && m.orderId === o.id).length, 10);
+  assert.ok(s.orders.active.includes(o));
+});
+
+t('partida anterior: libera reservas terminadas al reanudar sin alterar las entregas', () => {
+  const { s, o } = combinedFixture();
+  o.items[0].done = o.items[0].qty;
+  const loaded = E.migrate(JSON.parse(E.serialize(s)));
+  const restored = loaded.orders.active.find((x) => x.id === o.id);
+  E.tick(loaded, .01, { out: [], idle: true });
+  assert.equal(loaded.machines[0].orderId, null);
+  assert.equal(loaded.machines[1].orderId, o.id); assert.equal(loaded.machines[2].orderId, o.id);
+  assert.equal(restored.items[0].done, 2);
+  assert.equal(loaded.stats.orders, 0);
+});
+
 console.log(`\n${n} pruebas OK`);
