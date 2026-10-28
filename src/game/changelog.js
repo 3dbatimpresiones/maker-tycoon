@@ -2,6 +2,18 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.9.1', date: '2026-10-28', title: 'Máquinas libres cuando ya no hacen falta',
+    intro: 'Los pedidos dejan de retener equipos que ya no necesitan, en FDM, resina, láser y CNC.',
+    groups: [
+      ['Reservas y producción', [
+        'Si las unidades restantes ya están en fabricación, las máquinas sobrantes quedan libres para otros pedidos.',
+        'Al dejar lista su última pieza, la máquina ya no reserva lugar en el contrato. La pieza conserva su destino hasta retirarla.',
+        'El pedido distingue equipos reservados, piezas en proceso y piezas listas para retirar.',
+        'Se mantienen la producción normal, las partidas guardadas y el cobro único de cada contrato.',
+      ]],
+    ],
+  },
+  {
     v: '1.9', date: '2026-10-26', title: 'Tu empresa, a tu manera',
     intro: 'Para los que ya llegaron lejos: decisiones de empresa y una forma de que la plata vuelva a importar. Está en Ciudad → 💼 Empresa (y en el botón 💼 Inversiones de Pedidos).',
     groups: [

@@ -127,7 +127,11 @@ function Offer({ s, o, actions, glow }) {
 function Active({ s, o, actions }) {
   const left = o.deadline - s.time;
   const mine = s.machines.filter((m) => m.orderId === o.id).length;
-  const freeCompat = s.machines.filter((m) => !m.orderId && E.orderCompatibleMachines(s, o).includes(m)).length;
+  const inFlight = s.machines.filter((m) => m.curOrder === o.id && m.state !== 'idle' && m.state !== 'nofil');
+  const printing = inFlight.filter((m) => m.state === 'printing').length;
+  const ready = inFlight.filter((m) => m.state === 'done').length;
+  const covered = o.items.every((it) => it.done + inFlight.filter((m) => m.cur === it.p).length >= it.qty);
+  const freeCompat = covered ? 0 : s.machines.filter((m) => !m.orderId && E.orderCompatibleMachines(s, o).includes(m)).length;
   const sug = E.suggestAssign(s, o, left);
   const late = !sug.enough && left < o.time * 0.6;
   return (
@@ -138,23 +142,25 @@ function Active({ s, o, actions }) {
         <span className={'o-clock' + (left < 60 ? ' hot' : '')}><Icon name="clock" size={14} /> {clock(left)}</span>
       </div>
       <Items o={o} />
-      {o.items.length > 1 && <p className="o-hint-sm">Al completar un producto, las máquinas que ya no tienen trabajo en este pedido quedan libres para otros.</p>}
+      {o.items.length > 1 && <p className="o-hint-sm">Las reservas sobrantes se liberan. Las piezas ya iniciadas siguen perteneciendo a este pedido.</p>}
       <div className="o-time"><i style={{ width: `${Math.max(0, left / o.time) * 100}%` }} /></div>
       <div className="o-assign">
-        <span>Impresoras: <b>{mine}</b></span>
+        <span>Reservadas: <b>{mine}</b></span>
         <HoldBtn className="mini-btn" disabled={mine <= 0} onStep={() => actions.assign(o.id, -1)} aria-label="Sacar una impresora" title="Mantené apretado para sacar varias"><Icon name="minus" size={14} /></HoldBtn>
         <HoldBtn className="mini-btn" disabled={freeCompat <= 0} onStep={() => actions.assign(o.id, 1)} aria-label="Sumar una impresora" title="Mantené apretado para sumar varias"><Icon name="plus" size={14} /></HoldBtn>
         {freeCompat > 1 && <button className="mini-btn all-btn" onClick={() => actions.assignAll(o.id)} title="Asignar todas las máquinas libres que sirven para este pedido">Todas ({freeCompat})</button>}
         <span className="o-reward">{o.reward ? money(o.reward) : '$0'} · +{o.rep} ⭐{o.tokens ? ` · +${o.tokens} 🎟️` : ''}</span>
       </div>
+      {inFlight.length > 0 && <p className="o-hint-sm">En proceso: <b>{printing}</b> · Listas para retirar: <b>{ready}</b></p>}
       {!o.turbo && (late || left < o.time * 0.35) && (
         <button className="chip-btn o-turbo" disabled={!!E.orderTurboReason(s, o)} onClick={() => actions.orderTurbo(o.id)}
           title="Suma de golpe el 25 % de las piezas del pedido (una vez por pedido). Idea de SHUNE3D.">⚡ Turbo de pedido · {E.ORDER_TURBO_TOKENS} 🎟️{s.tokens < E.ORDER_TURBO_TOKENS ? ' (te faltan fichas)' : ''}</button>
       )}
-      {mine === 0 && (freeCompat > 0
+      {mine === 0 && !covered && (freeCompat > 0
         ? <p className="o-warn">Sin impresoras asignadas: tocá + (o «Todas») para sumarle.</p>
         : <p className="o-warn">Sin impresoras asignadas: {E.assignBlockReason(s, o)}.</p>)}
-      {mine > 0 && freeCompat === 0 && s.machines.some((m) => !m.orderId) && <p className="o-hint-sm">No podés sumar más: {E.assignBlockReason(s, o).toLowerCase()}.</p>}
+      {mine === 0 && covered && <p className="o-hint-sm">No necesita reservar más máquinas: las unidades pendientes ya están en proceso o listas para retirar.</p>}
+      {mine > 0 && !covered && freeCompat === 0 && s.machines.some((m) => !m.orderId) && <p className="o-hint-sm">No podés sumar más: {E.assignBlockReason(s, o).toLowerCase()}.</p>}
       {mine > 0 && late && <p className="o-warn soft">Viene justo: sumá otra impresora o cebá un mate.</p>}
     </div>
   );
