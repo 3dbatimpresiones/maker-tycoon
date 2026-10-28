@@ -1,5 +1,6 @@
 // Materiales compartidos y texturas generadas por código (sin archivos externos).
 import * as THREE from 'three';
+import { keepResource, keepObject } from './resources.js';
 
 const cache = new Map();
 function canvasTex(key, w, h, draw, repeat = [1, 1], color = true) {
@@ -14,7 +15,7 @@ function canvasTex(key, w, h, draw, repeat = [1, 1], color = true) {
   t.repeat.set(repeat[0], repeat[1]);
   if (color) t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
-  cache.set(k, t);
+  cache.set(k, keepResource(t));
   return t;
 }
 // Ruido determinista
@@ -122,9 +123,9 @@ export const TEX = {
 const mats = new Map();
 export function std(color, rough = 0.55, metal = 0.1, extra = {}) {
   const k = `std${color}${rough}${metal}${JSON.stringify(extra, (key, v) => (v && v.isTexture ? v.uuid : v))}`;
-  if (mats.has(k)) return mats.get(k);
+  if (mats.has(k)) return keepResource(mats.get(k));
   const m = new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, ...extra });
-  mats.set(k, m);
+  mats.set(k, keepResource(m));
   return m;
 }
 export const M = {
@@ -141,17 +142,17 @@ export const M = {
   glass: (tint = '#9fb4d8', opacity = 0.16) => {
     const k = 'glass' + tint + opacity;
     if (!mats.has(k)) mats.set(k, new THREE.MeshPhysicalMaterial({ color: tint, roughness: 0.05, metalness: 0, transparent: true, opacity, depthWrite: false, envMapIntensity: 1.6, side: THREE.DoubleSide }));
-    return mats.get(k);
+    return keepResource(mats.get(k));
   },
   tinted: (tint, opacity = 0.5) => {
     const k = 'tint' + tint + opacity;
     if (!mats.has(k)) mats.set(k, new THREE.MeshPhysicalMaterial({ color: tint, roughness: 0.12, metalness: 0, transparent: true, opacity, depthWrite: false, envMapIntensity: 1.2, side: THREE.DoubleSide }));
-    return mats.get(k);
+    return keepResource(mats.get(k));
   },
   glow: (color, intensity = 2) => {
     const k = 'glow' + color + intensity;
     if (!mats.has(k)) mats.set(k, new THREE.MeshStandardMaterial({ color: '#000000', emissive: color, emissiveIntensity: intensity, roughness: 1 }));
-    return mats.get(k);
+    return keepResource(mats.get(k));
   },
   screen: (accent) => std('#ffffff', 0.3, 0, { map: TEX.screen(accent), emissive: '#ffffff', emissiveMap: TEX.screen(accent), emissiveIntensity: 0.9 }),
   frame: (color) => {

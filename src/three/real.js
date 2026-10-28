@@ -2,6 +2,7 @@
 // Todo es CC0 (dominio público) de Poly Haven (polyhaven.com): se puede usar libremente.
 // Se carga de a poco y solo lo que necesita cada taller; en calidad «baja» no se usa nada de esto.
 import * as THREE from 'three';
+import { keepResource, keepObject } from './resources.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
@@ -21,7 +22,7 @@ function tex(file, repeat, srgb) {
   t.repeat.set(repeat[0], repeat[1]);
   t.anisotropy = 8;
   if (srgb) t.colorSpace = THREE.SRGBColorSpace;
-  texCache.set(key, t);
+  texCache.set(key, keepResource(t));
   return t;
 }
 // Material con textura real. tint oscurece/colorea la foto (blanco = tal cual).
@@ -45,7 +46,7 @@ export function loadProp(name) {
   if (!propCache.has(name)) {
     propCache.set(name, gltf.loadAsync(BASE + 'props/' + name + '.glb').then((g) => {
       g.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-      return g.scene;
+      return keepObject(g.scene);
     }).catch(() => null));
   }
   return propCache.get(name);
@@ -59,7 +60,7 @@ export function placeProp(parent, name, { pos = [0, 0, 0], rotY = 0, size = null
   holder.userData.prop = name;
   parent.add(holder);
   loadProp(name).then((src) => {
-    if (!src) return;
+    if (!src || holder.userData.disposed) return;
     const o = src.clone(true);
     const b = new THREE.Box3().setFromObject(o);
     const s = b.getSize(new THREE.Vector3());
@@ -90,6 +91,7 @@ export function loadCharacter(name) {
           for (let i = 0; i < v.length; i += 3) { v[i] = x0; v[i + 2] = z0; }
         }
       }
+      keepObject(g.scene);
       return g;
     }).catch(() => null));
   }
@@ -109,7 +111,7 @@ export function loadWorkshopEnv(renderer) {
       const pm = new THREE.PMREMGenerator(renderer);
       const env = pm.fromEquirectangular(t).texture;
       t.dispose(); pm.dispose();
-      return env;
+      return keepResource(env);
     }).catch(() => null);
   }
   return envP;
@@ -120,7 +122,7 @@ export function loadWorkshopEnv(renderer) {
 // enrollado con sus vueltas marcadas.
 let windTex = null;
 function windingTexture() {
-  if (windTex) return windTex;
+  if (windTex) return keepResource(windTex);
   const c = document.createElement('canvas'); c.width = 16; c.height = 256;
   const x = c.getContext('2d');
   for (let i = 0; i < 64; i++) {
@@ -132,11 +134,11 @@ function windingTexture() {
   windTex = new THREE.CanvasTexture(c);
   windTex.wrapS = windTex.wrapT = THREE.RepeatWrapping;
   windTex.repeat.set(1, 1);
-  return windTex;
+  return keepResource(windTex);
 }
 let flangeGeo = null;
 function flangeGeometry() {
-  if (flangeGeo) return flangeGeo;
+  if (flangeGeo) return keepResource(flangeGeo);
   const R = 0.1, r = 0.028;
   const shape = new THREE.Shape(); shape.absarc(0, 0, R, 0, Math.PI * 2, false);
   const hole = new THREE.Path(); hole.absarc(0, 0, r, 0, Math.PI * 2, true); shape.holes.push(hole);
@@ -147,13 +149,13 @@ function flangeGeometry() {
   }
   flangeGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.004, bevelEnabled: true, bevelThickness: 0.0015, bevelSize: 0.0015, bevelSegments: 1, curveSegments: 28 });
   flangeGeo.translate(0, 0, -0.002);
-  return flangeGeo;
+  return keepResource(flangeGeo);
 }
 const flangeMats = new Map();
 export function realSpool(color, { flange = '#18191d', label = true } = {}) {
   const g = new THREE.Group();
   if (!flangeMats.has(flange)) flangeMats.set(flange, new THREE.MeshPhysicalMaterial({ color: flange, roughness: 0.42, metalness: 0, clearcoat: 0.3 }));
-  const fm = flangeMats.get(flange);
+  const fm = keepResource(flangeMats.get(flange));
   for (const z of [-0.036, 0.036]) { const f = new THREE.Mesh(flangeGeometry(), fm); f.position.z = z; g.add(f); }
   const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.07, 24, 1, true), fm); hub.rotation.x = Math.PI / 2; g.add(hub);
   const fil = new THREE.Mesh(new THREE.CylinderGeometry(0.084, 0.084, 0.068, 40, 1),

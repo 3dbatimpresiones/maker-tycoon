@@ -1,5 +1,7 @@
 // Ambientes del taller (uno por espacio) y distribución de los lugares.
 import * as THREE from 'three';
+import { disposeObject } from './resources.js';
+import { batchStatic } from './batchStatic.js';
 import { M, std, TEX } from './materials.js';
 import { buildPiece } from './pieces.js';
 import { MATERIALS, MATERIAL_ORDER, UNIT } from '../game/data.js';
@@ -44,7 +46,7 @@ export function buildBench(style) {
   for (const [x, z] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) box(0.045, BENCH_H - 0.05, 0.045, leg, x * 0.46, (BENCH_H - 0.05) / 2, z * 0.3, g);
   box(0.95, 0.03, 0.6, leg, 0, 0.18, 0, g);
   if (style === 'desk') box(0.32, 0.4, 0.6, std('#2a2d34', 0.55, 0.2), 0.32, 0.5, 0, g);
-  return g;
+  return batchStatic(g);
 }
 
 function spoolMesh(color) {
@@ -112,12 +114,14 @@ export function buildRoom(space, n, floorId = null) {
   add(shelf);
   room.shelf = shelf; room.shelfW = shelfW;
   room.setStock = (mat) => {
-    if (room.stockKey === JSON.stringify(mat)) return;
-    room.stockKey = JSON.stringify(mat);
-    if (room.spools) shelf.remove(room.spools);
-    const sg = new THREE.Group();
+    // Only the visible number/colors of spools matter, not each gram consumed.
     const list = [];
     for (const k of MATERIAL_ORDER) { const cnt = Math.min(8, Math.ceil((mat[k] || 0) / UNIT)); for (let i = 0; i < cnt; i++) list.push(MATERIALS[k].color); }
+    const key = list.slice(0, 27).join(',');
+    if (room.stockKey === key) return;
+    room.stockKey = key;
+    if (room.spools) disposeObject(room.spools);
+    const sg = new THREE.Group();
     list.slice(0, 27).forEach((c, i) => {
       const s = spoolMesh(c);
       const row = Math.floor(i / 9), col = i % 9;
@@ -197,7 +201,7 @@ export function buildRoom(space, n, floorId = null) {
   room.sign = null;
   const drawSign = (holder) => {
     const { group, w } = holder;
-    while (group.children.length) group.remove(group.children[0]);
+    while (group.children.length) disposeObject(group.children[0]);
     const sg = room.sign || {};
     if (sg.img) {
       const h = w * 0.34;
@@ -340,7 +344,7 @@ export function buildRoom(space, n, floorId = null) {
     const key = list.map((v) => v.p).join(',');
     if (room.vitKey === key) return;
     room.vitKey = key;
-    if (room.vitGroup) g.remove(room.vitGroup);
+    if (room.vitGroup) disposeObject(room.vitGroup);
     const vg = new THREE.Group(); vg.position.copy(room.vitrinaPos);
     list.slice(-6).forEach((v, i) => { const pc = buildPiece(v.p); pc.group.scale.setScalar(0.22); pc.group.position.set(-0.7 + i * 0.28, 0, 0); vg.add(pc.group); });
     room.vitGroup = vg; g.add(vg);
@@ -382,19 +386,19 @@ export function buildRoom(space, n, floorId = null) {
     return b;
   }
   room.setBoxes = (n) => {
-    while (boxes.length) packing.remove(boxes.pop());
+    while (boxes.length) disposeObject(boxes.pop());
     for (let i = 0; i < n; i++) { const b = makeBox(i); packing.add(b); boxes.push(b); }
   };
   room.addBox = () => {
     if (boxes.length >= 9) { const old = boxes.shift(); old.userData.leaving = 0; room.leaving.push(old); }
-    boxes.forEach((b, i) => { const nb = makeBox(i); b.position.copy(nb.position); b.userData.y0 = nb.position.y; });
+    boxes.forEach((b, i) => { const nb = makeBox(i); b.position.copy(nb.position); b.userData.y0 = nb.position.y; disposeObject(nb); });
     const b = makeBox(boxes.length); b.position.y += 0.5; b.userData.drop = 0; packing.add(b); boxes.push(b);
   };
   room.takeBox = () => {
     const b = boxes.shift();
     if (!b) return false;
-    packing.remove(b);
-    boxes.forEach((x, i) => { const nb = makeBox(i); x.position.copy(nb.position); x.userData.y0 = nb.position.y; });
+    disposeObject(b);
+    boxes.forEach((x, i) => { const nb = makeBox(i); x.position.copy(nb.position); x.userData.y0 = nb.position.y; disposeObject(nb); });
     return true;
   };
   room.leaving = [];
@@ -408,7 +412,7 @@ export function buildRoom(space, n, floorId = null) {
     for (const b of [...room.leaving]) {
       b.userData.leaving += dt;
       b.position.x += dt * 1.2;
-      if (b.userData.leaving > 1.2) { packing.remove(b); room.leaving.splice(room.leaving.indexOf(b), 1); }
+      if (b.userData.leaving > 1.2) { disposeObject(b); room.leaving.splice(room.leaving.indexOf(b), 1); }
     }
   });
 
@@ -419,7 +423,7 @@ export function buildRoom(space, n, floorId = null) {
     const key = ['resina', 'laser', 'cnc'].map((k) => (s.upgrades[k] ? 1 : 0)).join('');
     if (room.zoneKey === key) return;
     room.zoneKey = key;
-    while (zones.children.length) zones.remove(zones.children[0]);
+    while (zones.children.length) disposeObject(zones.children[0]);
     const duct = std('#9aa2ae', 0.35, 0.85);
     if (s.upgrades.resina) {
       // Campana de ventilación + bidón de alcohol isopropílico
@@ -447,7 +451,7 @@ export function buildRoom(space, n, floorId = null) {
   // ---------- Cuadro de honor: top 3 de la temporada en la pared del fondo ----------
   const honor = new THREE.Group(); g.add(honor);
   room.setPodium = (rows, season) => {
-    while (honor.children.length) honor.remove(honor.children[0]);
+    while (honor.children.length) disposeObject(honor.children[0]);
     if (!rows) return;
     const c = document.createElement('canvas'); c.width = 640; c.height = 400;
     const x = c.getContext('2d');
@@ -490,7 +494,7 @@ export function buildRoom(space, n, floorId = null) {
     const key = [...list].sort().join(',');
     if (room.decorKey === key) return;
     room.decorKey = key;
-    while (decor.children.length) decor.remove(decor.children[0]);
+    while (decor.children.length) disposeObject(decor.children[0]);
     room.lights = room.lights.filter((l) => !l.userData.decor);
     const has = (id) => list.includes(id);
     const backZ = -D / 2 + 0.02;

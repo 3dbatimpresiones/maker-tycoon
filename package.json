@@ -2,13 +2,13 @@
   "name": "maker-tycoon-3dbat",
   "private": true,
   "version": "0.1.0",
-  "description": "3DBAT: Maker Tycoon — juego idle de un taller maker, by 3DBAT IMPRESIONES.",
+  "description": "3DBAT: Maker Tycoon \u00e2\u20ac\u201d juego idle de un taller maker, by 3DBAT IMPRESIONES.",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node scripts/test.mjs",
+    "test": "node scripts/test.mjs && node scripts/performance.test.mjs",
     "sim": "node scripts/sim.mjs"
   },
   "dependencies": {

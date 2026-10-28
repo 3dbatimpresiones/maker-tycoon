@@ -1,5 +1,6 @@
 // Kit de modelado: piezas con bordes redondeados y materiales PBR realistas generados por código.
 import * as THREE from 'three';
+import { keepResource, keepObject } from './resources.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 const geoCache = new Map();
@@ -18,7 +19,7 @@ function canvasTex(key, w, h, draw, { color = false, repeat = [1, 1] } = {}) {
   t.repeat.set(repeat[0], repeat[1]);
   if (color) t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
-  texCache.set(k, t);
+  texCache.set(k, keepResource(t));
   return t;
 }
 function rnd(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
@@ -64,7 +65,7 @@ export const screenTex = (accent = '#00ae42', kind = 'ui') => canvasTex('scr' + 
 }, { color: true });
 
 // ---------- Materiales ----------
-export function mat(key, make) { if (!matCache.has(key)) matCache.set(key, make()); return matCache.get(key); }
+export function mat(key, make) { if (!matCache.has(key)) matCache.set(key, keepResource(make())); return matCache.get(key); }
 export const MAT = {
   plastic: (color, rough = 0.48) => mat('pl' + color + rough, () => new THREE.MeshPhysicalMaterial({ color, roughness: rough, roughnessMap: plasticRough(), metalness: 0, clearcoat: 0.15, clearcoatRoughness: 0.6 })),
   matte: (color, rough = 0.75) => mat('mt' + color + rough, () => new THREE.MeshStandardMaterial({ color, roughness: rough, roughnessMap: plasticRough(), metalness: 0 })),
@@ -92,12 +93,12 @@ export const MAT = {
 export function rboxGeo(w, h, d, r = 0.006, seg = 3) {
   const k = `rb${q(w)}_${q(h)}_${q(d)}_${q(r)}_${seg}`;
   if (!geoCache.has(k)) geoCache.set(k, new RoundedBoxGeometry(w, h, d, seg, Math.min(r, w / 2.01, h / 2.01, d / 2.01)));
-  return geoCache.get(k);
+  return keepResource(geoCache.get(k));
 }
 export function cylGeo(r1, r2, h, seg = 24, open = false) {
   const k = `cy${q(r1)}_${q(r2)}_${q(h)}_${seg}_${open}`;
   if (!geoCache.has(k)) geoCache.set(k, new THREE.CylinderGeometry(r1, r2, h, seg, 1, open));
-  return geoCache.get(k);
+  return keepResource(geoCache.get(k));
 }
 function place(mesh, x, y, z, parent, shadow = true) {
   mesh.position.set(x, y, z);

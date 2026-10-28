@@ -1,5 +1,6 @@
 // Taller 3D: escena, cámara, luces, máquinas, efectos y selección. Lo maneja Scene3D.jsx.
 import * as THREE from 'three';
+import { disposeObject, disposeComposer } from './resources.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -19,8 +20,9 @@ import { isMulti, has, hasFloors, floorMachines } from '../game/engine.js';
 // alta = "Calidad" (PC) · media = "Equilibrado" · baja = "Rendimiento" (celulares humildes)
 export function resolveQuality(q) {
   if (q && q !== 'auto') return q;
-  const coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
-  return coarse || window.innerWidth < 760 ? 'media' : 'alta';
+  // Expensive postprocessing is opt-in, even on desktop/high-DPI displays.
+  const memory = globalThis.navigator?.deviceMemory;
+  return memory && memory <= 4 ? 'baja' : 'media';
 }
 
 // Textura redonda suave para partículas
@@ -74,7 +76,9 @@ export class Workshop3D {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color('#0a0e22');
     const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.roomEnv = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    const roomEnvironment = new RoomEnvironment();
+    this.roomEnv = pmrem.fromScene(roomEnvironment, 0.04).texture;
+    roomEnvironment.dispose();
     this.scene.environment = this.roomEnv;
     this.scene.environmentIntensity = 0.55;
     pmrem.dispose();
@@ -131,22 +135,27 @@ export class Workshop3D {
 
   applyQuality() {
     const q = this.quality;
+    clearTimeout(this.envTimer);
+    disposeComposer(this.composer);
+    this.composer = this.gtao = this.bloom = null;
     // Texturas, objetos y personajes reales en todas las calidades; la luz de taller real (HDRI) solo en alta.
     REAL.on = true;
     if (q === 'alta') {
       // La luz de taller real se carga un rato después de arrancar (el arranque queda más liviano).
-      setTimeout(() => {
+      this.envTimer = setTimeout(() => {
         if (this.disposed || this.quality !== 'alta') return;
         loadWorkshopEnv(this.renderer).then((env) => {
           if (env && !this.disposed && this.quality === 'alta' && this.scene) { this.scene.environment = env; this.scene.environmentIntensity = 0.5; }
         });
       }, 2500);
     } else if (this.scene && this.roomEnv) { this.scene.environment = this.roomEnv; this.scene.environmentIntensity = 0.55; }
-    const dpr = Math.min(window.devicePixelRatio || 1, q === 'alta' ? 2 : q === 'media' ? 1.5 : 1);
+    const dpr = Math.min(window.devicePixelRatio || 1, q === 'alta' ? 1.5 : 1);
     this.renderer.setPixelRatio(dpr);
     this.renderer.shadowMap.enabled = q !== 'baja';
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    const ms = q === 'alta' ? 2048 : 1024;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.shadowMap.autoUpdate = false;
+    this.renderer.shadowMap.needsUpdate = true;
+    const ms = q === 'alta' ? 1024 : 512;
     this.sun.shadow.mapSize.set(ms, ms);
     if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; }
     this.window.visible = q !== 'baja';
@@ -227,11 +236,7 @@ export class Workshop3D {
   buildSpace(space, floor = null) {
     // Lo que se saca de la escena se libera de la placa de video (si no, se acumula al cambiar de piso).
     // Si algo compartido se vuelve a usar, three.js lo vuelve a subir solo.
-    const free = (o) => o && o.traverse((n) => {
-      if (n.geometry) n.geometry.dispose();
-      const mats = Array.isArray(n.material) ? n.material : n.material ? [n.material] : [];
-      for (const mt of mats) { for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap']) if (mt[k] && mt[k].isCanvasTexture) mt[k].dispose(); mt.dispose(); }
-    });
+    const free = disposeObject;
     if (this.room) { this.scene.remove(this.room.group); free(this.room.group); }
     for (const b of this.benches) { this.scene.remove(b); free(b); }
     for (const m of this.emptyMarks) { this.scene.remove(m); free(m); }
@@ -287,7 +292,7 @@ export class Workshop3D {
       seen.add(m.id);
       let e = this.machines.get(m.id);
       if (!e || e.model !== m.model) {
-        if (e) this.scene.remove(e.station);
+        if (e) disposeObject(e.station);
         const rig = buildMachine(m.model);
         const station = new THREE.Group();
         station.add(rig.root);
@@ -309,7 +314,7 @@ export class Workshop3D {
       e.rig.setMulti(isMulti(s, MACHINES[m.model]));
       this.setPlinth(e, s.cosmetics?.skin || null);
     });
-    for (const [id, e] of this.machines) if (!seen.has(id)) { this.scene.remove(e.station); this.machines.delete(id); }
+    for (const [id, e] of this.machines) if (!seen.has(id)) { disposeObject(e.station); this.machines.delete(id); }
     const occupied = new Map();
     for (const [, e] of this.machines) occupied.set(e.slot, e);
     this.benches.forEach((b, i) => { const e = occupied.get(i); b.visible = !(e && e.rig.floor); });
@@ -328,7 +333,7 @@ export class Workshop3D {
       g.position.set(this.world.rest.x, 0, this.world.rest.z);
       this.scene.add(g);
       this.sobrino = { g, brain: new SobrinoBrain(g) };
-    } else if (!lvl && this.sobrino) { this.scene.remove(this.sobrino.g); this.sobrino = null; }
+    } else if (!lvl && this.sobrino) { disposeObject(this.sobrino.g); this.sobrino = null; }
     if (this.world) this.world.level = lvl;
     this.effect = s.cosmetics?.effect || null;
     // Cajas de pedidos despachados en la zona de packing
@@ -422,6 +427,8 @@ export class Workshop3D {
     }
     this.controls.update();
     this.clampView();
+    // Shadows need not be rendered at the full animation rate.
+    if (t - (this.lastShadow || 0) >= .2) { this.renderer.shadowMap.needsUpdate = true; this.lastShadow = t; }
     if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera);
   }
 
@@ -465,7 +472,7 @@ export class Workshop3D {
     };
     if (this.sobrino) { this.sobrino.g.position.set(this.world.rest.x, 0, this.world.rest.z); this.sobrino.brain.queue = []; this.sobrino.brain.job = null; this.sobrino.brain.step = null; }
     // Gato del taller: duerme en su almohadón en el rincón de adelante y se sube a las impresoras en el evento.
-    if (this.petBase) { this.scene.remove(this.petBase); this.petBase = null; }
+    if (this.petBase) { disposeObject(this.petBase); this.petBase = null; }
     if (this.cat) { this.cat.dispose(this.scene); this.cat = null; }
     const base = new THREE.Group();
     const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.33, 0.08, 28), new THREE.MeshStandardMaterial({ color: '#3437A2', roughness: 0.95 }));
@@ -492,7 +499,7 @@ export class Workshop3D {
     const key = JSON.stringify((list || []).map((g) => g.id));
     if (key === this.giftKey || !this.room) return;
     this.giftKey = key;
-    if (this.giftGroup) this.scene.remove(this.giftGroup);
+    if (this.giftGroup) disposeObject(this.giftGroup);
     const grp = new THREE.Group(); this.scene.add(grp); this.giftGroup = grp;
     const { W, D } = this.room;
     const doorX = this.world?.door?.x ?? 0;
@@ -559,7 +566,7 @@ export class Workshop3D {
   setPlinth(e, skin) {
     if (e.plinthSkin === skin) return;
     e.plinthSkin = skin;
-    if (e.plinth) { e.station.remove(e.plinth); e.plinth = null; }
+    if (e.plinth) { disposeObject(e.plinth); e.plinth = null; }
     const color = { s_rosa: '#F78EB6', s_cian: '#5DDADB', s_negro: '#16181d', s_blanco: '#e9ebf0' }[skin];
     if (!color) return;
     const neon = skin === 's_rosa' || skin === 's_cian';
@@ -620,12 +627,12 @@ export class Workshop3D {
     this.controls.dispose();
     for (const ev of ['mousedown', 'auxclick']) this.canvas.removeEventListener(ev, this.stopAutoScroll);
     // Se libera todo lo de la placa de video antes de soltar el contexto (así cerrar o recargar no se traba).
-    this.scene.traverse((n) => {
-      if (n.geometry) n.geometry.dispose();
-      const mats = Array.isArray(n.material) ? n.material : n.material ? [n.material] : [];
-      for (const mt of mats) { for (const k in mt) { const v = mt[k]; if (v && v.isTexture) v.dispose(); } mt.dispose(); }
-    });
-    if (this.scene.environment) this.scene.environment.dispose?.();
+    clearTimeout(this.envTimer);
+    disposeComposer(this.composer);
+    this.composer = this.gtao = this.bloom = null;
+    disposeObject(this.scene);
+    this.roomEnv?.dispose();
+    this.roomEnv = null;
     this.renderer.renderLists?.dispose?.();
     this.renderer.dispose();
     try { this.renderer.forceContextLoss(); } catch { /* ya estaba liberado */ }
