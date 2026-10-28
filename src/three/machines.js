@@ -388,10 +388,10 @@ function giga(rig, a) {
 function farmRack(rig, a) {
   const n = a.n || 8;
   const cols = 2, rows = Math.ceil(n / cols);
-  const W = 0.9, D = 0.45, rowH = a.pro ? 0.5 : 0.38;
+  const W = a.unit ? 1.02 : 0.9, D = a.unit ? 0.5 : 0.45, rowH = a.combo ? (a.pro ? 0.61 : 0.5) : a.pro ? 0.5 : a.unit === 'a1' ? 0.43 : 0.38;
   const H = rows * rowH + 0.1;
   const R = rig.root;
-  const frame = MAT.anodized('#3a3f4a');
+  const frame = MAT.anodized(a.frame || '#3a3f4a');
   for (const [x, z] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) extrusion(H, 'y', frame, x * (W / 2 - 0.015), H / 2, z * (D / 2 - 0.015), R, 0.03, 0.03);
   rig.units = [];
   for (let r = 0; r < rows; r++) {
@@ -399,20 +399,39 @@ function farmRack(rig, a) {
     rb(W, 0.02, D, MAT.anodized('#4a505c'), 0, y, 0, R, 0.003);
     for (let c = 0; c < cols && rig.units.length < n; c++) {
       const u = new THREE.Group(); u.position.set((c - 0.5) * W * 0.5, y + 0.01, 0); R.add(u);
-      const sw = a.pro ? 0.3 : 0.24;
+      const sw = a.pro || a.unit === 'a1' ? 0.3 : 0.24;
       if (a.pro) {
-        rb(sw, rowH - 0.06, sw * 0.95, MAT.plastic('#1b1c1f', 0.42), 0, (rowH - 0.06) / 2, 0, u, 0.01);
-        bx(sw * 0.9, rowH - 0.1, 0.004, MAT.glass('#c9d6ea', 0.12), 0, (rowH - 0.06) / 2, sw * 0.48, u, false);
+        const bodyH = a.combo ? rowH - 0.17 : rowH - 0.06;
+        const bodyColor = a.unit === 'k1c' ? '#222428' : '#1b1c1f';
+        const shell = MAT.plastic(bodyColor, 0.42);
+        rb(sw, bodyH, 0.02, shell, 0, bodyH / 2, -sw * 0.44, u, 0.005);
+        for (const side of [-1, 1]) rb(0.018, bodyH, sw * 0.9, shell, side * (sw / 2 - 0.009), bodyH / 2, 0, u, 0.004);
+        rb(sw, 0.02, sw * 0.95, shell, 0, bodyH - 0.01, 0, u, 0.005);
+        bx(sw * 0.9, bodyH - 0.04, 0.004, MAT.glass('#c9d6ea', 0.12), 0, bodyH / 2, sw * 0.48, u, false);
+        if (a.unit === 'k1c') for (let v = 0; v < 3; v++) bx(0.04, 0.005, 0.004, MAT.plastic('#858b94'), -0.09, 0.08 + v * 0.014, sw * 0.49, u, false);
       } else {
         rb(sw, 0.03, sw * 0.9, MAT.plastic('#e3e5ea', 0.5), 0, 0.015, 0, u, 0.008);
         rb(0.025, rowH - 0.1, 0.03, MAT.plastic('#e3e5ea', 0.5), -sw / 2 + 0.02, (rowH - 0.1) / 2 + 0.03, -0.04, u, 0.006);
+        if (a.unit === 'a1') rb(0.025, rowH - 0.1, 0.03, MAT.plastic('#e3e5ea', 0.5), sw / 2 - 0.02, (rowH - 0.1) / 2 + 0.03, -0.04, u, 0.006);
+      }
+      // Lightweight modules: no nested full-printer rigs or extra render loops.
+      if (a.combo) {
+        const ams = new THREE.Group(); u.add(ams);
+        ams.position.set(0, rowH - 0.13, 0);
+        ams.userData.ams = true;
+        rb(sw * 0.94, 0.025, 0.15, MAT.plastic(a.pro ? '#25292e' : '#dddddf'), 0, 0, 0, ams, 0.005);
+        if (a.pro) bx(sw * 0.94, 0.07, 0.15, MAT.smoked('#8fa3b0', 0.2), 0, 0.04, 0, ams, false);
+        for (let k = 0; k < 4; k++) {
+          const reel = cy(0.025, 0.025, 0.035, MAT.plastic(AMS_COLORS[k]), (k - 1.5) * 0.065, 0.04, 0, ams, 10);
+          reel.rotation.x = Math.PI / 2;
+        }
       }
       const bed = new THREE.Group(); bed.position.y = a.pro ? 0.06 : 0.035; u.add(bed);
       rb(sw * 0.55, 0.003, sw * 0.55, MAT.pei('#b5893a'), 0, 0, 0, bed, 0.001);
       const slot = new THREE.Group(); slot.position.y = 0.002; bed.add(slot);
       const arm = new THREE.Group(); arm.position.y = rowH * 0.45; u.add(arm);
       rb(sw * 0.8, 0.018, 0.025, MAT.plastic('#d9dce3', 0.45), 0.01, 0, -0.01, arm, 0.004);
-      const head = headBambu('#e8eaee', '#2a2c31', arm, 0.55); head.position.y = -0.02;
+      const head = a.unit === 'k1c' ? headGeneric('#222428', '#9aa3b2', arm, 0.55) : headBambu('#e8eaee', '#2a2c31', arm, 0.55); head.position.y = -0.02;
       const led = bx(0.04, 0.006, 0.004, rig.statusMat, sw * 0.3, 0.02, sw * 0.47, u, false);
       rig.units.push({ group: u, bed, slot, arm, head, phase: rig.units.length * 1.7, led });
     }

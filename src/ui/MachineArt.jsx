@@ -172,7 +172,24 @@ export default function MachineArt({ m, run, ev }) {
   let body;
   if (type === 'bed' || type === 'mini' || type === 'ender' || type === 'a1') body = <BedSlinger m={m} p={p} pid={pid} cid={cid} kit={m.model === 'ender3'} printing={printing} ev={ev} />;
   else if (type === 'laser' || type === 'cnc') body = <CoreXY p={p} pid={pid} cid={cid} printing={printing} ev={ev} />;
-  else if (type === 'cube' || type === 'u1' || type === 'rack' || type === 'resin' || type === 'laserbox' || type === 'cncbox') body = <Enclosure><CoreXY p={p} pid={pid} cid={cid} printing={printing} ev={ev} enclosed /></Enclosure>;
+  else if (type === 'rack') {
+    const art = MACHINES[m.model].art;
+    const rows = Math.ceil(art.n / 2), rowH = 142 / rows;
+    body = <g>
+      <rect x="7" y="5" width="146" height="148" rx="3" fill="none" stroke={art.frame} strokeWidth="5" />
+      {Array.from({ length: art.n }, (_, i) => {
+        const x = 14 + (i % 2) * 72, y = 8 + Math.floor(i / 2) * rowH;
+        return <g key={i} transform={`translate(${x} ${y})`}>
+          <rect x="0" y="0" width="60" height={rowH - 5} rx="2" fill={art.pro ? '#171d27' : '#d1d5db'} stroke="#607086" />
+          <rect x="7" y="9" width="46" height={rowH - 20} fill="#10172c" stroke={art.accent} strokeWidth=".7" />
+          <rect x="10" y={rowH - 13} width="40" height="2" fill={art.accent} />
+          <Piece pid={pid} p={p} x={20} yBottom={rowH - 13} k={0.5} cid={`${cid}-${i}`} printing={printing} />
+          {art.combo && <g>{['#ffffff', '#34343a', '#e8443a', '#3a7bd5'].map((color, k) => <circle key={k} cx={19 + k * 8} cy="4" r="2.6" fill={color} />)}</g>}
+        </g>;
+      })}
+    </g>;
+  }
+  else if (type === 'cube' || type === 'u1' || type === 'resin' || type === 'laserbox' || type === 'cncbox') body = <Enclosure><CoreXY p={p} pid={pid} cid={cid} printing={printing} ev={ev} enclosed /></Enclosure>;
   else body = <BigFormat p={p} pid={pid} cid={cid} printing={printing} ev={ev} />;
   return (
     <svg className={cls} viewBox="0 0 160 156" aria-hidden="true">

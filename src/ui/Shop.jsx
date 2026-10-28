@@ -131,6 +131,7 @@ function Machines({ s, actions, glow }) {
               <b>{M.name}</b>
               <small>{M.flavor}</small>
               <div className="shop-stats">
+                {M.art.type === 'rack' && <span>{M.art.n} equipos · 1 puesto</span>}
                 <span>Vel. ×{M.speed.toLocaleString('es-AR')}</span><span>★{M.stars}</span>
                 <span>Cama {SIZE_NAME[M.size].toLowerCase()} ({M.size})</span>
                 {M.enclosed && <span>Cerrada</span>}
