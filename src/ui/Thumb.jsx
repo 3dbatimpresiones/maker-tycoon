@@ -12,8 +12,8 @@ function loadThumbs() {
   if (mod || loading) return loading;
   loading = import('../three/thumbs.js').then((m) => {
     if (!m.thumbsSupported()) { mod = { getThumb: () => null, onThumb: () => () => {} }; }
-    else { mod = m; m.onThumb(() => subs.forEach((fn) => fn())); }
-    subs.forEach((fn) => fn());
+    else { mod = m; m.onThumb((key) => subs.forEach((sub) => { if (sub.key === key) sub.fn(); })); }
+    subs.forEach((sub) => sub.fn());
     return mod;
   }).catch(() => { mod = { getThumb: () => null, onThumb: () => () => {} }; });
   return loading;
@@ -22,11 +22,12 @@ function loadThumbs() {
 function useThumb(kind, id) {
   const [, setTick] = useState(0);
   useEffect(() => {
-    const fn = () => setTick((x) => x + 1);
-    subs.add(fn);
+    if (!id) return undefined;
+    const sub = { key: `${kind}:${id}`, fn: () => setTick((x) => x + 1) };
+    subs.add(sub);
     loadThumbs();
-    return () => subs.delete(fn);
-  }, []);
+    return () => subs.delete(sub);
+  }, [kind, id]);
   return mod && id ? mod.getThumb(kind, id) : undefined;
 }
 

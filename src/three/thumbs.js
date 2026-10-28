@@ -1,6 +1,7 @@
 // Miniaturas 3D (máquinas y productos) para la tienda y los menús.
 // Se generan de a una, en segundo plano, con un renderer chico aparte.
 import * as THREE from 'three';
+import { disposeObject } from './resources.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { buildMachine } from './machines.js';
 import { buildPiece } from './pieces.js';
@@ -27,7 +28,7 @@ const DEMO = { fdm: 'benchy', resin: 'miniatura', laser: 'cartel', cnc: 'tabla' 
 function setup() {
   if (ctx) return ctx;
   const canvas = document.createElement('canvas');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: false });
   renderer.setSize(192, 192, false);
   renderer.setPixelRatio(1);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -35,7 +36,9 @@ function setup() {
   renderer.localClippingEnabled = true;
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  const environment = new RoomEnvironment();
+  scene.environment = pmrem.fromScene(environment, 0.04).texture;
+  environment.dispose();
   scene.environmentIntensity = 0.6;
   scene.add(new THREE.HemisphereLight('#dfe6ff', '#1a1f3a', 1.2));
   const key = new THREE.DirectionalLight('#ffffff', 2.2); key.position.set(2, 4, 3); scene.add(key);
@@ -52,7 +55,10 @@ function release() {
   ctx = null;
   try { scene.environment?.dispose(); pmrem.dispose(); renderer.dispose(); renderer.forceContextLoss(); } catch { /* nada */ }
 }
-if (typeof window !== 'undefined') window.addEventListener('pagehide', release);
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', release);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') release(); else pump(); });
+}
 
 function frameObject(camera, obj) {
   const box = new THREE.Box3().setFromObject(obj);
@@ -72,7 +78,7 @@ function renderOne(key) {
   const [kind, id] = key.split(':');
   const root = new THREE.Group();
   scene.add(root);
-  let cleanup = () => {};
+  try {
   if (kind === 'm') {
     const rig = buildMachine(id);
     root.add(rig.root);
@@ -85,24 +91,24 @@ function renderOne(key) {
     root.add(pc.group);
     const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.66, 0.06, 40), new THREE.MeshStandardMaterial({ color: '#1a2560', roughness: 0.4, metalness: 0.3 }));
     ped.position.y = -0.03; root.add(ped);
-    cleanup = () => pc.mats.forEach((m) => m.dispose());
+
   }
   root.updateMatrixWorld(true);
   frameObject(camera, root);
   renderer.render(scene, camera);
   const url = renderer.domElement.toDataURL('image/webp', 0.86);
-  scene.remove(root);
-  cleanup();
   return url;
+  } finally { disposeObject(root); renderer.renderLists.dispose(); }
 }
 
 function pump() {
-  if (busy) return;
+  if (busy || document.visibilityState === 'hidden') return;
   const key = queue.shift();
   clearTimeout(idleT);
   if (!key) { idleT = setTimeout(release, 3000); return; }
   busy = true;
   const go = () => {
+    if (document.visibilityState === 'hidden') { queue.unshift(key); busy = false; release(); return; }
     try { if (!cache.has(key)) { cache.set(key, renderOne(key)); persist(); } } catch { cache.set(key, null); }
     listeners.forEach((fn) => fn(key));
     busy = false;
@@ -119,5 +125,5 @@ export function getThumb(kind, id) {
 }
 export function onThumb(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 export const thumbsSupported = () => {
-  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; }
+  try { const c = document.createElement('canvas'); const gl = c.getContext('webgl2') || c.getContext('webgl'); if (!gl) return false; gl.getExtension('WEBGL_lose_context')?.loseContext(); return true; } catch { return false; }
 };

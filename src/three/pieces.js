@@ -1,10 +1,11 @@
 // Piezas 3D de cada producto. Cada una mide ~1 de ancho, apoya en y = 0 y está centrada.
 // Los materiales se crean por instancia para poder "imprimirlas" con un plano de corte.
 import * as THREE from 'three';
+import { keepResource, keepObject } from './resources.js';
 import { PRODUCTS, MATERIALS } from '../game/data.js';
 
 const geoCache = new Map();
-const g = (key, make) => { if (!geoCache.has(key)) geoCache.set(key, make()); return geoCache.get(key); };
+const g = (key, make) => { if (!geoCache.has(key)) geoCache.set(key, make()); return keepResource(geoCache.get(key)); };
 
 function roundRect(w, h, r) {
   const s = new THREE.Shape();
