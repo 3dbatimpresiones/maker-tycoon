@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import * as E from '../src/game/engine.js';
 import { step, skipTutorial, MISSIONS, ensureChallenges, claimChallenge, trackChallenges } from '../src/game/progress.js';
-import { PERKS, TOKEN_SHOP, PRODUCTS, UPGRADES, ZONES, EXPO_PREP } from '../src/game/data.js';
+import { PERKS, TOKEN_SHOP, PRODUCTS, UPGRADES, ZONES, EXPO_PREP, MACHINES } from '../src/game/data.js';
 import { money, dur, num, setCurrency } from '../src/game/format.js';
 import { decideSync, summaryOf, isFreshSave } from '../src/online/api.js';
 
@@ -1011,6 +1011,45 @@ t('partida anterior: libera reservas terminadas al reanudar sin alterar las entr
   assert.equal(loaded.machines[1].orderId, o.id); assert.equal(loaded.machines[2].orderId, o.id);
   assert.equal(restored.items[0].done, 2);
   assert.equal(loaded.stats.orders, 0);
+});
+
+t('racks nuevos: seis equipos, capacidades distintas y precios respecto del catálogo', () => {
+  const pairs = [['racka1', 'a1'], ['racka1combo', 'a1'], ['rackk1c', 'k1c'], ['rackp1scombo', 'p1s']];
+  for (const [rack, base] of pairs) {
+    const R = MACHINES[rack], B = MACHINES[base];
+    assert.equal(R.art.n, 6); assert.equal(R.size, B.size); assert.equal(R.stars, B.stars);
+    assert.ok(R.cost > B.cost * 6, 'incluye estructura y gestión de seis equipos');
+    assert.ok(R.speed > B.speed * 5 && R.speed <= B.speed * 6, 'capacidad agregada con margen operativo');
+  }
+  assert.equal(MACHINES.racka1.cost, 6600000); assert.equal(MACHINES.racka1combo.cost, 9000000);
+  assert.equal(MACHINES.rackk1c.cost, 7900000); assert.equal(MACHINES.rackp1scombo.cost, 14400000);
+  assert.ok(MACHINES.rackpro.speed > MACHINES.rackp1scombo.speed, 'Pro conserva ventaja monocolor');
+  assert.ok(MACHINES.rack.speed > MACHINES.racka1.speed && MACHINES.rack.cost < MACHINES.racka1.cost, 'A1 mini sigue rindiendo para piezas chicas');
+});
+
+t('racks: compra, crecimiento de precio, un puesto y guardado de los cuatro modelos', () => {
+  const s = E.newGame(null, 1100); skipTutorial(s); s.rep = 1e7; s.money = 1e12; s.space = 6;
+  for (const id of ['racka1', 'racka1combo', 'rackk1c', 'rackp1scombo']) {
+    const before = s.machines.length, price = E.machineCost(s, id);
+    assert.equal(price, MACHINES[id].cost);
+    assert.ok(E.buyMachine(s, id)); assert.equal(s.machines.length, before + 1);
+    assert.equal(E.machineCost(s, id), Math.round(price * 1.06));
+  }
+  const loaded = E.migrate(JSON.parse(E.serialize(s)));
+  for (const id of ['racka1', 'racka1combo', 'rackk1c', 'rackp1scombo']) assert.ok(loaded.machines.some((m) => m.model === id));
+});
+
+t('racks: Combo multicolor de fábrica y solas/K1C monocolor incluso con AMS global', () => {
+  const s = E.newGame(null, 1101); skipTutorial(s); s.rep = 1e7; s.money = 1e12; s.space = 6;
+  for (const id of ['racka1', 'racka1combo', 'rackk1c', 'rackp1scombo']) {
+    const m = E.buyMachine(s, id);
+    assert.equal(E.canPrint(s, m, 'llavero'), true);
+    assert.equal(E.canPrint(s, m, 'llaveromulti'), !!MACHINES[id].multi);
+  }
+  s.upgrades.ams = 1;
+  assert.equal(E.isMulti(s, MACHINES.racka1), false); assert.equal(E.isMulti(s, MACHINES.rackk1c), false);
+  assert.equal(E.isMulti(s, MACHINES.racka1combo), true); assert.equal(E.isMulti(s, MACHINES.rackp1scombo), true);
+  assert.equal(MACHINES.rackk1c.enclosed, true); assert.equal(MACHINES.rackp1scombo.enclosed, true);
 });
 
 console.log(`\n${n} pruebas OK`);
