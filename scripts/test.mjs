@@ -1052,4 +1052,26 @@ t('racks: Combo multicolor de fábrica y solas/K1C monocolor incluso con AMS glo
   assert.equal(MACHINES.rackk1c.enclosed, true); assert.equal(MACHINES.rackp1scombo.enclosed, true);
 });
 
+t('contrato premium de la captura: 64/64 industrial y 299/299 dron no retienen las FDM', () => {
+  const s = E.newGame(null, 1110); skipTutorial(s); s.rep = 1e7; s.money = 1e15; s.space = 6;
+  s.upgrades.cnc = 1; s.upgrades.sabercnc = 1; s.upgrades.boquilla = 1;
+  for (let i = 1; i < 30; i++) assert.ok(E.buyMachine(s, 'rackpro'));
+  for (let i = 0; i < 6; i++) assert.ok(E.buyMachine(s, 'shapeoko'));
+  const o = E.spawnContract(s);
+  Object.assign(o, { minStars: 5, quote: 'prem', time: 1500, items: [
+    { p: 'industrial', qty: 64, done: 64 }, { p: 'dron', qty: 299, done: 299 }, { p: 'cartelmad', qty: 212, done: 113 },
+  ] });
+  assert.ok(E.acceptOrder(s, o.id));
+  // Reproduce a stale reservation of all 36 machines, as shown in the report.
+  for (const m of s.machines) m.orderId = o.id;
+  E.tick(s, .25, { out: [], idle: true });
+  const fdm = s.machines.filter((m) => MACHINES[m.model].tech === 'fdm');
+  const cnc = s.machines.filter((m) => MACHINES[m.model].tech === 'cnc');
+  assert.equal(fdm.filter((m) => m.orderId === o.id).length, 0);
+  assert.equal(fdm.filter((m) => !m.orderId).length, 30);
+  assert.equal(cnc.filter((m) => m.orderId === o.id).length, 6);
+  assert.equal(o.items[0].done, 64); assert.equal(o.items[1].done, 299);
+  assert.ok(s.orders.active.includes(o));
+});
+
 console.log(`\n${n} pruebas OK`);
