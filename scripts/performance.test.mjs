@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { sceneFps, startRenderLoop } from '../src/ui/renderLoop.js';
 import { keepResource, keepObject, disposeObject, disposeComposer } from '../src/three/resources.js';
 import { batchStatic, movingNodes } from '../src/three/batchStatic.js';
+import { buildMachine } from '../src/three/machines.js';
+import { MACHINES } from '../src/game/data.js';
 
 function harness(hz = 144) {
   let now = 0, id = 0, observer;
@@ -94,3 +96,29 @@ assert.equal(meshCount, 3, '17 meshes become 3 without flattening animated group
 head.position.y += 1; machine.updateMatrixWorld(true);
 assert.equal(blade.getWorldPosition(new THREE.Vector3()).y, 6, 'moving the head still moves its fan');
 console.log('OK batching: 17 opaque meshes -> 3; bounds, hierarchy and moving parts preserved');
+
+// Procedural textures need a 2D canvas but rig construction needs no WebGL.
+const context2d = new Proxy({
+  createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+  createLinearGradient: () => ({ addColorStop() {} }),
+  createRadialGradient: () => ({ addColorStop() {} }),
+  measureText: (text) => ({ width: String(text).length * 8 }),
+}, { get: (target, key) => key in target ? target[key] : () => {} });
+globalThis.document = { createElement: () => ({ width: 0, height: 0, getContext: () => context2d }) };
+for (const id of ['racka1', 'racka1combo', 'rackk1c', 'rackp1scombo']) {
+  const rig = buildMachine(id);
+  assert.equal(rig.units.length, 6);
+  let ams = 0; rig.root.traverse((node) => { if (node.userData.ams) ams++; });
+  assert.equal(ams, MACHINES[id].multi ? 6 : 0);
+  rig.setPiece(MACHINES[id].multi ? 'llaveromulti' : 'llavero');
+  assert.equal(rig.pieceGroups.length, 6);
+  rig.root.updateMatrixWorld(true);
+  for (const anim of ['full', 'soft', 'min']) {
+    rig.update({ t: 3.2, running: true, p: .5, status: 'print', blackout: false, anim });
+    rig.root.updateMatrixWorld(true);
+    for (const unit of rig.units) assert.ok(unit.head.position.toArray().every(Number.isFinite));
+  }
+  disposeObject(rig.root);
+}
+delete globalThis.document;
+console.log('OK new racks: six animated units, six pieces, six AMS modules only on Combo, all animation modes');

@@ -2,6 +2,19 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '1.10', date: '2026-10-28', title: 'Cuatro racks nuevos para tu granja',
+    intro: 'Seis equipos por rack, un puesto del taller. Elegí volumen monocolor, multicolor o máquinas cerradas.',
+    groups: [
+      ['Nuevas opciones FDM', [
+        'Rack 6× Bambu Lab A1 solas: AR$ 6,6 millones de base, cama mediana y producción monocolor.',
+        'Rack 6× A1 Combo: AR$ 9 millones de base, con seis AMS lite incluidos.',
+        'Rack 6× Creality K1C: AR$ 7,9 millones de base, CoreXY cerradas y mayor velocidad monocolor.',
+        'Rack 6× P1S Combo: AR$ 14,4 millones de base, seis máquinas cerradas con AMS.',
+        'Siguen disponibles el rack de ocho A1 mini y el Rack Pro de seis P1S. Los precios crecen al comprar más unidades del mismo modelo.',
+      ]],
+    ],
+  },
+  {
     v: '1.9.1', date: '2026-10-28', title: 'Máquinas libres cuando ya no hacen falta',
     intro: 'Los pedidos dejan de retener equipos que ya no necesitan, en FDM, resina, láser y CNC.',
     groups: [
