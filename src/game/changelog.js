@@ -2,6 +2,20 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '2.0.2', date: '2026-10-28', title: 'Todas las mejoras en una misma versi?n',
+    intro: 'Oficio y legado conservan las mejoras de producci?n, capacidad y rendimiento.',
+    groups: [
+      ['M?quinas y pedidos', [
+        'Racks de seis A1 solas, A1 Combo, P1S Combo y K1C con precios equilibrados.',
+        'FDM, resina, l?ser y CNC liberan sus reservas cuando ya no hacen falta en el pedido.',
+        'Cada pedido muestra sus reservas por tecnolog?a y el tablero muestra las m?quinas disponibles para asignar.',
+      ]],
+      ['Rendimiento', [
+        'Menos redibujados y liberaci?n de recursos 3D; la escena se pausa cuando no est? visible.',
+      ]],
+    ],
+  },
+  {
     v: '2.0.1', date: '2026-10-26', title: 'Cada pieza dice con qué se hace',
     intro: 'Pedido de la comunidad: ahora se entiende de un vistazo qué máquina necesita cada trabajo.',
     groups: [
