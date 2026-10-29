@@ -1459,6 +1459,17 @@ export function unstoreMachine(s, i) {
   s.machines.push(m);
   return true;
 }
+// La Bodega no ocupa un lugar del taller: una máquina guardada se puede vender
+// directamente, incluso si es la única que quedó instalada.
+export function sellStoredMachine(s, i) {
+  const list = s.storage || [];
+  const m = list[i];
+  if (!m) return false;
+  s.money += Math.round((m.paid || 0) * 0.5);
+  dropMods(s, [m]);
+  list.splice(i, 1);
+  return true;
+}
 export function declineOrder(s, oid) { s.orders.offers = s.orders.offers.filter((x) => x.id !== oid); }
 export function assignMore(s, oid, delta) {
   const o = s.orders.active.find((x) => x.id === oid);

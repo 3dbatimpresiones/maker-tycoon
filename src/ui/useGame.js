@@ -470,6 +470,7 @@ export function useGame() {
       return r;
     }),
     sellMachine: (mid) => act((st) => { const ok = E.sellMachine(st, mid); if (ok) sfx.click(); return ok; }),
+    sellStoredMachine: (i) => act((st) => { const ok = E.sellStoredMachine(st, i); if (ok) sfx.click(); return ok; }),
     repair: (mid) => act((st) => { const ok = E.repairMachine(st, mid); if (ok) { sfx.buy(); toast('🔧 Reparada: quedó al 100 %'); } return ok; }),
     repairAll: () => act((st) => { const n = E.repairAll(st); if (n) { sfx.buy(); toast(`🔧 ${n === 1 ? 'Reparada' : n + ' máquinas reparadas'}: todo al 100 %`); } return n; }),
     // Tienda de usados (ver online/useMarket.js). Cada cambio se guarda en el acto.

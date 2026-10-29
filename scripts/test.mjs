@@ -770,6 +770,20 @@ t('sugerencias: generador, turbo de pedido y bodega', () => {
   assert.ok(E.unstoreMachine(s, 0)); assert.equal(s.machines.length, 2);
 });
 
+t('Bodega: vender directo no necesita liberar un lugar en el taller', () => {
+  const s = E.newGame(null, 541); skipTutorial(s);
+  s.money = 1e9; E.buyMachine(s, 'ender3');
+  const stored = s.machines[1];
+  const refund = Math.round(stored.paid * .5);
+  assert.ok(E.storeMachine(s, stored.id));
+  const before = s.money;
+  assert.ok(E.sellStoredMachine(s, 0));
+  assert.equal(s.storage.length, 0);
+  assert.equal(s.machines.length, 1, 'no hace falta sacar ninguna máquina del taller');
+  assert.equal(s.money, before + refund);
+  assert.equal(E.sellStoredMachine(s, 0), false, 'no se vende una entrada inexistente');
+});
+
 t('pedidos: asignar todas las que sirven y explicar por qué no hay más', () => {
   const s = E.newGame(null, 55); skipTutorial(s);
   s.money = 1e9; for (let i = 0; i < 3; i++) E.buyMachine(s, 'ender3');

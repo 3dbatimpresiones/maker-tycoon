@@ -2,6 +2,14 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '2.0.3', date: '2026-10-28', title: 'Venta directa desde Bodega',
+    intro: 'Las maquinas guardadas se pueden vender sin sacarlas al taller.',
+    groups: [['Bodega', [
+      'Cada maquina guardada muestra su valor de venta y pide confirmacion antes de vender.',
+      'Conserva el mismo reintegro y tratamiento de mods que la venta normal.',
+    ]]],
+  },
+  {
     v: '2.0.2', date: '2026-10-28', title: 'Todas las mejoras en una misma versi?n',
     intro: 'Oficio y legado conservan las mejoras de producci?n, capacidad y rendimiento.',
     groups: [
