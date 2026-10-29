@@ -6,15 +6,22 @@ import * as E from '../game/engine.js';
 import { PRODUCTS, MACHINES, TECHS } from '../game/data.js';
 import { money, clock, dur } from '../game/format.js';
 
+// Etiqueta con la tecnología de la pieza (FDM, Resina, Láser o CNC).
+const TECH_ICON = { fdm: '🧵', resin: '💧', laser: '🔦', cnc: '⚙️' };
+export function TechTag({ pid }) {
+  const t = PRODUCTS[pid]?.tech || 'fdm';
+  return <span className={'tech-tag tt-' + t} title={'Se hace con: ' + TECHS[t].name}>{TECH_ICON[t]} {TECHS[t].short}</span>;
+}
+
 function Items({ o }) {
   return (
     <div className="o-items">
       {o.items.map((it) => {
         const P = PRODUCTS[it.p];
         return (
-          <span key={it.p} className="o-item" title={P.name}>
+          <span key={it.p} className="o-item" title={`${P.name} · se hace con ${TECHS[P.tech || 'fdm'].name}`}>
             <ProductThumb pid={it.p} size={22} />
-            <b>{it.done ? `${it.done}/${it.qty}` : `${it.qty}×`}</b> {P.name}
+            <b>{it.done ? `${it.done}/${it.qty}` : `${it.qty}×`}</b> {P.name} <TechTag pid={it.p} />
           </span>
         );
       })}

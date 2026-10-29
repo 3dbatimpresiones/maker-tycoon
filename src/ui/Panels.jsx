@@ -70,9 +70,9 @@ function ModsBox({ s, m, actions }) {
   const avail = E.modsFor(m).filter((k) => !mine.includes(k));
   return (
     <div className="mods-box">
-      <div className="section-label">MODS DE ESTA MÁQUINA · {mine.length}/{MOD_SLOTS}</div>
+      <div className="section-label">MODS DE ESTA MÁQUINA · {mine.length}/{E.modSlots(s)}</div>
       <div className="mods-slots">
-        {Array.from({ length: MOD_SLOTS }).map((_, i) => {
+        {Array.from({ length: E.modSlots(s) }).map((_, i) => {
           const k = mine[i];
           const X = k && MODS[k];
           return X ? (
@@ -85,7 +85,7 @@ function ModsBox({ s, m, actions }) {
           );
         })}
       </div>
-      {(open || false) && mine.length < MOD_SLOTS && (
+      {(open || false) && mine.length < E.modSlots(s) && (
         <div className="mods-shop">
           {avail.map((k) => {
             const X = MODS[k];
@@ -101,7 +101,7 @@ function ModsBox({ s, m, actions }) {
           <button className="chip-btn" onClick={() => setOpen(false)}>Listo</button>
         </div>
       )}
-      {!open && mine.length < MOD_SLOTS && avail.length > 0 && <button className="chip-btn mods-add" onClick={() => setOpen(true)}>🔧 Ver mods para instalar</button>}
+      {!open && mine.length < E.modSlots(s) && avail.length > 0 && <button className="chip-btn mods-add" onClick={() => setOpen(true)}>🔧 Ver mods para instalar</button>}
       <p className="hint">Los mods son solo de esta máquina. Si la vendés, la publicás en Usados o la entregás en un canje, se desarman y te devuelven la mitad.</p>
     </div>
   );
@@ -331,8 +331,8 @@ export function ChallengesModal({ s, actions, onClose }) {
           const won = E.mastered(s, id);
           return (
             <div key={id} className={'perk ch-card' + (won ? ' own' : '')}>
-              <b>{C.name}</b>
-              <small><b className="c-pink">Regla:</b> {C.rule}<br /><b className="c-cyan">Meta:</b> {fmtText(C.goalText)}<br /><b>Premio:</b> {C.reward}</small>
+              <b>{C.name} <span className="ch-diff" title={`Dificultad ${C.diff} de 3`}>{'★'.repeat(C.diff || 1)}<em>{'★'.repeat(3 - (C.diff || 1))}</em></span></b>
+              <small><b className="c-pink">Regla:</b> {C.rule}<br /><b className="c-cyan">Meta:</b> {fmtText(C.goalText)}<br /><b>Premio:</b> {C.reward}<br /><b>Tiempo estimado:</b> {C.time}</small>
               {won ? <span className="own">✔ Superado</span>
                 : cp?.id === id ? <span className="own">En curso</span>
                   : pick === id
@@ -430,6 +430,20 @@ export function OficioModal({ s, actions, onClose }) {
             <button className="btn-center inline" onClick={() => { actions.move(pick); onClose(); }}>Sí, a la nueva sede</button>
             <button className="chip-btn" onClick={() => setSure(false)}>Todavía no</button></div>)}
         <p className="hint">No es obligatorio: podés seguir creciendo en este taller todo lo que quieras.</p>
+      </div>
+
+      <div className="section-label">METAS DE LEGADO</div>
+      <p className="hint">Logros de toda tu carrera: se cuentan a través de todas tus mudanzas. Cada una da Oficio una sola vez.</p>
+      <div className="legacy-list">
+        {E.legacyProgress(s).map((l) => (
+          <div key={l.id} className={'legacy' + (l.claimed ? ' own' : l.done ? ' ready' : '')}>
+            <span className="lg-txt"><b>{l.name}</b><small>{l.desc}</small>
+              {!l.claimed && <i className="lg-bar"><em style={{ width: `${Math.round((100 * l.cur) / l.goal)}%` }} /></i>}</span>
+            {l.claimed ? <span className="own">✔ +{l.oficio}</span>
+              : l.done ? <button className="chip-btn" onClick={() => actions.claimLegacy(l.id)}>Cobrar +{l.oficio} Oficio</button>
+              : <small className="lg-n">{num(l.cur)}/{num(l.goal)}</small>}
+          </div>
+        ))}
       </div>
 
       <div className="section-label">BANCO DE OFICIO (VENTAJAS PERMANENTES)</div>

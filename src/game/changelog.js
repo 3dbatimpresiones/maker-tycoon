@@ -2,35 +2,45 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
-    v: '1.10.1', date: '2026-10-28', title: 'Reservas visibles por tecnología',
-    intro: 'Cada contrato muestra cuántas FDM, de resina, láser y CNC sigue reservando, incluidos los ceros al completar un área.',
-    groups: [['Tu capacidad disponible', [
-      'El tablero muestra cuántas máquinas de cada tecnología están disponibles para asignar a otros pedidos.',
-      'Una máquina libre de un pedido puede seguir produciendo catálogo o ser asignada por el Gestor a otro contrato.',
-    ]]],
-  },
-  {
-    v: '1.10', date: '2026-10-28', title: 'Cuatro racks nuevos para tu granja',
-    intro: 'Seis equipos por rack, un puesto del taller. Elegí volumen monocolor, multicolor o máquinas cerradas.',
+    v: '2.0.2', date: '2026-10-28', title: 'Todas las mejoras en una misma versi?n',
+    intro: 'Oficio y legado conservan las mejoras de producci?n, capacidad y rendimiento.',
     groups: [
-      ['Nuevas opciones FDM', [
-        'Rack 6× Bambu Lab A1 solas: AR$ 6,6 millones de base, cama mediana y producción monocolor.',
-        'Rack 6× A1 Combo: AR$ 9 millones de base, con seis AMS lite incluidos.',
-        'Rack 6× Creality K1C: AR$ 7,9 millones de base, CoreXY cerradas y mayor velocidad monocolor.',
-        'Rack 6× P1S Combo: AR$ 14,4 millones de base, seis máquinas cerradas con AMS.',
-        'Siguen disponibles el rack de ocho A1 mini y el Rack Pro de seis P1S. Los precios crecen al comprar más unidades del mismo modelo.',
+      ['M?quinas y pedidos', [
+        'Racks de seis A1 solas, A1 Combo, P1S Combo y K1C con precios equilibrados.',
+        'FDM, resina, l?ser y CNC liberan sus reservas cuando ya no hacen falta en el pedido.',
+        'Cada pedido muestra sus reservas por tecnolog?a y el tablero muestra las m?quinas disponibles para asignar.',
+      ]],
+      ['Rendimiento', [
+        'Menos redibujados y liberaci?n de recursos 3D; la escena se pausa cuando no est? visible.',
       ]],
     ],
   },
   {
-    v: '1.9.1', date: '2026-10-28', title: 'Máquinas libres cuando ya no hacen falta',
-    intro: 'Los pedidos dejan de retener equipos que ya no necesitan, en FDM, resina, láser y CNC.',
+    v: '2.0.1', date: '2026-10-26', title: 'Cada pieza dice con qué se hace',
+    intro: 'Pedido de la comunidad: ahora se entiende de un vistazo qué máquina necesita cada trabajo.',
     groups: [
-      ['Reservas y producción', [
-        'Si las unidades restantes ya están en fabricación, las máquinas sobrantes quedan libres para otros pedidos.',
-        'Al dejar lista su última pieza, la máquina ya no reserva lugar en el contrato. La pieza conserva su destino hasta retirarla.',
-        'El pedido distingue equipos reservados, piezas en proceso y piezas listas para retirar.',
-        'Se mantienen la producción normal, las partidas guardadas y el cobro único de cada contrato.',
+      ['🏷️ Tecnología en cada pieza', [
+        'Al lado de cada pieza de un pedido aparece una etiqueta de color: 🧵 FDM, 💧 Resina, 🔦 Láser o ⚙️ CNC.',
+        'También en los contratos de inversión. Pasá el mouse por encima para ver el nombre completo.',
+      ]],
+    ],
+  },
+  {
+    v: '2.0', date: '2026-10-26', title: 'Oficio y legado',
+    intro: 'Tu carrera de maker ahora deja huella: metas que se cuentan a través de todas tus mudanzas y ventajas nuevas para los que ya juntaron mucho Oficio.',
+    groups: [
+      ['🏛️ Metas de legado (en la ventana de Oficio)', [
+        '10 logros de toda tu carrera: tres etapas, dos naves, planta propia, campeón de Expos, inversor, un millón de piezas y más.',
+        'Cada meta da Oficio una sola vez. Las Expos, piezas, proyectos y contratos que ya tenías también cuentan.',
+      ]],
+      ['⭐ Ventajas nuevas en el Banco de Oficio', [
+        '🔧 Ingeniería de mods: 4 ranuras de mods en todas tus máquinas.',
+        '💼 Inversor experimentado: los contratos de inversión pagan más.',
+        '🏭 Franquicia industrial: arrancás cada etapa en el Taller industrial.',
+        '📜 Plan de sucesión: más capital al mudarte.',
+      ]],
+      ['🏆 Desafíos de Oficio más claros', [
+        'Cada desafío muestra su dificultad (★ a ★★★) y cuánto tiempo lleva más o menos.',
       ]],
     ],
   },

@@ -8,7 +8,7 @@ import {
   UNIT, MATERIALS, MATERIAL_ORDER, STAR_MULT, SPACES, MACHINES, MACHINE_ORDER, PRODUCTS, PRODUCT_ORDER, SIZES,
   UPGRADES, repNeeded, REP_PRICE_BONUS, ORDER_TEMPLATES, ORDER_OFFER_LIFE, ORDER_SPAWN_EVERY, CONTRACT_CLIENTS,
   MACHINE_EVENTS, GLOBAL_EVENTS, MAKER_TITLES, MASTERY_BASE, MASTERY_GROWTH, MASTERY_BONUS,
-  MASTERY_CHALLENGES, TECHS, FLOORS, FLOOR_SLOTS, COMBO_CLIENTS, MODS, MOD_SLOTS, PROJECTS, PROJECT_BONUS,
+  MASTERY_CHALLENGES, TECHS, FLOORS, FLOOR_SLOTS, COMBO_CLIENTS, MODS, MOD_SLOTS, PROJECTS, PROJECT_BONUS, LEGACY,
   ZONES, DEMAND_HOT, DEMAND_COLD, DEMAND_EVERY, RIVALS, EXPO_PREP, EXPO_EVERY, EXPO_REP, EXPO_STANDS,
 } from './data.js';
 
@@ -101,6 +101,7 @@ export function newGame(keep = null, seed = (Date.now() ^ 0x5bd1e995) >>> 0, cha
   if (perks.cuarto) s.space = Math.max(s.space, 1);
   if (perks.garage) s.space = Math.max(s.space, 2);
   if (perks.local) s.space = Math.max(s.space, 3);
+  if (perks.industrial) s.space = Math.max(s.space, 4);
   if (perks.reputacion) s.rep = repNeeded(3);
   if (keep?.keptRep) s.rep = Math.max(s.rep, keep.keptRep);
   if (perks.sobrino) s.upgrades.sobrino = 1;
@@ -232,6 +233,7 @@ export function speedMult(s, model, withMate = true) {
   return k * specSpeed(s, M);
 }
 // ---------- Mods por máquina ----------
+export const modSlots = (s) => MOD_SLOTS + (perk(s, 'ranura') ? 1 : 0);
 const modsOf = (m) => (m.mods || []).map((k) => MODS[k]).filter(Boolean);
 export const modSpeed = (m) => modsOf(m).reduce((a, x) => a * (x.speed || 1), 1);
 export const modFail = (m) => modsOf(m).reduce((a, x) => a * (x.fail || 1), 1);
@@ -243,7 +245,7 @@ export function modReason(s, m, k) {
   const X = MODS[k];
   if (!X || X.tech !== MACHINES[m.model].tech) return 'No sirve para esta máquina';
   if ((m.mods || []).includes(k)) return 'Ya lo tiene';
-  if ((m.mods || []).length >= MOD_SLOTS) return `Sin ranuras libres (${MOD_SLOTS}/${MOD_SLOTS})`;
+  if ((m.mods || []).length >= modSlots(s)) return `Sin ranuras libres (${modSlots(s)}/${modSlots(s)})`;
   if (s.money < modCost(s, m, k)) return 'Te falta plata';
   return null;
 }
@@ -1339,7 +1341,8 @@ function makeInvest(s, kind) {
     items.push([pid, Math.max(3, Math.round((speed * K.time * K.load) / use.length / PRODUCTS[pid].time))]);
   }
   const amount = investAmount(s);
-  return { kind, client: INVEST_CLIENTS[Math.floor(rand(s) * INVEST_CLIENTS.length)], items, amount, reward: Math.round(amount * K.ret), time: K.time };
+  const ret = K.ret + (perk(s, 'inversor') ? 0.3 : 0);
+  return { kind, client: INVEST_CLIENTS[Math.floor(rand(s) * INVEST_CLIENTS.length)], items, amount, reward: Math.round(amount * ret), time: K.time };
 }
 export function investOffers(s) {
   if (!investUnlocked(s)) return [];
@@ -2077,7 +2080,7 @@ export function canMove(s) {
 // ---------- Mudanza Evolutiva: vendés esta etapa de tu empresa para financiar la próxima ----------
 // Valuación: máquinas (según lo que pagaste y el desgaste), mods, las instalaciones del taller y la plata.
 // Capital de traslado: el 25 % de lo vendido + el 5 % de la plata, con un tope para que reconstruir siga siendo un desafío.
-export function startSpaceOf(perks) { return perks.local ? 3 : perks.garage ? 2 : perks.cuarto ? 1 : 0; }
+export function startSpaceOf(perks) { return perks.industrial ? 4 : perks.local ? 3 : perks.garage ? 2 : perks.cuarto ? 1 : 0; }
 export function valuation(s) {
   let machines = 0, mods = 0;
   for (const m of s.machines) {
@@ -2088,7 +2091,7 @@ export function valuation(s) {
   const money = Math.max(0, s.money);
   const sold = Math.round(machines + mods + place);
   // Tope: lo que cuesta el taller dos lugares más arriba de donde arrancás (la reputación igual hay que ganarla).
-  const startIdx = Math.min(SPACES.length - 1, startSpaceOf(s.prestige.perks) + 2);
+  const startIdx = Math.min(SPACES.length - 1, startSpaceOf(s.prestige.perks) + (s.prestige.perks.sucesion ? 3 : 2));
   const cap = Math.round(SPACES[startIdx].cost);
   const raw = Math.round(sold * 0.25 + money * 0.05);
   return { machines: Math.round(machines), mods: Math.round(mods), place, money, sold, total: sold + money, raw, cap, capital: Math.min(cap, raw) };
@@ -2129,6 +2132,29 @@ export function doMove(s, vitrinaPid, challenge = null) {
   return next;
 }
 export const challengesUnlocked = (s) => s.prestige.moves >= 1;
+// ---------- Metas de legado ----------
+export function legacyProgress(s) {
+  const h = s.prestige.history || [];
+  const reached = (sp) => h.filter((x) => x.space >= sp).length;
+  const val = {
+    etapas3: [s.prestige.moves, 3], nave2: [reached(5), 2], planta1: [reached(6), 1],
+    expo5: [s.city?.expoWins || 0, 5], proyectos10: [s.stats.projects || 0, 10], inversion5: [s.stats.investDone || 0, 5],
+    contratos100: [s.stats.contracts || 0, 100], rivales4: [Object.values(s.city?.rivals || {}).filter((r) => r.beaten).length, 4],
+    historia: [s.story?.i || 0, 6], piezas1m: [s.stats.pieces || 0, 1e6],
+  };
+  return LEGACY.map((L) => {
+    const [cur, goal] = val[L.id] || [0, 1];
+    const claimed = !!(s.prestige.legacy || {})[L.id];
+    return { ...L, cur: Math.min(cur, goal), goal, done: cur >= goal, claimed };
+  });
+}
+export function claimLegacy(s, id) {
+  const l = legacyProgress(s).find((x) => x.id === id);
+  if (!l || !l.done || l.claimed) return false;
+  s.prestige.legacy = { ...(s.prestige.legacy || {}), [id]: Date.now() };
+  s.prestige.points += l.oficio; s.prestige.total += l.oficio;
+  return true;
+}
 export function startChallenge(s, id, vitrinaPid) {
   if (!challengesUnlocked(s) || !MASTERY_CHALLENGES[id] || s.challenge) return null;
   return doMove(s, vitrinaPid, id);

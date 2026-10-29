@@ -575,6 +575,7 @@ export function useGame() {
     }),
     setSpec: (id) => act((st) => { const ok = E.setSpec(st, id); if (ok) { sfx.buy(); toast(`${E.SPECS[id].icon} Tu empresa ahora es: ${E.SPECS[id].name}`, 'info', 5000); } return ok; }),
     acceptInvest: (i) => act((st) => { const ok = E.acceptInvest(st, i); if (ok) { sfx.accept(); toast('💼 Contrato de inversión aceptado: lo ves en Pedidos. ¡A cumplir a tiempo!', 'info', 5000); } return ok; }),
+    claimLegacy: (id) => act((st) => { const ok = E.claimLegacy(st, id); if (ok) { sfx.achievement(); toast('🏛️ ¡Meta de legado cumplida! Sumaste Oficio.', 'info', 5000); } return ok; }),
     releaseAll: () => act((st) => { const n = E.releaseAllOrders(st); if (n) toast(`🔓 Liberé ${n} ${n === 1 ? 'máquina' : 'máquinas'}: ahora asignalas con + al pedido que quieras.`, 'info', 5000); return n; }),
     accept: (oid, quote = 'std') => act((st) => { const ok = E.acceptOrder(st, oid, quote); if (ok) sfx.accept(); return ok; }),
     decline: (oid) => act((st) => E.declineOrder(st, oid)),
