@@ -640,3 +640,14 @@
   .wk-top > .hud-card .hud-maker small { display: none; }
 }
 @media (min-width: 761px) { .wk-top .hud-card .hud-maker small { display: none; } }
+
+/* Pantallas anchas: encabezado en UNA fila con tres sectores.
+   Izquierda: logo + título + BATBOX · Medio: perfil online + moneda · Derecha: Instagram … Ajustes */
+@media (min-width: 1600px) {
+  header.topbar { flex-wrap: nowrap; justify-content: flex-start; align-items: center; gap: 14px; }
+  header.topbar > .top-left { flex: 0 1 560px; justify-content: flex-start; min-width: 0; }
+  header.topbar > .top-actions { display: contents; }
+  header.topbar .acct-chip { margin-left: auto; flex: none; }
+  header.topbar .cur-toggle { margin-right: auto; flex: none; }
+  header.topbar .icon-btn.lbl-btn { flex: none; }
+}
