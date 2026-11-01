@@ -661,3 +661,13 @@
 /* Aviso de la Mudanza y de abandonar un desafío: texto claro y legible */
 .move-warn { display: flex; flex-direction: column; gap: 4px; flex: 1 1 100%; }
 .move-warn small, .ch-active .confirm-row small { display: block; flex: 1 1 100%; color: #cbd5e1; font-size: 12px; line-height: 1.4; }
+
+/* Pantallas muy anchas: perfil + moneda + nube + "fabricando ahora" en la MISMA fila del medio (la página no baja) */
+@media (min-width: 1880px) {
+  header.topbar { grid-template-columns: auto minmax(0, 1fr) auto auto minmax(0, 1fr) auto; grid-template-rows: auto; column-gap: 12px; }
+  header.topbar .top-brand { grid-column: 1; grid-row: 1; }
+  header.topbar .top-who { grid-column: 3; grid-row: 1; justify-self: auto; }
+  header.topbar .top-status { grid-column: 4; grid-row: 1; justify-self: auto; flex-wrap: nowrap; gap: 8px; }
+  header.topbar .top-nav { grid-column: 6; grid-row: 1; gap: 6px; }
+  header.topbar .top-status .pill, header.topbar .top-status .live-chip { padding: 7px 12px; font-size: 12px; white-space: nowrap; }
+}
