@@ -630,3 +630,13 @@
 .main-card > .result-bar .btn-apply:hover:not(:disabled) { background: rgba(93,218,219,.2); border-color: var(--cyan); }
 .main-card > .result-bar .mate-btn.on { background: rgba(93,218,219,.28); color: #fff; }
 .main-card > .result-bar .mate-btn:disabled { background: rgba(255,255,255,.05); color: #94a3b8; border-color: rgba(255,255,255,.12); opacity: 1; }
+
+/* Recursos con muchos materiales y Nivel Maker: una sola fila ordenada; Materiales se estira y sus chips bajan de línea adentro (en vez de que "Nivel Maker" caiga solo a otra fila) */
+@media (min-width: 1000px) {
+  .wk-top > .hud-card { display: grid; grid-auto-flow: column; grid-template-columns: auto auto minmax(0, max-content) auto auto; align-items: stretch; flex-wrap: nowrap; }
+  .wk-top > .hud-card > * { min-width: 0; }
+  .wk-top > .hud-card .hud-fil { max-width: none; }
+  .wk-top > .hud-card .hud-maker { min-width: 0; }
+  .wk-top > .hud-card .hud-maker small { display: none; }
+}
+@media (min-width: 761px) { .wk-top .hud-card .hud-maker small { display: none; } }
