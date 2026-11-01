@@ -980,7 +980,8 @@ export function buySpace(s) {
   return true;
 }
 export function buyMat(s, mat, n = 1) {
-  if (!materialUnlocked(s, mat)) return false;
+  n = Math.floor(Number(n));
+  if (!(n >= 1) || n > 100000 || !materialUnlocked(s, mat)) return false;
   const c = matPrice(s, mat) * n;
   if (s.money < c) return false;
   s.money -= c;
@@ -2180,6 +2181,16 @@ export function challengeProgress(s) {
   if (g.earned != null) parts.push({ label: 'Ganancia', done: s.runEarned >= g.earned, frac: Math.min(1, s.runEarned / g.earned) });
   if (g.orders != null) parts.push({ label: 'Pedidos', done: s.run.orders >= g.orders, frac: Math.min(1, s.run.orders / g.orders) });
   return { id: s.challenge.id, def: c, parts, done: parts.every((p) => p.done) };
+}
+// Reloj del desafío de maestría: tiempo jugado y lo que queda según el estimado ("2 a 3 h").
+export function challengeClock(s) {
+  const cp = challengeProgress(s);
+  if (!cp || !s.challenge.started) return null;
+  const el = Math.max(0, (Date.now() - s.challenge.started) / 60000); // minutos
+  const m = /(\d+(?:[.,]\d+)?)(?:\s*a\s*(\d+(?:[.,]\d+)?))?\s*h/.exec(cp.def.time || '');
+  const lo = m ? parseFloat(m[1].replace(',', '.')) * 60 : null;
+  const hi = m ? parseFloat((m[2] || m[1]).replace(',', '.')) * 60 : null;
+  return { elapsed: el, left: lo == null ? null : [Math.max(0, lo - el), Math.max(0, hi - el)] };
 }
 export function buyPerk(s, id, PERKS) {
   const P = PERKS[id];

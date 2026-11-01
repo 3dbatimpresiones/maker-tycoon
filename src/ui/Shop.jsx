@@ -18,16 +18,45 @@ function eta(s, cost) {
   const t = (cost - s.money) / r;
   return t > 0 && t < 36000 ? ` (~${dur(t)})` : '';
 }
+// Cantidad a gusto (sin hacer 200 clics): escribís cuántas y compra todas juntas.
+function CustomBuy({ s, price, unit, onBuy }) {
+  const [v, setV] = useState('');
+  const n = Math.min(100000, Math.max(0, Math.floor(Number(v) || 0)));
+  const cost = price * n;
+  const ok = n >= 1 && s.money >= cost;
+  return (
+    <div className="custom-buy">
+      <input type="number" inputMode="numeric" min="1" max="100000" placeholder="Otra cantidad" value={v}
+        onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && ok) { onBuy(n); setV(''); } }} aria-label="Cantidad a comprar" />
+      <button className={'buy-btn' + (ok ? ' ok' : '')} disabled={!ok} onClick={() => { onBuy(n); setV(''); }}>
+        {n >= 1 ? `Comprar · ${money(cost)}` : 'Comprar'}
+      </button>
+    </div>
+  );
+}
+
+// Botón compacto de cantidad: nombre + precio; si no alcanza queda apagado (el detalle va en el tooltip).
+function QtyBtn({ s, cost, onClick, disabled, label }) {
+  const ok = s.money >= cost && !disabled;
+  return (
+    <button className={'qty-btn' + (ok ? ' ok' : '')} disabled={!ok} onClick={onClick}
+      title={ok ? undefined : disabled ? 'Todavía no te alcanza' : `Te faltan ${money(cost - s.money)}`}>
+      <b>{label}</b><small>{money(cost)}</small>
+    </button>
+  );
+}
+
 function BuyBtn({ s, cost, onClick, disabled, label = 'Comprar', glow }) {
   const ok = s.money >= cost && !disabled;
   return (
-    <button className={'buy-btn' + (ok ? ' ok' : '') + (glow ? ' tut-glow' : '')} disabled={!ok} onClick={onClick}>
+    <button className={'buy-btn' + (ok ? ' ok' : '') + (glow ? ' tut-glow' : '')} disabled={!ok} onClick={onClick}
+      title={!ok && s.money < cost ? `Faltan ${money(cost - s.money)}${eta(s, cost)}` : undefined}>
       {ok ? `${label} · ${money(cost)}` : (
         // Sin plata (o sin lugar): se ve el precio y, abajo, cuánto falta.
         <>
           <span className="bb-price">{!disabled && (label.startsWith('×') || /^\d/.test(label)) ? `${label} · ` : 'Precio '}<b>{money(cost)}</b></span>
           <small className="bb-miss">
-            {s.money < cost ? `Faltan ${money(cost - s.money)}${eta(s, cost)}` : 'Ya te alcanza la plata'}
+            {s.money < cost ? `Faltan ${money(cost - s.money)}` : 'Ya te alcanza la plata'}
             {disabled && ` · ${label}`}
           </small>
         </>
@@ -285,11 +314,28 @@ function Materials({ s, actions }) {
                 {upm > 0 && <span>Alcanza: {dur((s.mat[k] / upm) * 60)}</span>}
               </div>
               {unlocked ? (
-                <div className="three-col">
-                  <BuyBtn s={s} cost={price} label={`1 ${M.unitName}`} onClick={() => actions.buyMat(k, 1)} />
-                  <BuyBtn s={s} cost={price * 5} label="×5" onClick={() => actions.buyMat(k, 5)} />
-                  <BuyBtn s={s} cost={price * 25} label="×25" onClick={() => actions.buyMat(k, 25)} />
-                </div>
+                <>
+                  <div className="qty-grid">
+                    {[[1, `1 ${M.unitName}`], [5, '×5'], [25, '×25'], [100, '×100'], [500, '×500']].map(([n, lb]) => (
+                      <QtyBtn key={n} s={s} cost={price * n} label={lb} onClick={() => actions.buyMat(k, n)} />
+                    ))}
+                    {(() => {
+                      const mx = Math.floor(s.money / price);
+                      const spend = () => {
+                        const tot = price * mx;
+                        if (!window.confirm(`⚠️ Vas a gastar TODA tu plata: ${mx.toLocaleString('es-AR')} ${M.unitName}s por ${money(tot)}.
+
+¿Querés continuar?`)) return;
+                        if (!window.confirm(`🛑 ÚLTIMO AVISO: te vas a quedar casi sin dinero (${money(s.money - tot)}).
+
+¿Estás completamente seguro de gastar todo?`)) return;
+                        actions.buyMat(k, mx);
+                      };
+                      return <QtyBtn s={s} cost={price * Math.max(1, mx)} disabled={mx < 1} label={mx >= 1 ? `Máx ×${mx.toLocaleString('es-AR')}` : 'Máx'} onClick={spend} />;
+                    })()}
+                  </div>
+                  <CustomBuy s={s} price={price} unit={M.unitName} onBuy={(n) => actions.buyMat(k, n)} />
+                </>
               ) : <div className="lock-row"><Icon name="lock" size={14} /> {UPGRADES[M.upgrade].name}</div>}
             </div>
           </div>

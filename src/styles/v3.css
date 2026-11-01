@@ -403,3 +403,7 @@ button:not(:disabled):active, .chip-btn:not(:disabled):active, .btn-center:not(:
 .tt-resin { color: #c4b5fd; border-color: rgba(167,139,250,.55); background: rgba(167,139,250,.12); }
 .tt-laser { color: #fdba74; border-color: rgba(251,146,60,.55); background: rgba(251,146,60,.12); }
 .tt-cnc { color: #86efac; border-color: rgba(74,222,128,.5); background: rgba(74,222,128,.1); }
+
+/* Barra de nivel con la experiencia que falta / reloj del desafío */
+.hud-rep .rep-num { display: block; margin-top: 2px; font-size: 10px; opacity: .8; font-variant-numeric: tabular-nums; }
+.challenge-strip .cs-clock { font-weight: 700; color: #5ddadb; white-space: nowrap; }

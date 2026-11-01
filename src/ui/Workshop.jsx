@@ -84,14 +84,19 @@ function GlobalBanner({ s, actions }) {
   );
 }
 
+const fmtMin = (m) => (m >= 60 ? `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, '0')} min` : `${Math.max(1, Math.round(m))} min`);
 function ChallengeStrip({ s, open }) {
   const cp = E.challengeProgress(s);
   if (!cp) return null;
+  const clk = E.challengeClock(s);
   return (
     <button className="challenge-strip" onClick={() => open('desafios')}>
       <span className="cs-tag">DESAFÍO</span>
       <b>{cp.def.name}</b>
       <span className="cs-rule">{cp.def.rule}</span>
+      {clk && <span className="cs-clock" title="Tiempo que llevás en este desafío y lo que queda según el estimado">
+        ⏱ {fmtMin(clk.elapsed)}{clk.left && (clk.left[1] > 0 ? ` · quedan ${clk.left[0] > 0 ? `${fmtMin(clk.left[0])} a ` : 'hasta '}${fmtMin(clk.left[1])}` : ' · ya pasaste el estimado')}
+      </span>}
       <span className="cs-goal">Meta: {fmtText(cp.def.goalText)}{cp.parts.map((p) => (p.frac != null && !p.done ? ` (${Math.floor(p.frac * 100)} %)` : '')).join('')}</span>
     </button>
   );
@@ -141,6 +146,7 @@ export default function Workshop({ s, live, actions, floats, onMachine, onEvent,
           {mission.reward && <em>{mission.reward.money ? '+' + money(mission.reward.money) : mission.reward.tokens ? `+${mission.reward.tokens} 🎟️` : '+1 ' + (mission.reward.spool === 'PLA' || mission.reward.spool === 'PETG' ? 'bobina' : 'unidad')}</em>}
         </div>
       )}
+      <FloorTabs s={s} actions={actions} />
       <div className="scene-wrap">
         <GlobalBanner s={s} actions={actions} />
         {view === '3d' ? (
@@ -162,7 +168,6 @@ export default function Workshop({ s, live, actions, floats, onMachine, onEvent,
           </>
         )}
       </div>
-      <FloorTabs s={s} actions={actions} />
       {view === '3d' && shown.length > 0 && (
         <div className={'machine-strip' + (s.settings.stripHidden ? ' hid' : '')}>
           {/* Ojito: muestra u oculta todos los accesos a las máquinas de una */}

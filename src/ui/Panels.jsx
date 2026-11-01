@@ -301,10 +301,12 @@ function ChallengeRow({ c, onClaim }) {
     </div>
   );
 }
+const fmtMin = (m) => (m >= 60 ? `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, '0')} min` : `${Math.max(1, Math.round(m))} min`);
 export function ChallengesModal({ s, actions, onClose }) {
   const [pick, setPick] = useState(null);
   const unlocked = E.challengesUnlocked(s);
   const cp = E.challengeProgress(s);
+  const clk = E.challengeClock(s);
   const gain = E.canMove(s) ? E.oficioGain(s) : 0;
   return (
     <Modal title="Desafíos" icon="target" onClose={onClose} wide>
@@ -323,6 +325,7 @@ export function ChallengesModal({ s, actions, onClose }) {
         <div className="field-box ch-active">
           <b>En curso: {cp.def.name}</b>
           <small>{cp.def.rule} Meta: {fmtText(cp.def.goalText)}</small>
+          {clk && <small>⏱ Llevás {fmtMin(clk.elapsed)} · estimado {cp.def.time}{clk.left && clk.left[1] <= 0 ? ' (ya lo pasaste)' : ''}</small>}
           <button className="chip-btn" onClick={() => actions.abandonChallenge()}>Abandonar (seguís jugando sin las reglas)</button>
         </div>
       )}

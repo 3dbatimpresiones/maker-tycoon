@@ -67,6 +67,7 @@ export function Hud({ s, onFilament, onTokens }) {
         <span className="hud-label">REPUTACIÓN</span>
         <b>⭐ {rp.level}</b>
         <div className="mini-bar"><i style={{ width: `${Math.round(rp.frac * 100)}%` }} /></div>
+        {rp.next ? <small className="rep-num">{Math.floor(rp.cur).toLocaleString('es-AR')} / {rp.next.toLocaleString('es-AR')}</small> : <small className="rep-num">Nivel máximo</small>}
       </div>
       <button className="hud-fil" onClick={onFilament} title="Comprar filamento">
         <span className="hud-label">MATERIALES</span>

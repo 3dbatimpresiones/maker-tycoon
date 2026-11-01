@@ -2,6 +2,19 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '2.0.4', date: '2026-11-01', title: 'Ideas de la comunidad',
+    intro: 'Cambios que nos pidieron ustedes desde Sugerencias. ¡Gracias!',
+    groups: [
+      ['Materiales', [
+        'Nuevos botones de compra: ×100, ×500 y Máx (todo lo que te alcance). Máx pide doble confirmación porque gasta toda tu plata.',
+        'Podés escribir la cantidad que quieras y comprar todo junto, sin tantos clics.',
+      ]],
+      ['Taller', ['Los pisos (FDM, Resina, Láser, CNC) ahora están arriba de las máquinas, sin bajar la pantalla.']],
+      ['Reputación', ['La barra de nivel muestra los puntos que llevás y los que faltan para subir.']],
+      ['Desafíos', ['El desafío en curso muestra el tiempo que llevás y cuánto queda según el estimado.']],
+    ],
+  },
+  {
     v: '2.0.3', date: '2026-10-28', title: 'Venta directa desde Bodega',
     intro: 'Las maquinas guardadas se pueden vender sin sacarlas al taller.',
     groups: [['Bodega', [
