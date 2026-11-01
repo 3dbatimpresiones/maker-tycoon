@@ -14,6 +14,7 @@ export function Header({ s, actions, open, online, chat }) {
   return (
     <header className="topbar">
       <div className="top-left">
+        <div className="top-brand">
         <div className="brand">
           <div className="brand-logo"><Icon name="box" size={26} /></div>
           <div>
@@ -27,12 +28,18 @@ export function Header({ s, actions, open, online, chat }) {
           </div>
         </div>
         {BATBOX_HERE && <a className="back-bb" href={BATBOX_HERE + '#/juego'} title="Volver a BATBOX"><Icon name="arrowLeft" size={16} /> BATBOX</a>}
+        </div>
+        <div className="top-status">
         <CloudPill online={online} s={s} open={open} />
         <LiveChip live={online.live} open={open} />
+        </div>
       </div>
       <div className="top-actions">
+        <div className="top-who">
         <AccountChip online={online} open={open} />
         <CurrencyToggle s={s} actions={actions} compact />
+        </div>
+        <div className="top-nav">
         <a className="icon-btn lbl-btn hide-sm" href={LINKS.instagram} target="_blank" rel="noopener noreferrer" title="Instagram de 3DBAT"><Icon name="instagram" /><span>Instagram</span></a>
         {!BATBOX_HERE && <a className="icon-btn lbl-btn hide-sm" href={LINKS.batbox} target="_blank" rel="noopener noreferrer" title="BATBOX: herramientas y tutoriales gratis"><Icon name="box" /><span>BATBOX</span></a>}
         {E.cityUnlocked(s) && <button className={'icon-btn lbl-btn hide-sm' + (s.city?.expo?.state === 'open' ? ' attn' : '')} onClick={() => open('ciudad')} title="Ciudad: mapa de demanda, rivales y Expo Maker"><Icon name="home" /><span>Ciudad</span></button>}
@@ -45,6 +52,7 @@ export function Header({ s, actions, open, online, chat }) {
         </button>
         <button className={'icon-btn lbl-btn spotify-btn' + (sp.playing ? ' on' : '')} onClick={() => sp.toggle()} title="Escuchá tu música de Spotify mientras jugás"><Icon name="spotify" /><span>{sp.playing ? 'Sonando' : 'Spotify'}</span></button>
         <button className="icon-btn lbl-btn" onClick={() => open('ajustes')} title="Ajustes"><Icon name="settings" /><span>Ajustes</span></button>
+        </div>
       </div>
     </header>
   );

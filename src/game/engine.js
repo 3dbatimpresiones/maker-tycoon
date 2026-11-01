@@ -2108,6 +2108,7 @@ export function valuation(s) {
   const raw = Math.round(sold * 0.25 + money * 0.05);
   return { machines: Math.round(machines), mods: Math.round(mods), place, money, sold, total: sold + money, raw, cap, capital: Math.min(cap, raw) };
 }
+export const keptRepFrac = (s) => (s.prestige.perks.fieles2 ? 0.5 : s.prestige.perks.fieles ? 0.25 : 0);
 function keepForMove(s, prestige) {
   const keepFrac = prestige.perks.fieles2 ? 0.5 : prestige.perks.fieles ? 0.25 : 0;
   return {

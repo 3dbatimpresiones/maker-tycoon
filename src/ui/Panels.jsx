@@ -304,6 +304,7 @@ function ChallengeRow({ c, onClaim }) {
 const fmtMin = (m) => (m >= 60 ? `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, '0')} min` : `${Math.max(1, Math.round(m))} min`);
 export function ChallengesModal({ s, actions, onClose }) {
   const [pick, setPick] = useState(null);
+  const [leaving, setLeaving] = useState(false);
   const unlocked = E.challengesUnlocked(s);
   const cp = E.challengeProgress(s);
   const clk = E.challengeClock(s);
@@ -326,7 +327,19 @@ export function ChallengesModal({ s, actions, onClose }) {
           <b>En curso: {cp.def.name}</b>
           <small>{cp.def.rule} Meta: {fmtText(cp.def.goalText)}</small>
           {clk && <small>⏱ Llevás {fmtMin(clk.elapsed)} · estimado {cp.def.time}{clk.left && clk.left[1] <= 0 ? ' (ya lo pasaste)' : ''}</small>}
-          <button className="chip-btn" onClick={() => actions.abandonChallenge()}>Abandonar (seguís jugando sin las reglas)</button>
+          {!leaving
+            ? <button className="chip-btn" onClick={() => setLeaving(true)}>Abandonar el desafío</button>
+            : (
+              <div className="confirm-row">
+                <span>¿Qué querés hacer?</span>
+                {actions.hasPreMove() && <button className="btn-center inline" onClick={() => { if (actions.restorePreMove()) onClose(); }}>↩️ Volver a mi partida de antes</button>}
+                <button className="chip-btn" onClick={() => { actions.abandonChallenge(); setLeaving(false); }}>Seguir con esta partida, sin las reglas</button>
+                <button className="chip-btn" onClick={() => setLeaving(false)}>Cancelar</button>
+                {actions.hasPreMove()
+                  ? <small>«Volver a mi partida de antes» te devuelve tu taller como estaba cuando empezaste el desafío (se pierde lo que hiciste desde entonces).</small>
+                  : <small>Esta partida no tiene copia de la de antes. Si seguís, queda como está, sin las reglas del desafío.</small>}
+              </div>
+            )}
         </div>
       )}
       <div className="perk-grid">
@@ -339,7 +352,7 @@ export function ChallengesModal({ s, actions, onClose }) {
               {won ? <span className="own">✔ Superado</span>
                 : cp?.id === id ? <span className="own">En curso</span>
                   : pick === id
-                    ? <div className="confirm-row"><span>Empieza una Mudanza con estas reglas{gain ? ` (ganás ${gain} de Oficio)` : ' (sin Oficio: todavía no alcanza)'}.</span>
+                    ? <div className="confirm-row"><span>⚠️ <b>Empezás de cero</b>: una sola máquina y el primer taller, con estas reglas{gain ? ` (ganás ${gain} de Oficio)` : ' (sin Oficio: todavía no alcanza)'}. <b>Tu taller actual queda guardado</b>: si abandonás, podés volver a él desde acá.</span>
                       <button className="btn-center inline" onClick={() => { actions.startChallenge(id); onClose(); }}>Empezar</button>
                       <button className="chip-btn" onClick={() => setPick(null)}>No</button></div>
                     : <button className="chip-btn wide" disabled={!unlocked || !!cp} onClick={() => setPick(id)}>Jugar este desafío</button>}
@@ -429,7 +442,11 @@ export function OficioModal({ s, actions, onClose }) {
         </>}
         {can && (!sure
           ? <button className="btn-center" onClick={() => setSure(true)}><Icon name="truck" size={18} /> Mudarme y ganar {num(gain)} de Oficio</button>
-          : <div className="confirm-row"><span>¿Confirmás la mudanza? No se puede deshacer.</span>
+          : <div className="confirm-row"><div className="move-warn">
+              <b>¿Confirmás la mudanza?</b>
+              <small>Arrancás de nuevo con <b>1 máquina</b> y el capital de tu valuación. Se reinician las máquinas, las mejoras y la reputación{E.keptRepFrac(s) > 0 ? ` (conservás el ${Math.round(E.keptRepFrac(s) * 100)} % de la reputación)` : ''}. <b>Conservás</b> el Oficio, la Bodega, las fichas, los logros y la Ciudad.</small>
+              <small>Tu partida actual queda guardada: si no te gusta, la recuperás desde <b>Ajustes → «Volver a antes de la última mudanza»</b>.</small>
+            </div>
             <button className="btn-center inline" onClick={() => { actions.move(pick); onClose(); }}>Sí, a la nueva sede</button>
             <button className="chip-btn" onClick={() => setSure(false)}>Todavía no</button></div>)}
         <p className="hint">No es obligatorio: podés seguir creciendo en este taller todo lo que quieras.</p>

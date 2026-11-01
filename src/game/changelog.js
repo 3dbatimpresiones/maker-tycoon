@@ -2,6 +2,21 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '2.0.6', date: '2026-11-01', title: 'Desafíos y Mudanza sin sustos',
+    intro: 'Nos avisaron que abandonar un desafío te dejaba sin tu taller. Tenían razón, y lo arreglamos. ¡Gracias a Chechulina y a Fredy_OnFocus por contarlo!',
+    groups: [
+      ['Desafíos', [
+        'Al empezar un desafío se guarda una copia de tu partida.',
+        'Al abandonarlo podés elegir «Volver a mi partida de antes» o seguir con la partida actual sin las reglas.',
+        'Antes de empezar, el aviso dice claro que arrancás de cero con una sola máquina.',
+      ]],
+      ['Mudanza', [
+        'El aviso explica qué se reinicia y qué conservás (Oficio, Bodega, fichas, logros y Ciudad).',
+        'Ya no dice «no se puede deshacer»: se puede, desde Ajustes → «Volver a antes de la última mudanza».',
+      ]],
+    ],
+  },
+  {
     v: '2.0.5', date: '2026-11-01', title: 'Taller más ordenado',
     intro: 'Una pasada de orden visual para que todo entre mejor y el juego quede a la vista.',
     groups: [

@@ -557,6 +557,8 @@ export function useGame() {
       return true;
     }),
     startChallenge: (id) => {
+      // Igual que la Mudanza: se guarda una copia de tu partida para poder volver si abandonás.
+      try { localStorage.setItem('mt3dbat.save.premove', E.serialize(ref.current)); } catch { /* sin espacio */ }
       const next = E.startChallenge(ref.current, id, null);
       if (next) { sfx.achievement(); replace(next); say(`Arrancó el desafío «${MASTERY_CHALLENGES[id].name}». Regla: ${MASTERY_CHALLENGES[id].rule} Meta: ${MASTERY_CHALLENGES[id].goalText}`, { mood: 'wink' }); }
       return !!next;
