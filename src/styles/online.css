@@ -551,3 +551,82 @@
 .fil-item > .shop-actions .custom-buy input { flex: 1 1 55%; }
 .fil-item > .shop-actions .custom-buy .buy-btn { flex: 1 1 45%; }
 .fil-item > .shop-actions .lock-row { width: 100%; }
+
+/* Encabezado: título/estado arriba y botones debajo, las dos filas centradas */
+@media (min-width: 761px) {
+  header.topbar > .top-actions { flex: 1 1 100%; margin: 0; justify-content: center; }
+}
+@media (min-width: 761px) { header.topbar > .top-actions .acct-chip { margin-right: 0; } }
+
+/* Taller: el título (Escritorio del cuarto, 3D/Lista, contadores) comparte línea con Dinero, Reputación, Materiales y Fichas */
+@media (min-width: 761px) {
+  .hud-top { display: none; }
+  .wk-top { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .wk-top > .card-head { flex: 1 1 auto; padding: 0; margin: 0; border: 0; min-width: 0; }
+  .wk-top .card-head .head-txt small { display: none; }
+  .wk-top > .hud-card { flex: 0 1 auto; margin: 0; padding: 0; background: none; border: 0; box-shadow: none; gap: 8px; flex-wrap: nowrap; justify-content: flex-end; width: auto; }
+  .wk-top .hud-card > * { padding: 5px 12px; }
+  .wk-top .hud-card .hud-label { font-size: 9px; }
+  .wk-top .hud-card .hud-money { flex: 0 1 auto; min-width: 150px; }
+  .wk-top .hud-card .hud-money b { font-size: 20px; }
+  .wk-top .hud-card .hud-money small { display: none; }
+  .wk-top .hud-card .hud-rep, .wk-top .hud-card .hud-tokens { flex: 0 1 auto; min-width: 90px; }
+  .wk-top .hud-card .hud-rep b, .wk-top .hud-card .hud-tokens b { font-size: 16px; }
+  .wk-top .hud-card .hud-fil { flex: 0 1 auto; min-width: 150px; max-width: 300px; }
+}
+@media (max-width: 760px) { .hud-card { display: none; } }
+
+/* Taller (pantallas anchas): recursos a la izquierda, contadores a la derecha; el título y 3D/Lista flotan sobre el juego, arriba a la derecha, al lado del botón de centrar */
+.scene-title { display: none; }
+@media (min-width: 761px) {
+  .wk-orig { display: none; }
+  .wk-top > .hud-card { order: 1; justify-content: flex-start; }
+  .wk-top > .card-head { order: 2; flex: 0 0 auto; margin-left: auto; }
+  .scene-title { display: flex; align-items: center; gap: 10px; position: absolute; right: 58px; top: 10px; z-index: 4; height: 38px; padding: 0 6px 0 12px; border-radius: 12px; background: rgba(13,20,51,.78); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(6px); color: #fff; }
+  .scene-title b { font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .scene-title .view-toggle { margin: 0; }
+  .scene-wrap.is-list { padding-top: 52px; }
+}
+
+/* Todo se adapta al contenido: lo que no entra baja de fila o se acorta con "…"; nada se sale de su caja */
+.hud > * { min-width: 0; max-width: 100%; }
+.hud .hud-money b, .hud .hud-rep b, .hud .hud-tokens b, .hud .hud-maker b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud .hud-money small, .hud .hud-maker small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud .fil-chips { flex-wrap: wrap; row-gap: 4px; }
+.hud .fil-chip { max-width: 100%; }
+.shop-txt, .shop-txt b, .shop-txt small, .head-txt, .head-txt h2 { overflow-wrap: anywhere; }
+.card-head { min-width: 0; }
+.card-head h2 { overflow-wrap: anywhere; }
+@media (min-width: 761px) {
+  .wk-top > .hud-card { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+  .wk-top > .card-head { flex-wrap: wrap; justify-content: flex-end; max-width: 100%; }
+  .scene-title { max-width: calc(100% - 120px); }
+  .scene-title b { min-width: 0; max-width: 28ch; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* La misión va en la misma línea que los recursos (en el espacio libre); si no entra, baja de fila */
+@media (min-width: 761px) {
+  .wk-top > .hud-card { order: 1; }
+  .wk-top > .mission-strip { order: 2; flex: 1 1 260px; min-width: 0; margin: 0; align-self: stretch; }
+  .wk-top > .card-head { order: 3; }
+}
+
+/* Barra de ingreso arriba del juego (compacta) */
+@media (min-width: 761px) {
+  .main-card > .result-bar { margin: 0 0 10px; padding: 8px 14px; gap: 12px; }
+  .main-card > .result-bar .result-main { font-size: 18px; }
+  .main-card > .result-bar .rb-stats { min-width: 0; }
+}
+
+/* Barra de ingreso del taller: estilo oscuro de las demás tarjetas (antes era un bloque cyan que desentonaba) */
+.main-card > .result-bar { background: rgba(19,29,71,.55); border: 1px solid var(--line); color: #fff; box-shadow: none; }
+.main-card > .result-bar .result-label { color: var(--cyan); }
+.main-card > .result-bar .result-main { color: #fff; }
+.main-card > .result-bar .rb-stats div { background: rgba(255,255,255,.07); color: #cbd5e1; }
+.main-card > .result-bar .rb-stats b { color: #fff; }
+.main-card > .result-bar .rb-stats .trend { background: rgba(247,142,182,.18); }
+.main-card > .result-bar .rb-stats .trend b { color: var(--pink); }
+.main-card > .result-bar .btn-apply { background: rgba(93,218,219,.12); color: var(--cyan); border: 1px solid rgba(93,218,219,.45); box-shadow: none; }
+.main-card > .result-bar .btn-apply:hover:not(:disabled) { background: rgba(93,218,219,.2); border-color: var(--cyan); }
+.main-card > .result-bar .mate-btn.on { background: rgba(93,218,219,.28); color: #fff; }
+.main-card > .result-bar .mate-btn:disabled { background: rgba(255,255,255,.05); color: #94a3b8; border-color: rgba(255,255,255,.12); opacity: 1; }

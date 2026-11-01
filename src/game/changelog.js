@@ -2,6 +2,22 @@
 // la primera vez que alguien entra en el día o cuando hay una versión nueva.
 export const CHANGELOG = [
   {
+    v: '2.0.5', date: '2026-11-01', title: 'Taller más ordenado',
+    intro: 'Una pasada de orden visual para que todo entre mejor y el juego quede a la vista.',
+    groups: [
+      ['Taller', [
+        'Dinero, Reputación, Materiales, Fichas y la misión comparten línea arriba del taller.',
+        'El nombre del taller y el selector 3D / Lista flotan sobre el juego, al lado del botón de centrar.',
+        'La barra de ingreso subió arriba del juego y pasó al estilo oscuro del resto.',
+      ]],
+      ['Tienda', [
+        'Las tarjetas de máquinas y de filamentos tienen los botones de compra abajo, a todo el ancho.',
+        'El botón Máx muestra la cantidad abreviada y nada se sale de su caja, aunque haya mucha plata o mucho texto.',
+      ]],
+      ['Encabezado', ['Los botones del encabezado quedan centrados, en dos filas ordenadas.']],
+    ],
+  },
+  {
     v: '2.0.4', date: '2026-11-01', title: 'Ideas de la comunidad',
     intro: 'Cambios que nos pidieron ustedes desde Sugerencias. ¡Gracias a Gustavo, Rosario3D, 3DFOTOS.AE -elcompy y Chechulina!',
     groups: [

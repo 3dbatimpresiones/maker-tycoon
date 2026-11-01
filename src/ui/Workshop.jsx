@@ -6,6 +6,7 @@ import { MachineThumb, ProductThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
 import { MACHINES, PRODUCTS, SPACES, MACHINE_EVENTS, GLOBAL_EVENTS, FLOORS, FLOOR_SLOTS } from '../game/data.js';
 import FloorTabs from './FloorTabs.jsx';
+import { Hud } from './Header.jsx';
 import { ExpoStrip } from './City.jsx';
 import { StoryStrip } from './BatiPanel.jsx';
 import { DuelStrip } from './League.jsx';
@@ -123,31 +124,73 @@ export default function Workshop({ s, live, actions, floats, onMachine, onEvent,
     else if (m.event) onEvent(m);
     else onMachine(m);
   };
+  const viewToggle = (
+    <div className="view-toggle mini-toggle">
+      <button className={'seg' + (view === '3d' ? ' active' : '')} disabled={fail3d} onClick={() => actions.setting('view', '3d')}>3D</button>
+      <button className={'seg' + (view === 'lista' ? ' active' : '')} onClick={() => actions.setting('view', 'lista')}>Lista</button>
+    </div>
+  );
   return (
     <section className="card main-card" data-tab="taller">
+      <div className="wk-top">
       <div className="card-head">
-        <div className="card-icon"><Icon name="factory" /></div>
-        <div className="head-txt"><h2>{sp.name}</h2><small>{sp.blurb}</small></div>
-        <div className="view-toggle mini-toggle">
-          <button className={'seg' + (view === '3d' ? ' active' : '')} disabled={fail3d} onClick={() => actions.setting('view', '3d')}>3D</button>
-          <button className={'seg' + (view === 'lista' ? ' active' : '')} onClick={() => actions.setting('view', 'lista')}>Lista</button>
+        <div className="wk-orig">
+          <div className="card-icon"><Icon name="factory" /></div>
+          <div className="head-txt"><h2>{sp.name}</h2><small>{sp.blurb}</small></div>
+          {viewToggle}
         </div>
         <button className="slots-chip bodega-chip" onClick={() => open('bodega')} title="Bodega: máquinas guardadas para cambiar cuando haga falta">📦 {(s.storage || []).length}/{E.storageCap(s)}</button>
         <span className="slots-chip" title={floors ? `Piso ${FLOORS.find((f) => f.id === floor).long} · ${s.machines.length} máquinas en toda la nave` : ''}>{shown.length}/{cap}</span>
       </div>
-      <ChallengeStrip s={s} open={open} />
-      <ExpoStrip s={s} open={open} />
-      <LiveStrip live={live} />
-      <DuelStrip s={s} open={open} />
-      <StoryStrip s={s} open={open} />
+      <Hud s={s} where="card" onFilament={() => goShop('filament')} onTokens={() => open('desafios')} />
       {mission.id !== 'libre' && (
         <div className={'mission-strip' + (s.tutorial.active ? ' tut' : '')}>
           <Icon name="target" size={16} /><span><b>{s.tutorial.active ? 'TUTORIAL' : 'MISIÓN'}</b> {fmtText(mission.text)}</span>
           {mission.reward && <em>{mission.reward.money ? '+' + money(mission.reward.money) : mission.reward.tokens ? `+${mission.reward.tokens} 🎟️` : '+1 ' + (mission.reward.spool === 'PLA' || mission.reward.spool === 'PETG' ? 'bobina' : 'unidad')}</em>}
         </div>
       )}
+      </div>
+      <ChallengeStrip s={s} open={open} />
+      <ExpoStrip s={s} open={open} />
+      <LiveStrip live={live} />
+      <DuelStrip s={s} open={open} />
+      <StoryStrip s={s} open={open} />
+      <div className="result-bar">
+        <div className="rb-status">
+          <span className="result-label">INGRESO</span>
+          <span className="result-main">{rate(r)}</span>
+        </div>
+        <div className="rb-stats">
+          <div><span>Piezas</span><b>{s.run.pieces.toLocaleString('es-AR')}</b></div>
+          {trendOn && <div className="trend"><span>Tendencia ×2</span><b>{PRODUCTS[s.trend.p].name} · {clock(s.trend.until - s.time)}</b></div>}
+          {s.time < s.boost.viral && <div className="trend"><span>Viral ×2</span><b>{clock(s.boost.viral - s.time)}</b></div>}
+          {s.time < s.boost.turbo && <div className="trend"><span>Turbo ×2</span><b>{clock(s.boost.turbo - s.time)}</b></div>}
+          {s.time < s.boost.feria && <div className="trend"><span>Feria ×1,5</span><b>{clock(s.boost.feria - s.time)}</b></div>}
+        </div>
+        <div className="rb-actions">
+          <button className="btn-apply stats-btn" onClick={() => open('stats')} title="Estadísticas del taller">📊</button>
+          <button className={'btn-apply mate-btn' + (mateOn ? ' on' : '') + (glow === 'mate' && mateReady ? ' tut-glow' : '')}
+            disabled={!mateReady} onClick={actions.mate} title="Atajo: M">
+            🧉 {E.rule(s, 'sinmate') ? 'Sin mate (desafío)' : mateOn ? `Mate activo · ${Math.ceil(s.mate.until - s.time)} s` : mateReady ? `Cebar mate (+${Math.round((E.mateBoost(s) - 1) * 100)} %)` : `Mate en ${clock(s.mate.ready - s.time)}`}
+          </button>
+          <span className="mate-help">
+            <button className="mate-q" onClick={() => setMateInfo((v) => !v)} aria-label="¿Qué hace el mate?"
+              title={`El mate acelera todas tus máquinas un ${Math.round((E.mateBoost(s) - 1) * 100)} % durante ${dur(E.mateDuration(s))}. Después hay que esperar ${dur(E.mateCooldown(s))} para cebar otro.`}>?</button>
+            {mateInfo && (
+              <span className="mate-pop" role="dialog" onMouseLeave={() => setMateInfo(false)}>
+                <b>🧉 ¿Qué hace el mate?</b>
+                <span>Acelera <b>todas tus máquinas un {Math.round((E.mateBoost(s) - 1) * 100)} %</b> durante <b>{dur(E.mateDuration(s))}</b>: fabrican más rápido y ganás más.</span>
+                <span>Después hay que esperar <b>{dur(E.mateCooldown(s))}</b> para cebar otro (el botón muestra cuánto falta).</span>
+                <span>Atajo: tecla <b>M</b>. Cebar mates también suma para los desafíos.</span>
+                <span className="muted">Con las mejoras Termo y Yerba premium dura más y se recarga antes.</span>
+              </span>
+            )}
+          </span>
+        </div>
+      </div>
       <FloorTabs s={s} actions={actions} />
-      <div className="scene-wrap">
+      <div className={'scene-wrap' + (view === 'lista' ? ' is-list' : '')}>
+        <div className="scene-title"><Icon name="factory" size={18} /><b>{sp.name}</b>{viewToggle}</div>
         <GlobalBanner s={s} actions={actions} />
         {view === '3d' ? (
           <Scene3D s={s} actions={actions} floats={floats} onTap={onTap} onEmpty={() => goShop('machines')} onFail={() => setFail3d(true)} glow={glow} onFeedback={() => open('sugerencias')} podium={podium} gifts={gifts} />
@@ -187,39 +230,6 @@ export default function Workshop({ s, live, actions, floats, onMachine, onEvent,
           })}
         </div>
       )}
-      <div className="result-bar">
-        <div className="rb-status">
-          <span className="result-label">INGRESO</span>
-          <span className="result-main">{rate(r)}</span>
-        </div>
-        <div className="rb-stats">
-          <div><span>Piezas</span><b>{s.run.pieces.toLocaleString('es-AR')}</b></div>
-          {trendOn && <div className="trend"><span>Tendencia ×2</span><b>{PRODUCTS[s.trend.p].name} · {clock(s.trend.until - s.time)}</b></div>}
-          {s.time < s.boost.viral && <div className="trend"><span>Viral ×2</span><b>{clock(s.boost.viral - s.time)}</b></div>}
-          {s.time < s.boost.turbo && <div className="trend"><span>Turbo ×2</span><b>{clock(s.boost.turbo - s.time)}</b></div>}
-          {s.time < s.boost.feria && <div className="trend"><span>Feria ×1,5</span><b>{clock(s.boost.feria - s.time)}</b></div>}
-        </div>
-        <div className="rb-actions">
-          <button className="btn-apply stats-btn" onClick={() => open('stats')} title="Estadísticas del taller">📊</button>
-          <button className={'btn-apply mate-btn' + (mateOn ? ' on' : '') + (glow === 'mate' && mateReady ? ' tut-glow' : '')}
-            disabled={!mateReady} onClick={actions.mate} title="Atajo: M">
-            🧉 {E.rule(s, 'sinmate') ? 'Sin mate (desafío)' : mateOn ? `Mate activo · ${Math.ceil(s.mate.until - s.time)} s` : mateReady ? `Cebar mate (+${Math.round((E.mateBoost(s) - 1) * 100)} %)` : `Mate en ${clock(s.mate.ready - s.time)}`}
-          </button>
-          <span className="mate-help">
-            <button className="mate-q" onClick={() => setMateInfo((v) => !v)} aria-label="¿Qué hace el mate?"
-              title={`El mate acelera todas tus máquinas un ${Math.round((E.mateBoost(s) - 1) * 100)} % durante ${dur(E.mateDuration(s))}. Después hay que esperar ${dur(E.mateCooldown(s))} para cebar otro.`}>?</button>
-            {mateInfo && (
-              <span className="mate-pop" role="dialog" onMouseLeave={() => setMateInfo(false)}>
-                <b>🧉 ¿Qué hace el mate?</b>
-                <span>Acelera <b>todas tus máquinas un {Math.round((E.mateBoost(s) - 1) * 100)} %</b> durante <b>{dur(E.mateDuration(s))}</b>: fabrican más rápido y ganás más.</span>
-                <span>Después hay que esperar <b>{dur(E.mateCooldown(s))}</b> para cebar otro (el botón muestra cuánto falta).</span>
-                <span>Atajo: tecla <b>M</b>. Cebar mates también suma para los desafíos.</span>
-                <span className="muted">Con las mejoras Termo y Yerba premium dura más y se recarga antes.</span>
-              </span>
-            )}
-          </span>
-        </div>
-      </div>
     </section>
   );
 }

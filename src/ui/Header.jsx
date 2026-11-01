@@ -52,12 +52,12 @@ export function Header({ s, actions, open, online, chat }) {
 
 const SHORT = { PACF: 'PA-CF', ACRILICO: 'Acrílico', MADERA: 'Madera', RESINA: 'Resina', ALU: 'Alu', ASA: 'ASA' };
 
-export function Hud({ s, onFilament, onTokens }) {
+export function Hud({ s, onFilament, onTokens, where = 'top' }) {
   const rp = E.repProgress(s);
   const r = E.incomeRate(s);
   const mats = MATERIAL_ORDER.filter((m) => s.mat[m] > 0 || (E.materialUnlocked(s, m) && E.techUnlocked(s, MATERIALS[m].tech) && s.machines.some((x) => MACHINES[x.model].tech === MATERIALS[m].tech)));
   return (
-    <div className="hud" role="region" aria-label="Recursos">
+    <div className={'hud hud-' + where} role="region" aria-label="Recursos">
       <div className="hud-money">
         <span className="hud-label">DINERO</span>
         <b title={full(s.money)}>{money(s.money)}</b>
