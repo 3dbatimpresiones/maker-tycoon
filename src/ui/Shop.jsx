@@ -6,7 +6,7 @@ import Icon from './Icon.jsx';
 import { MachineThumb } from './Thumb.jsx';
 import * as E from '../game/engine.js';
 import { MACHINES, MACHINE_ORDER, UPGRADES, UPGRADE_ORDER, SPACES, MATERIALS, MATERIAL_ORDER, PRODUCTS, TECHS, SIZE_NAME, UNIT } from '../game/data.js';
-import { money, dur, kg } from '../game/format.js';
+import { money, dur, kg, num } from '../game/format.js';
 import { FILACOLOR, fcUrl, fcPhoto } from '../online/filacolor.js';
 import fcLogo from '../assets/filacolor-logo.png';
 import Market, { WearBar } from './Market.jsx';
@@ -41,7 +41,7 @@ function QtyBtn({ s, cost, onClick, disabled, label }) {
   return (
     <button className={'qty-btn' + (ok ? ' ok' : '')} disabled={!ok} onClick={onClick}
       title={ok ? undefined : disabled ? 'Todavía no te alcanza' : `Te faltan ${money(cost - s.money)}`}>
-      <b>{label}</b><small>{money(cost)}</small>
+      <b title={label}>{label}</b><small title={money(cost)}>{money(cost)}</small>
     </button>
   );
 }
@@ -168,12 +168,14 @@ function Machines({ s, actions, glow }) {
                 <span>Fallas {Math.round(M.fail * 1000) / 10} %</span>
                 {owned > 0 && <span className="own">Tenés {owned}</span>}
               </div>
-              {unlocked
-                ? <BuyBtn s={s} cost={E.machineCost(s, id)} disabled={full} label={full ? 'Sin lugar' : 'Comprar'} onClick={() => actions.buyMachine(id)} glow={glow === 'shop-machines' && !full && s.money >= E.machineCost(s, id)} />
-                : <div className="lock-row"><Icon name="lock" size={14} /> {E.machineLockReason(s, id).join(' · ')}</div>}
-              {unlocked && !s.tutorial?.active && (E.tradeCandidates(s, id).length > 0 || (s.tokens || 0) > 0) && (
-                <button className="chip-btn tr-btn" onClick={() => setTrade(id)} title="Entregá máquinas más chicas como parte de pago">🔁 Plan canje{full ? ' (libera lugar)' : ''}</button>
-              )}
+            </div>
+            <div className="shop-actions">
+            {unlocked
+              ? <BuyBtn s={s} cost={E.machineCost(s, id)} disabled={full} label={full ? 'Sin lugar' : 'Comprar'} onClick={() => actions.buyMachine(id)} glow={glow === 'shop-machines' && !full && s.money >= E.machineCost(s, id)} />
+              : <div className="lock-row"><Icon name="lock" size={14} /> {E.machineLockReason(s, id).join(' · ')}</div>}
+            {unlocked && !s.tutorial?.active && (E.tradeCandidates(s, id).length > 0 || (s.tokens || 0) > 0) && (
+              <button className="chip-btn tr-btn" onClick={() => setTrade(id)} title="Entregá máquinas más chicas como parte de pago">🔁 Plan canje{full ? ' (libera lugar)' : ''}</button>
+            )}
             </div>
           </div>
         );
@@ -313,30 +315,32 @@ function Materials({ s, actions }) {
                 <span>Stock: {M.unitName === 'bobina' || M.unitName === 'litro' ? kg(s.mat[k]).replace('kg', M.unitName === 'litro' ? 'L' : 'kg') : `${units.toLocaleString('es-AR', { maximumFractionDigits: 1 })} ${M.unitName}s`}</span>
                 {upm > 0 && <span>Alcanza: {dur((s.mat[k] / upm) * 60)}</span>}
               </div>
-              {unlocked ? (
-                <>
-                  <div className="qty-grid">
-                    {[[1, `1 ${M.unitName}`], [5, '×5'], [25, '×25'], [100, '×100'], [500, '×500']].map(([n, lb]) => (
-                      <QtyBtn key={n} s={s} cost={price * n} label={lb} onClick={() => actions.buyMat(k, n)} />
-                    ))}
-                    {(() => {
-                      const mx = Math.floor(s.money / price);
-                      const spend = () => {
-                        const tot = price * mx;
-                        if (!window.confirm(`⚠️ Vas a gastar TODA tu plata: ${mx.toLocaleString('es-AR')} ${M.unitName}s por ${money(tot)}.
+            </div>
+            <div className="shop-actions">
+            {unlocked ? (
+              <>
+                <div className="qty-grid">
+                  {[[1, `1 ${M.unitName}`], [5, '×5'], [25, '×25'], [100, '×100'], [500, '×500']].map(([n, lb]) => (
+                    <QtyBtn key={n} s={s} cost={price * n} label={lb} onClick={() => actions.buyMat(k, n)} />
+                  ))}
+                  {(() => {
+                    const mx = Math.floor(s.money / price);
+                    const spend = () => {
+                      const tot = price * mx;
+                      if (!window.confirm(`⚠️ Vas a gastar TODA tu plata: ${mx.toLocaleString('es-AR')} ${M.unitName}s por ${money(tot)}.
 
 ¿Querés continuar?`)) return;
-                        if (!window.confirm(`🛑 ÚLTIMO AVISO: te vas a quedar casi sin dinero (${money(s.money - tot)}).
+                      if (!window.confirm(`🛑 ÚLTIMO AVISO: te vas a quedar casi sin dinero (${money(s.money - tot)}).
 
 ¿Estás completamente seguro de gastar todo?`)) return;
-                        actions.buyMat(k, mx);
-                      };
-                      return <QtyBtn s={s} cost={price * Math.max(1, mx)} disabled={mx < 1} label={mx >= 1 ? `Máx ×${mx.toLocaleString('es-AR')}` : 'Máx'} onClick={spend} />;
-                    })()}
-                  </div>
-                  <CustomBuy s={s} price={price} unit={M.unitName} onBuy={(n) => actions.buyMat(k, n)} />
-                </>
-              ) : <div className="lock-row"><Icon name="lock" size={14} /> {UPGRADES[M.upgrade].name}</div>}
+                      actions.buyMat(k, mx);
+                    };
+                    return <QtyBtn s={s} cost={price * Math.max(1, mx)} disabled={mx < 1} label={mx >= 1 ? `Máx ×${num(mx)}` : 'Máx'} onClick={spend} />;
+                  })()}
+                </div>
+                <CustomBuy s={s} price={price} unit={M.unitName} onBuy={(n) => actions.buyMat(k, n)} />
+              </>
+            ) : <div className="lock-row"><Icon name="lock" size={14} /> {UPGRADES[M.upgrade].name}</div>}
             </div>
           </div>
         );
